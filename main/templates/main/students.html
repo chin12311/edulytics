@@ -1,0 +1,77 @@
+{% extends 'main/base.html' %}
+{% block title %} base html {% endblock %}
+{% block content %}
+{% if request.user.userprofile.role == 'Admin' %}
+
+<div class="container mt-5">
+
+<h2 class="text-center mb-4">User Account Management</h2>
+
+    <!-- Action Buttons -->
+    <div class="mb-3 d-flex justify-content-end">
+        <form action="{% url 'register' %}" method="get">
+            {% csrf_token %}
+            <button type="submit"class="btn btn-success me-2" >Add Account</button>
+        </form>
+        <button class="btn btn-success me-2" id="editAccountBtn" disabled>Edit Account</button>
+        <button class="btn btn-success me-2" id="deleteAccountBtn" disabled>Delete Account</button>
+        <button class="btn btn-success">Evaluation</button>
+    </div>
+
+    <!-- User Accounts Table -->
+    <table class="table table-bordered table-striped text-center">
+        <thead class="bg-success text-white">
+            <tr>
+                <th>Name</th>
+                <th>Student Number</th>
+                <th>Email Address</th>
+                <th>Course</th>
+            </tr>
+        </thead>
+        <tbody id="accountTableBody">
+            <!-- Dynamic content will be added here -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Account Modal -->
+<div class="modal fade" id="addAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Add Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="addAccount()">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Account Modal -->
+<div class="modal fade" id="editAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title">Edit Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="editName" class="form-control mb-2">
+                <input type="text" id="editStudentNumber" class="form-control mb-2">
+                <input type="email" id="editEmail" class="form-control mb-2">
+                <input type="text" id="editCourse" class="form-control mb-2">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="editAccount()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+    <h1>{{ request.user.username }}</h1>
+{% endif %}
+{% endblock %}

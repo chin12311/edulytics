@@ -1,0 +1,10 @@
+{% extends 'main/base.html' %}
+{% block title %} base html {% endblock %}
+{% block content %}
+{% for teacher in teachers %}
+    <h1>{{ teacher.name }}</h1>
+    {% for rating in teacher.ratings.all %}
+        <li>{{ rating.score }} - {{ rating.review }}</li>
+    {% endfor %}
+{% endfor %}
+{% endblock %}
