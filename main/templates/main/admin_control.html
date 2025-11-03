@@ -1,0 +1,528 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Admin Control Panel{% endblock %}
+
+{% block body_style %} 
+style="background-image: url('{% static 'img/phoenix-background.png' %}'); 
+        background-repeat: no-repeat; 
+        background-size: cover; 
+        background-position: center; 
+        min-height: 100vh;" 
+{% endblock %}
+
+{% block content %}
+<style>
+    /* Your existing CSS styles remain the same */
+    .custom-input-width {
+        width: 100%;
+        margin: 0 auto;
+        border-radius: 20px;
+        padding: 10px 20px;
+    }
+
+    .form-card {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-top: 50px;
+        opacity: 0;
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+    h2, h3, h5 { font-family: 'Arial', sans-serif; font-weight: 600; color: #47682c; margin-bottom: 25px; }
+    label { font-weight: bold; color: #47682c; margin-bottom: 5px; }
+    .form-control { border-radius: 20px; padding: 10px; border: 1px solid #ddd; transition: all 0.3s ease; }
+    .form-control:focus { border-color: #47682c; box-shadow: 0 0 5px rgba(71,104,44,0.3); }
+    .btn-success { background-color: #47682c; border: none; color: white; border-radius: 20px; padding: 12px 25px; font-weight: bold; transition: all 0.3s ease; margin: 5px; }
+    .btn-success:hover { background-color: #3a5a29; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .btn-warning { background-color: #ffc107; border: none; color: white; border-radius: 20px; padding: 12px 25px; font-weight: bold; transition: all 0.3s ease; margin: 5px; }
+    .btn-warning:hover { background-color: #e0a800; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .btn-info { background-color: #17a2b8; border: none; color: white; border-radius: 20px; padding: 12px 25px; font-weight: bold; transition: all 0.3s ease; margin: 5px; }
+    .btn-info:hover { background-color: #138496; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .btn-danger { background-color: #dc3545; border: none; color: white; border-radius: 20px; padding: 12px 25px; font-weight: bold; transition: all 0.3s ease; margin: 5px; }
+    .btn-danger:hover { background-color: #c82333; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .btn-secondary { background-color: #6c757d; border: none; color: white; border-radius: 20px; padding: 12px 25px; font-weight: bold; transition: all 0.3s ease; margin: 5px; }
+    .btn-secondary:hover { background-color: #5a6268; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .text-center { text-align: center; }
+    .mb-4 { margin-bottom: 25px; }
+    .form-group { margin-bottom: 20px; }
+
+    .card {
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    .card-body {
+        padding: 25px;
+    }
+
+    .table {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .table thead {
+        background-color: #47682c;
+        color: white;
+    }
+
+    .table th {
+        border: none;
+        padding: 15px;
+        font-weight: 600;
+    }
+
+    .table td {
+        padding: 15px;
+        vertical-align: middle;
+        border-color: #e9ecef;
+    }
+
+    .badge {
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .control-buttons {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .stat-card {
+        background: #47682c;
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    /* Checkbox styling */
+    .user-checkbox {
+        transform: scale(1.2);
+        margin-right: 10px;
+    }
+
+    .selected-count {
+        background: #47682c;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+
+    /* Success message styling */
+    .alert-success {
+        background: #47682c;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 15px;
+    }
+
+    @media (max-width: 768px) {
+        .control-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .btn {
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-card {
+            padding: 20px;
+            margin: 15px;
+        }
+    }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="form-card col-12">
+        <h2 class="text-center">Admin Control Panel</h2>
+        
+        <!-- Display Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Current Status -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="text-center">Current Status</h5>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">
+                            {{ evaluation_status.is_active|yesno:"Active,Ended" }}
+                        </div>
+                        <div class="stat-label">Evaluation Period</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">
+                            {{ evaluation_status.can_view_results|yesno:"Yes,No" }}
+                        </div>
+                        <div class="stat-label">Results Visible</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">
+                            {{ staff_stats|length|default:0 }}
+                        </div>
+                        <div class="stat-label">Total Staff</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Control Buttons -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="text-center">Evaluation Controls</h5>
+                <div class="control-buttons">
+                    <button class="btn btn-success" onclick="releaseAllEvaluations()" id="releaseBtn">
+                        Release All Evaluations
+                    </button>
+                    <button class="btn btn-warning" onclick="unreleaseAllEvaluations()" id="unreleaseBtn">
+                        Unrelease All Evaluations
+                    </button>
+                    <button class="btn btn-info" onclick="processResults()" id="processBtn">
+                        Process Results
+                    </button>
+                    <button class="btn btn-danger" onclick="resetAllFailures()" id="resetAllBtn">
+                        Reset All Failures
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Staff Failure Status with Reset Selected Form -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-center mb-0">Staff Evaluation Status</h5>
+                    <div class="d-flex align-items-center">
+                        <!-- Reset Selected Form -->
+                        <form method="POST" action="{% url 'main:reset_selected_failures' %}" id="resetSelectedForm" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="selected_users" id="selectedUsersInput">
+                            <button type="submit" class="btn btn-secondary" id="resetSelectedBtn" disabled 
+                                    onclick="return confirmResetSelected()">
+                                Reset Selected <span id="selectedCount" class="selected-count">0</span>
+                            </button>
+                        </form>
+                        
+                        <!-- Select All Checkbox -->
+                        <div class="form-check ms-3">
+                            <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
+                            <label class="form-check-label" for="selectAllCheckbox">
+                                Select All
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="50px">Select</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Score</th>
+                                <th>Failures</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for staff in staff_stats %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="user-checkbox" name="user_ids" 
+                                           value="{{ staff.user.id }}" 
+                                           data-username="{{ staff.user.username }}" 
+                                           data-failures="{{ staff.stats.failure_count }}"
+                                           onchange="updateSelectedCount()">
+                                </td>
+                                <td><strong>{{ staff.user.get_full_name|default:staff.user.username }}</strong></td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ staff.user.userprofile.role }}</span>
+                                </td>
+                                <td>
+                                    <span class="{% if staff.stats.overall_score < 70 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                        {{ staff.stats.overall_score }}%
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if staff.stats.failure_count > 0 %}
+                                        <span class="badge bg-danger">{{ staff.stats.failure_count }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">0</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if staff.stats.alert_sent %}
+                                        <span class="badge bg-danger">Alert Sent</span>
+                                    {% elif staff.stats.failure_count > 0 %}
+                                        <span class="badge bg-warning">{{ staff.stats.failure_count }} failure{{ staff.stats.failure_count|pluralize }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Good</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    No staff members found.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+// Toast notification function
+function showToast(message, type = 'success') {
+    // Create a simple toast notification
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'error' ? '#dc3545' : '#47682c'};
+        color: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        z-index: 1001;
+        animation: slideInRight 0.3s ease-out;
+    `;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease-out';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+// Add CSS for animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOutRight {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
+async function makeRequest(url, buttonId, confirmMessage = null) {
+    const button = document.getElementById(buttonId);
+    
+    if (confirmMessage && !confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Simple loading state
+    const originalText = button.innerHTML;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
+    button.disabled = true;
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('✅ ' + (data.message || 'Operation completed successfully'));
+            
+            if (data.processing_results) {
+                console.log('Processing details:', data.processing_results);
+                const failureCount = data.processing_results.filter(r => r.includes('Failed')).length;
+                const alertCount = data.processing_results.filter(r => r.includes('Alert email sent')).length;
+                
+                if (failureCount > 0 || alertCount > 0) {
+                    showToast(`📊 Processed ${failureCount} failure(s) and sent ${alertCount} alert(s)`);
+                }
+            }
+            
+            // Reload after a short delay
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('❌ ' + (data.error || 'Operation failed'), 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('❌ Network error occurred', 'error');
+    } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+
+function releaseAllEvaluations() {
+    makeRequest('/release-all-evaluations/', 'releaseBtn', 'Release BOTH student and peer evaluations?');
+}
+
+function unreleaseAllEvaluations() {
+    makeRequest('/unrelease-all-evaluations/', 'unreleaseBtn', 'Unrelease BOTH student and peer evaluations? This will process results for both.');
+}
+
+function processResults() {
+    makeRequest('/process-results/', 'processBtn', 'Process evaluation results?');
+}
+
+function resetAllFailures() {
+    makeRequest('/reset-failures/', 'resetAllBtn', 'Reset ALL failure counts? This cannot be undone.');
+}
+
+let selectedUsers = new Set();
+
+// Update selected count display
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    selectedUsers = new Set(Array.from(checkboxes).map(cb => cb.value));
+    
+    const selectedCount = document.getElementById('selectedCount');
+    const resetSelectedBtn = document.getElementById('resetSelectedBtn');
+    const selectedUsersInput = document.getElementById('selectedUsersInput');
+    
+    // Debug log
+    console.log('Selected users:', Array.from(selectedUsers));
+    console.log('Selected count:', selectedUsers.size);
+    
+    selectedCount.textContent = selectedUsers.size;
+    
+    // Enable/disable the reset button
+    if (resetSelectedBtn) {
+        resetSelectedBtn.disabled = selectedUsers.size === 0;
+        console.log('Reset button disabled:', resetSelectedBtn.disabled);
+    }
+    
+    // Update hidden input with selected user IDs as comma-separated string
+    if (selectedUsersInput) {
+        selectedUsersInput.value = Array.from(selectedUsers).join(',');
+        console.log('Hidden input value:', selectedUsersInput.value);
+    }
+}
+
+// Select all functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedCount();
+        });
+    }
+    
+    // Initialize checkboxes event listeners
+    const checkboxes = document.querySelectorAll('.user-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    // Initialize the selected count on page load
+    updateSelectedCount();
+});
+
+// Confirmation for reset selected
+function confirmResetSelected() {
+    console.log('confirmResetSelected called');
+    console.log('Selected users count:', selectedUsers.size);
+    
+    if (selectedUsers.size === 0) {
+        alert('Please select at least one user to reset.');
+        return false;
+    }
+    
+    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    let userList = '';
+    
+    checkboxes.forEach((checkbox, index) => {
+        const username = checkbox.getAttribute('data-username');
+        const failures = checkbox.getAttribute('data-failures');
+        userList += `${index + 1}. ${username} (${failures} failures)\n`;
+    });
+    
+    const confirmation = confirm(`Reset failure counts for ${selectedUsers.size} user(s)?\n\n${userList}\n\nClick OK to confirm.`);
+    console.log('User confirmed:', confirmation);
+    return confirmation;
+}
+</script>
+{% endblock %}

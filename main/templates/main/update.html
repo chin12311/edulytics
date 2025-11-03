@@ -1,0 +1,490 @@
+{% extends 'main/base.html' %}
+{% block title %}Edit Profile{% endblock %}
+
+{% load static %}
+
+{% block body_style %} 
+style="background-image: url('{% static 'img/phoenix-background.png' %}'); 
+        background-repeat: no-repeat; 
+        background-size: cover; 
+        background-position: center; 
+        min-height: 100vh;" 
+{% endblock %}
+
+{% block content %}
+<style>
+    .custom-input-width {
+        width: 100%;
+        margin: 0 auto;
+        border-radius: 20px;
+        padding: 10px 20px;
+    }
+
+    .form-card {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-top: 50px;
+        opacity: 0;
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+    h2, h3 { font-family: 'Arial', sans-serif; font-weight: 600; color: #47682c; margin-bottom: 40px; }
+    label { font-weight: bold; color: #47682c; margin-bottom: 5px; }
+    .form-control { border-radius: 20px; padding: 10px; border: 1px solid #ddd; transition: all 0.3s ease; }
+    .form-control:focus { border-color: #47682c; box-shadow: 0 0 5px rgba(71,104,44,0.3); }
+    .btn-success { background-color: #47682c; border: none; color: white; border-radius: 20px; padding: 10px 20px; font-weight: bold; width: 100%; transition: all 0.3s ease; }
+    .btn-success:hover { background-color: #3a5a29; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .text-center { text-align: center; }
+    .mb-4 { margin-bottom: 25px; }
+    .form-group { margin-bottom: 20px; }
+
+    /* Success Popup Styles */
+    .success-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        z-index: 1000;
+        text-align: center;
+        display: none;
+        animation: popIn 0.5s ease-out forwards;
+    }
+
+    @keyframes popIn {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .success-popup-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+        display: none;
+    }
+
+    .success-icon {
+        font-size: 48px;
+        color: #47682c;
+        margin-bottom: 15px;
+    }
+
+    .success-popup h3 {
+        color: #47682c;
+        margin-bottom: 15px;
+    }
+
+    .success-popup button {
+        background-color: #47682c;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+    .success-popup button:hover {
+        background-color: #3a5a29;
+    }
+
+    /* Multiple selection styles */
+    .selected-sections {
+        margin-top: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+    }
+    .selected-section-item {
+        display: inline-block;
+        background: #47682c;
+        color: white;
+        padding: 5px 12px;
+        margin: 5px;
+        border-radius: 15px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    .selected-section-item.removing {
+        background: #dc3545;
+        opacity: 0.7;
+    }
+    .remove-section {
+        margin-left: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    .remove-section:hover {
+        transform: scale(1.2);
+    }
+    .section-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    @media (max-width: 768px) {
+        .custom-input-width { width: 90%; }
+        .form-card { padding: 20px; }
+        .success-popup { width: 90%; margin: 0 auto; }
+    }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="form-card col-md-6 col-12">
+        <h2 class="text-center">Update Profile</h2>
+
+        {% if error %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        <form method="POST" action="{% url 'main:update-user' user.id %}" id="profileForm">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next_url|default:'/' }}">
+
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" name="username" value="{{ user.username }}" required class="form-control mb-3 custom-input-width text-center">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" name="email" value="{{ user.email }}" required class="form-control mb-3 custom-input-width text-center">
+            </div>
+
+            <div class="form-group">
+                <label for="password">New Password (optional, minimum 8 characters):</label>
+                <input type="password" name="password" id="password" class="form-control mb-3 custom-input-width text-center" minlength="8">
+                <small class="text-muted">Leave blank to keep current password</small>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm New Password:</label>
+                <input type="password" name="confirm_password" id="confirm_password" class="form-control mb-3 custom-input-width text-center" minlength="8">
+                <small id="passwordError" class="text-danger" style="display: none;">Passwords do not match!</small>
+            </div>
+
+            {% if user.userprofile.role == "Student" %}
+                <h3 class="text-center">Update Section</h3>
+            <div class="form-group">
+                <label for="section">Section:</label>
+                <select name="section" id="student_section" class="form-control mb-3 custom-input-width text-center" required>
+                    <option value="">-- Select Section --</option>
+                    {% for section in sections %}
+                        <option value="{{ section.id }}"
+                            {% if student_current_section == section.id %}selected{% endif %}>
+                            {{ section.code }} ({{ section.get_year_level_display }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+<!-- STAFF: Assign Sections (Multiple Sections) -->
+{% elif user.userprofile.role == "Dean" or user.userprofile.role == "Coordinator" or user.userprofile.role == "Faculty" %}
+    <h3 class="text-center">Manage Section Assignments</h3>
+    
+    <!-- Simple instructions -->
+    <div class="alert alert-info">
+        <strong>📋 How to manage sections:</strong><br>
+        • <strong>Check</strong> = Assign section to this staff member<br>
+        • <strong>Uncheck</strong> = Remove section from this staff member<br>
+        • To remove <strong>ALL</strong> sections: Uncheck EVERY box below
+    </div>
+
+    <!-- Current assignments summary -->
+    <div class="selected-sections mb-4">
+        <h5>📊 Currently Assigned ({{ assigned_sections|length }} sections):</h5>
+        {% if assigned_sections %}
+            {% for assignment in assigned_sections %}
+            <div class="selected-section-item">
+                {{ assignment.section.code }} ({{ assignment.section.get_year_level_display }} Year)
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="color: #666; font-style: italic;">No sections currently assigned</div>
+        {% endif %}
+    </div>
+
+    <!-- Year filter -->
+    <div class="form-group">
+        <label for="year">🔍 Filter by Year Level:</label>
+        <select name="year" id="year" class="form-control mb-3 custom-input-width text-center">
+            <option value="">-- Show All Years --</option>
+            {% for year in years %}
+                <option value="{{ year }}">{{ year }} Year</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Section selection -->
+<div class="form-group">
+    <label>✅ Section Selection:</label>
+    <div class="section-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9f9f9;">
+        {% for section in sections %}
+        <div class="form-check mb-2" data-year="{{ section.year_level }}">
+            <input class="form-check-input" type="checkbox" name="sections" 
+                   value="{{ section.id }}" 
+                   id="section_{{ section.id }}"
+                   {% if section.id in currently_assigned_ids %}checked{% endif %}>
+            <label class="form-check-label" for="section_{{ section.id }}">
+                <strong>{{ section.code }}</strong> - {{ section.get_year_level_display }} Year
+                {% if section.id in currently_assigned_ids %}
+                <span style="color: #47682c; font-weight: bold;">✓ (Currently Assigned)</span>
+                {% endif %}
+            </label>
+        </div>
+        {% endfor %}
+    </div>
+    <small class="text-muted">
+        <strong>Tip:</strong> Use the year filter above to find sections faster
+    </small>
+</div>
+{% endif %}
+
+            <button type="submit" class="btn btn-success w-100 fw-bold">Update Profile</button>
+
+        </form>
+    </div>
+</div>
+
+<script>
+// CSRF Token for AJAX requests
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+// Toast notification for success messages
+function showToast(message) {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #47682c;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 5px;
+        z-index: 1001;
+        animation: slideIn 0.3s ease-out;
+    `;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Add CSS for toast animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
+// Success Popup Functions
+function showSuccessPopup() {
+    document.getElementById('successPopup').style.display = 'block';
+    document.getElementById('successOverlay').style.display = 'block';
+}
+
+function closeSuccessPopup() {
+    document.getElementById('successPopup').style.display = 'none';
+    document.getElementById('successOverlay').style.display = 'none';
+    
+    // Remove the 'updated' parameter from URL
+    const url = new URL(window.location);
+    url.searchParams.delete('updated');
+    window.history.replaceState({}, '', url);
+    
+    // Get the next URL and clean it from updated parameter
+    const nextUrlInput = document.querySelector('input[name="next"]');
+    if (nextUrlInput) {
+        let nextUrl = nextUrlInput.value;
+        if (nextUrl) {
+            // Clean the nextUrl from any updated parameters
+            const cleanNextUrl = nextUrl.replace(/[?&]updated=true/g, '')
+                                       .replace('?&', '?')
+                                       .replace(/\?$/, '');
+            if (cleanNextUrl !== window.location.href) {
+                window.location.href = cleanNextUrl;
+                return;
+            }
+        }
+    }
+}
+
+// Close popup when clicking outside
+document.getElementById('successOverlay').addEventListener('click', closeSuccessPopup);
+
+// Show popup if there's a success message in URL parameters
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('updated')) {
+        showSuccessPopup();
+    }
+
+    // Initialize year filter for checkboxes
+    initializeYearFilter();
+    
+    // Initialize password validation
+    initializePasswordValidation();
+});
+
+// Form submission success handling
+document.getElementById('profileForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    const passwordError = document.getElementById('passwordError');
+    
+    // Reset error display
+    passwordError.style.display = 'none';
+    
+    // Only validate if user entered a new password
+    if (password || confirmPassword) {
+        // Check if passwords match
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            passwordError.textContent = 'Passwords do not match!';
+            passwordError.style.display = 'block';
+            
+            // Scroll to password field
+            document.getElementById('password').focus();
+            return false;
+        }
+        
+        // Check minimum length (8 characters)
+        if (password.length < 8) {
+            e.preventDefault();
+            passwordError.textContent = 'Password must be at least 8 characters long!';
+            passwordError.style.display = 'block';
+            
+            // Scroll to password field
+            document.getElementById('password').focus();
+            return false;
+        }
+    }
+    
+    // Let the form submit normally if validation passes
+});
+
+// Year filter functionality for checkboxes
+function initializeYearFilter() {
+    const yearSelect = document.getElementById('year');
+    const sectionListContainer = document.querySelector('.section-list');
+    
+    if (yearSelect && sectionListContainer) {
+        // Store all section checkboxes for filtering
+        const allSectionItems = Array.from(sectionListContainer.querySelectorAll('.form-check'));
+        
+        console.log('Found section items:', allSectionItems.length);
+        
+        function filterSectionsByYear() {
+            const selectedYear = yearSelect.value;
+            console.log('Filtering sections by year:', selectedYear);
+            
+            let visibleCount = 0;
+            
+            allSectionItems.forEach(item => {
+                const sectionYear = item.getAttribute('data-year');
+                console.log('Section year from data attribute:', sectionYear);
+                
+                if (!selectedYear || sectionYear === selectedYear) {
+                    item.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            console.log(`Showing ${visibleCount} sections for year ${selectedYear}`);
+            
+            // Show message if no sections found
+            const existingMessage = sectionListContainer.querySelector('.no-sections-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            if (visibleCount === 0 && selectedYear) {
+                const message = document.createElement('div');
+                message.className = 'no-sections-message alert alert-warning mt-2';
+                message.innerHTML = `<strong>No sections found for ${selectedYear} Year.</strong> Try selecting a different year.`;
+                sectionListContainer.appendChild(message);
+            }
+        }
+        
+        // Add event listener
+        yearSelect.addEventListener('change', filterSectionsByYear);
+        
+        // Initialize - show all sections
+        filterSectionsByYear();
+    }
+}
+
+// Real-time password validation
+function initializePasswordValidation() {
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const passwordError = document.getElementById('passwordError');
+    
+    if (password && confirmPassword && passwordError) {
+        function validatePasswords() {
+            const pass = password.value;
+            const confirmPass = confirmPassword.value;
+            
+            // Only show error if confirm password field has content
+            if (confirmPass) {
+                if (pass !== confirmPass) {
+                    passwordError.textContent = 'Passwords do not match!';
+                    passwordError.style.display = 'block';
+                    confirmPassword.style.borderColor = '#dc3545';
+                } else if (pass.length > 0 && pass.length < 8) {
+                    passwordError.textContent = 'Password must be at least 8 characters long!';
+                    passwordError.style.display = 'block';
+                    password.style.borderColor = '#dc3545';
+                } else {
+                    passwordError.style.display = 'none';
+                    confirmPassword.style.borderColor = '#47682c';
+                    password.style.borderColor = '#47682c';
+                }
+            } else {
+                passwordError.style.display = 'none';
+                confirmPassword.style.borderColor = '';
+                password.style.borderColor = '';
+            }
+        }
+        
+        password.addEventListener('input', validatePasswords);
+        confirmPassword.addEventListener('input', validatePasswords);
+    }
+}
+
+</script>
+
+{% endblock %}

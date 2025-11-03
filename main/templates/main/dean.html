@@ -1,0 +1,450 @@
+{% extends 'main/base.html' %}
+{% block title %}User Account Management{% endblock %}
+{% block content %}
+
+<style>
+
+    /* Container for the table */
+    .user-table-container {
+        max-height: 1000px; /* Keep original max-height for desktop */
+        overflow-y: auto;
+        overflow-x: hidden;
+        border: 2px solid #4e4e4e;
+        border-radius: 10px;
+        box-shadow: 0 20px 20px rgba(0, 0, 0, 0.1);
+        margin: 20px 0; /* Keep original margin for desktop */
+    }
+    
+    /* Table styles */
+    .user-table {
+        width: 100%; /* Ensure the table fits the container's width */
+        border-collapse: collapse;
+        font-family: 'Arial', sans-serif;
+        background-color: white;
+        table-layout: fixed;
+    }
+    
+    /* Table Header styles */
+    .user-table thead {
+        background-color: #7d8e3c;
+        color: white;
+        text-align: center;
+        transition: background-color 0.3s ease;
+    }
+    
+    /* Table Header border */
+    .user-table th {
+        padding: 12px; /* Keep original padding */
+        font-size: 16px; /* Keep original font size */
+        font-weight: bold;
+        text-transform: uppercase;
+        border-bottom: 2px solid #4e4e4e;
+    }
+    
+    /* Table Data styles */
+    .user-table td {
+        padding: 12px; /* Keep original padding */
+        font-size: 14px; /* Keep original font size */
+        text-align: center;
+        border-bottom: 1px solid #4e4e4e;
+    }
+    
+    /* Hover effect on rows */
+    .user-table tbody tr:hover {
+        background-color: rgb(251, 255, 168);
+    }
+    
+    /* Apply a selected style when clicked */
+    .user-table tbody tr.selected {
+        transform: translateY(-5px) translateX(5px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+        background-color: rgb(251, 255, 168);
+        transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+    }
+    
+    /* Adjust header background when a row is lifted */
+    .user-table tbody tr.selected ~ thead {
+        background-color: #4b5c28;
+    }
+    
+    /* Deselect the previous row (reset the lift and slide) */
+    .user-table tbody tr.deselected {
+        transform: translateY(0) translateX(0);
+        box-shadow: none;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    /* Empty row message */
+    .user-table tbody tr td {
+        font-size: 14px; /* Keep original font size */
+        padding: 15px; /* Keep original padding */
+        text-align: center;
+    }
+    
+    /* Responsive Design for Mobile */
+    @media screen and (max-width: 768px) {
+        .user-table th,
+        .user-table td {
+            font-size: 12px; /* Reduced font size for mobile */
+            padding: 8px; /* Reduced padding for mobile */
+        }
+    
+        /* Make the table scrollable horizontally on mobile */
+        .user-table-container {
+            max-height: 250px; /* Reduced height for mobile */
+            overflow-x: auto; /* Enable horizontal scrolling */
+        }
+    
+        .user-table {
+            table-layout: auto; /* Let table layout auto-adjust */
+        }
+    }
+    
+    /* Container for filters */
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px; /* Keep original gap for desktop */
+        margin-bottom: 25px; /* Keep original margin */
+        align-items: flex-end;
+    }
+    
+    /* Individual filter group */
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Labels */
+    .filter-group label {
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 5px;
+        font-size: 14px; /* Keep original font size */
+    }
+    
+    /* Styled Dropdown */
+    .styled-select {
+        padding: 6px 12px; /* Keep original padding */
+        font-size: 14px; /* Keep original font size */
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        min-width: 200px;
+    }
+    
+    .styled-select:focus {
+        border-color: #7d8e3c;
+        box-shadow: 0 0 5px rgba(125, 142, 60, 0.4);
+        outline: none;
+    }
+    
+    /* Styled Input */
+    .styled-input {
+        padding: 6px 12px; /* Keep original padding */
+        font-size: 14px; /* Keep original font size */
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        min-width: 220px;
+    }
+    
+    .styled-input:focus {
+        border-color: #7d8e3c;
+        box-shadow: 0 0 5px rgba(125, 142, 60, 0.4);
+        outline: none;
+    }
+    
+    /* Responsive adjustments for small screens */
+    @media screen and (max-width: 576px) {
+        .filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    
+        .filter-group label {
+            font-size: 12px; /* Slightly reduced font size for smaller screens */
+        }
+    
+        .styled-select,
+        .styled-input {
+            font-size: 12px; /* Slightly reduced font size for smaller screens */
+            padding: 5px 10px; /* Slightly reduced padding */
+            min-width: 180px; /* Adjusted width for smaller screens */
+        }
+    }
+    
+</style>
+
+{% if request.user.userprofile.role == 'Admin' %}
+
+<div class="filter-bar">
+    <div class="filter-group">
+        <label for="instituteFilter">Filter by Institute</label>
+        <select id="instituteFilter" class="styled-select">
+            <option value="All">All Institutes</option>
+            {% for institute in institutes %}
+                <option value="{{ institute }}">{{ institute }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label for="nameSearch">Search by Name</label>
+        <input type="text" id="nameSearch" class="styled-input" placeholder="Enter name...">
+    </div>
+</div>
+
+    <div class="user-table-container">
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email Address</th>
+                    <th>Institute</th>
+                </tr>
+            </thead>
+            <tbody id="accountTableBody">
+                {% for dean in deans %}
+                <tr class="account-row" data-user-id="{{ dean.user.id }}" data-user-name="{{ dean.user.username }}" data-user-email="{{ dean.user.email }}">
+                    <td>{{ dean.display_name|default:dean.user.username }}</td>
+                    <td>{{ dean.user.email }}</td>
+                    <td>{{ dean.institute }}</td>
+                    
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">No users found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+    <!-- CSRF Token Form -->
+    <form method="POST" style="display: none;">
+        {% csrf_token %}
+    </form>
+
+    <!-- Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this account?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ Toast Container (Lower-Right Corner) -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+    {% if request.GET.updated %}
+        <div class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+            <div class="d-flex">
+                <div class="toast-body">
+                    Profile updated successfully!
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    {% elif request.GET.deleted %}
+        <div class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+            <div class="d-flex">
+                <div class="toast-body">
+                    Account deleted successfully!
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show the toast message for updates or deletions
+        {% if request.GET.updated %}
+            var toastEl = document.querySelector('.toast');
+            var toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        {% elif request.GET.deleted %}
+            var toastEl = document.querySelector('.toast');
+            var toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        {% endif %}
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const updated = urlParams.get('updated');
+
+        if (updated === 'true') {
+            const toastEl = document.getElementById('updateToast');
+            if (toastEl) {
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+        }
+    });
+</script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let selectedUserId = null;
+            const editButton = document.getElementById("editAccountBtn");
+            const deleteButton = document.getElementById("deleteAccountBtn");
+            const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+            const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+
+            // CSRF token retrieval function
+            const getCSRFToken = () => document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            // Highlight and select row
+            document.querySelectorAll(".account-row").forEach(row => {
+                row.addEventListener("click", () => {
+                    // Remove highlight from previous row
+                    document.querySelectorAll(".account-row").forEach(r => r.classList.remove("table-success"));
+
+                    // Highlight the current row
+                    row.classList.add("table-success");
+                    selectedUserId = row.getAttribute("data-user-id");
+
+                    // Enable buttons
+                    editButton.href = `/update/${selectedUserId}/`;
+                    deleteButton.disabled = false;
+                });
+
+                // Hover effect
+                row.addEventListener("mouseover", () => {
+                    row.style.cursor = "pointer";
+                    
+                });
+
+                row.addEventListener("mouseout", () => {
+                    
+                });
+            });
+
+            // Trigger the confirmation modal
+            deleteButton.addEventListener("click", () => {
+                if (!selectedUserId) {
+                    alert("No user selected.");
+                    return;
+                }
+                modal.show();
+            });
+
+            // Confirm delete action
+            confirmDeleteBtn.addEventListener("click", () => {
+                if (!selectedUserId) {
+                    alert("No user selected.");
+                    return;
+                }
+
+                const csrfToken = getCSRFToken();
+
+                fetch(`/delete/${selectedUserId}/`, {
+                    method: "DELETE",
+                    headers: {
+                        "X-CSRFToken": csrfToken,
+                        "Content-Type": "application/json"
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert("Account deleted successfully.");
+                        window.location.reload();
+                    } else {
+                        alert("Failed to delete the account.");
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+            });
+        });
+    </script>
+
+    <script>
+        const rows = document.querySelectorAll('.user-table tbody tr');
+        rows.forEach(row => {
+            row.addEventListener('click', function() {
+                // If the row is already selected, deselect it
+                if (this.classList.contains('selected')) {
+                    this.classList.remove('selected');
+                    this.classList.add('deselected'); // Add the deselected class to "lift it down"
+                } else {
+                    // If the row is not selected, first remove 'selected' and 'deselected' from other rows
+                    rows.forEach(r => {
+                        r.classList.remove('selected'); // Remove 'selected' class from all rows
+                        r.classList.remove('deselected'); // Remove 'deselected' class from all rows
+                    });
+
+                    // Then add the 'selected' class to the clicked row
+                    this.classList.add('selected');
+                }
+            });
+        });
+    </script>
+
+    <script>
+        document.getElementById('instituteFilter').addEventListener('change', function () {
+            const selectedInstitute = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.user-table tbody tr');
+    
+            rows.forEach(row => {
+                const rowInstitute = row.cells[2].textContent.toLowerCase();
+    
+                if (selectedInstitute === 'all' || rowInstitute === selectedInstitute) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const instituteSelect = document.getElementById('instituteFilter');
+            const nameSearch = document.getElementById('nameSearch');
+            const rows = document.querySelectorAll('.user-table tbody tr');
+    
+            function filterTable() {
+                const selectedInstitute = instituteSelect.value.toLowerCase();
+                const searchQuery = nameSearch.value.toLowerCase();
+    
+                rows.forEach(row => {
+                    const name = row.cells[0].textContent.toLowerCase();
+                    const institute = row.cells[2].textContent.toLowerCase();
+    
+                    const matchesInstitute = selectedInstitute === 'all' || institute === selectedInstitute;
+                    const matchesSearch = name.includes(searchQuery);
+    
+                    if (matchesInstitute && matchesSearch) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+    
+            instituteSelect.addEventListener('change', filterTable);
+            nameSearch.addEventListener('input', filterTable);
+        });
+    </script>
+
+{% endblock %}

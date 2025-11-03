@@ -1,0 +1,1485 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Dean Profile Settings{% endblock %}
+
+{% block body_style %}
+style="background-image: url('{% static 'img/phoenix-background.png' %}');
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        min-height: 100vh;"
+{% endblock %}
+
+{% block content %}
+<style>
+    .custom-input-width {
+        width: 100%;
+        margin: 0 auto;
+        border-radius: 20px;
+        padding: 10px 20px;
+    }
+
+    .form-card {
+        background: rgba(255, 255, 255, 0.9);
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+        animation: fadeIn 0.5s ease-out forwards;
+        margin-bottom: 20px;
+        border: 1px solid #e0e0e0;
+    }
+
+    @keyframes fadeIn {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+
+    h4 {
+        font-family: 'Arial', sans-serif;
+        font-weight: 600;
+        color: #47682c;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #47682c;
+        padding-bottom: 10px;
+    }
+
+    label {
+        font-weight: bold;
+        color: #47682c;
+        margin-bottom: 5px;
+    }
+
+    .form-control {
+        border-radius: 20px;
+        padding: 12px 20px;
+        border: 1px solid #ddd;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .form-control:focus {
+        border-color: #47682c;
+        box-shadow: 0 0 8px rgba(71, 104, 44, 0.3);
+    }
+
+    .btn-success {
+        background-color: #47682c;
+        border: none;
+        color: white;
+        border-radius: 20px;
+        padding: 12px 30px;
+        font-weight: bold;
+        width: 100%;
+        transition: all 0.3s ease;
+        font-size: 16px;
+    }
+
+    .btn-success:hover {
+        background-color: #3a5a29;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .mb-4 { margin-bottom: 25px; }
+    .form-group { margin-bottom: 20px; }
+
+    /* Section Dropdown Styles */
+    .section-dropdown {
+        margin: 15px 0;
+    }
+    
+    .section-dropdown .dropdown .btn {
+        background: linear-gradient(135deg, #47682c, #5a8537);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        width: 100%;
+        text-align: left;
+    }
+    
+    .section-dropdown .dropdown .btn:hover {
+        background: linear-gradient(135deg, #3a5a29, #4a7230);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .section-dropdown .dropdown-menu {
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .section-dropdown .dropdown-item {
+        padding: 10px 15px;
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .section-dropdown .dropdown-item:hover {
+        background-color: #e8f5e8;
+        color: #47682c;
+    }
+    
+    .section-dropdown .dropdown-item.active {
+        background-color: #47682c !important;
+        color: white !important;
+    }
+    
+    .section-dropdown .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .dropdown-divider {
+        margin: 5px 0;
+        border-color: #e2e8f0;
+    }
+
+    .overall-option {
+        background: linear-gradient(135deg, #f7fafc, #edf2f7);
+        border-top: 2px solid #e2e8f0;
+        font-weight: 600;
+        color: #2d3748 !important;
+    }
+
+    .overall-option:hover {
+        background: linear-gradient(135deg, #47682c, #5a8537) !important;
+        color: white !important;
+    }
+
+    .peer-option {
+        background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+        border-top: 2px solid #ff9800;
+        font-weight: 600;
+        color: #e65100 !important;
+    }
+
+    .peer-option:hover {
+        background: linear-gradient(135deg, #ff9800, #f57c00) !important;
+        color: white !important;
+    }
+
+    .overall-badge {
+        background: linear-gradient(135deg, #47682c, #5a8537);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-left: 8px;
+    }
+
+    /* Remove Bootstrap's default focus styles */
+    .section-dropdown .dropdown-item:focus {
+        background-color: transparent;
+        color: inherit;
+    }
+
+    /* Chart Styles */
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 20px 0;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #47682c, #5a8537);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+    .section-title {
+        color: #47682c;
+        font-weight: 600;
+        margin: 25px 0 15px 0;
+        font-size: 18px;
+    }
+
+    .evaluation-summary {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 15px 0;
+        border-left: 4px solid #47682c;
+    }
+
+    .score-breakdown {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .score-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .score-category {
+        font-weight: 600;
+        color: #47682c;
+    }
+
+    .score-value {
+        font-weight: bold;
+        color: #2c3e50;
+        text-align: right;
+    }
+
+    .score-max {
+        font-size: 12px;
+        color: #7f8c8d;
+        font-weight: normal;
+    }
+
+    .score-percentage {
+        font-size: 14px;
+        color: #47682c;
+        font-weight: 600;
+    }
+
+    .no-data {
+        text-align: center;
+        color: #7f8c8d;
+        font-style: italic;
+        padding: 40px 20px;
+    }
+
+    .tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .tab {
+        padding: 12px 25px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        font-weight: 600;
+        color: #7f8c8d;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .tab.active {
+        color: #47682c;
+        border-bottom-color: #47682c;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .max-score-info {
+        background: #e8f5e8;
+        border: 1px solid #47682c;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+        text-align: center;
+    }
+
+    .max-score-info h5 {
+        color: #47682c;
+        margin-bottom: 10px;
+    }
+
+    /* Section Selection Prompt */
+    .section-prompt {
+        text-align: center;
+        padding: 60px 20px;
+        background: #f8f9fa;
+        border-radius: 15px;
+        border: 2px dashed #bdc3c7;
+    }
+
+    .section-prompt i {
+        font-size: 64px;
+        color: #bdc3c7;
+        margin-bottom: 20px;
+    }
+
+    .section-prompt h4 {
+        color: #7f8c8d;
+        border: none;
+        margin-bottom: 10px;
+    }
+
+    .section-prompt p {
+        color: #95a5a6;
+        font-size: 16px;
+    }
+
+    .stats-summary {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+
+    .stat-item {
+        background: white;
+        padding: 12px 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        text-align: center;
+        min-width: 120px;
+    }
+
+    .stat-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #47682c;
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #718096;
+        margin-top: 4px;
+    }
+
+    @media (max-width: 768px) {
+        .custom-input-width { width: 90%; }
+        .form-card { padding: 20px; margin-top: 20px; }
+        .stats-grid { grid-template-columns: 1fr 1fr; }
+        .chart-container { height: 250px; }
+        .stats-summary { gap: 10px; }
+        .stat-item { min-width: 100px; padding: 10px 15px; }
+    }
+
+    /* Styling for the flash message fade */
+    .flash-message {
+        opacity: 1;
+        transition: opacity 1s ease;
+    }
+
+    .flash-message.fade {
+        opacity: 0;
+    }
+
+    /* Hidden content */
+    .hidden-content {
+        display: none;
+    }
+
+    /* Ensure dropdown toggle shows proper caret */
+    .section-dropdown .dropdown-toggle::after {
+        float: right;
+        margin-top: 8px;
+    }
+</style>
+
+<div class="container" style="min-height: 100vh; padding-top: 30px;">
+    <div class="row justify-content-center align-items-start">
+        
+        <!-- Left Column - Profile Settings -->
+        <div class="col-lg-4 col-md-6 col-12 mb-4">
+            <!-- Profile Settings Form -->
+            <div class="form-card">
+                <h4 class="text-center">Dean Profile Settings</h4>
+
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endif %}
+
+                <form method="POST" action="{% url 'main:dean_profile_settings' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next_url|default:'/' }}">
+
+                    <div class="form-group">
+                        <label for="username">Username:</label>
+                        <input type="text" name="username" value="{{ user.username }}" required class="form-control custom-input-width text-center">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" name="email" value="{{ user.email }}" required class="form-control custom-input-width text-center">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_password1">New Password:</label>
+                        <input type="password" name="new_password1" class="form-control custom-input-width text-center" placeholder="Enter new password">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_password2">Confirm New Password:</label>
+                        <input type="password" name="new_password2" class="form-control custom-input-width text-center" placeholder="Confirm new password">
+                    </div>
+
+                    <button type="submit" class="btn btn-success">Update Profile</button>
+                </form>
+            </div>
+
+            <!-- Dean Info Card -->
+            <div class="form-card text-center">
+                <h4>Dean Information</h4>
+                <div style="text-align: left;">
+                    <p><strong>Name:</strong> {{ user.get_full_name|default:user.username }}</p>
+                    <p><strong>Role:</strong> Dean</p>
+                    <p><strong>Institute:</strong> {{ user.userprofile.institute }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Assigned Sections:</strong> {{ assigned_sections|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Evaluation Results & AI Recommendations -->
+        <div class="col-lg-8 col-md-6 col-12 mb-4">
+            
+            {% if not evaluation_period_ended %}
+                <!-- Show evaluation period active message but KEEP profile settings visible -->
+                <div class="alert alert-warning mb-4">
+                    <i class="fas fa-clock me-2"></i>
+                    <strong>Evaluation Period Active</strong> - Results will be available after the evaluation period ends.
+                </div>
+                
+                <!-- Profile Information Card (ALWAYS VISIBLE even during evaluation period) -->
+                <div class="form-card">
+                    <h4 class="text-center">📊 Evaluation Results</h4>
+                    <div class="section-prompt">
+                        <i class="fas fa-chart-bar fa-2x text-muted mb-3"></i>
+                        <h5 class="text-muted">Evaluation Results Temporarily Unavailable</h5>
+                        <p class="text-muted">Detailed evaluation results and AI recommendations will be available here once the evaluation period ends.</p>
+                        <div class="mt-4">
+                            <div class="row text-center">
+                                <div class="col-md-4 mb-3">
+                                    <div class="stat-card">
+                                        <div class="stat-value">{{ assigned_sections|length }}</div>
+                                        <div class="stat-label">Assigned Sections</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="stat-card">
+                                        <div class="stat-value">{{ total_evaluations|default:0 }}</div>
+                                        <div class="stat-label">Total Evaluations</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="stat-card">
+                                        <div class="stat-value">{{ sections_with_data|default:0 }}</div>
+                                        <div class="stat-label">Active Sections</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden evaluation results section (for functionality but not displayed) -->
+                <div style="display: none;">
+                    {% if assigned_sections %}
+                    <div class="section-dropdown">
+                        <div class="dropdown">
+                            <button class="btn dropdown-toggle" type="button" id="sectionDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                📊 Select Section
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="sectionDropdown">
+                                <!-- Overall Option -->
+                                <li><a class="dropdown-item overall-option" href="javascript:void(0);" data-section="overall">
+                                    📈 Overall Results 
+                                    <span class="overall-badge">All Sections</span>
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <!-- Peer Evaluation Option -->
+                                <li><a class="dropdown-item peer-option" href="javascript:void(0);" data-section="peer" style="background: linear-gradient(135deg, #fff3e0, #ffe0b2); border-top: 2px solid #ff9800; font-weight: 600;">
+                                    👥 Peer Evaluation Results 
+                                    <span class="overall-badge" style="background: linear-gradient(135deg, #ff9800, #f57c00);">Staff Reviews</span>
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <!-- Individual Sections -->
+                                {% for assignment in assigned_sections %}
+                                    <li>
+                                        <a class="dropdown-item section-item" 
+                                            data-section="{{ assignment.section.id }}" 
+                                            data-section-code="{{ assignment.section.code }}"
+                                            data-section-display="{{ assignment.section }}" 
+                                            href="javascript:void(0);">
+                                            📚 {{ assignment.section }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <!-- Show evaluation results section when evaluation period has ended -->
+                <div class="evaluation-results-section">
+                    <!-- Section Dropdown -->
+                    {% if assigned_sections %}
+                    <div class="section-dropdown">
+                        <div class="dropdown">
+                            <button class="btn dropdown-toggle" type="button" id="sectionDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                📊 Select Section
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="sectionDropdown">
+                                <!-- Overall Option -->
+                                <li><a class="dropdown-item overall-option" href="javascript:void(0);" data-section="overall">
+                                    📈 Overall Results 
+                                    <span class="overall-badge">All Sections</span>
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <!-- Peer Evaluation Option -->
+                                <li><a class="dropdown-item peer-option" href="javascript:void(0);" data-section="peer" style="background: linear-gradient(135deg, #fff3e0, #ffe0b2); border-top: 2px solid #ff9800; font-weight: 600;">
+                                    👥 Peer Evaluation Results 
+                                    <span class="overall-badge" style="background: linear-gradient(135deg, #ff9800, #f57c00);">Staff Reviews</span>
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <!-- Individual Sections -->
+                                {% for assignment in assigned_sections %}
+                                    <li>
+                                        <a class="dropdown-item section-item" 
+                                            data-section="{{ assignment.section.id }}" 
+                                            data-section-code="{{ assignment.section.code }}"
+                                            data-section-display="{{ assignment.section }}" 
+                                            href="javascript:void(0);">
+                                            📚 {{ assignment.section }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Section Selection Prompt (Initially Visible) -->
+                    <div id="section-prompt" class="form-card section-prompt hidden-content">
+                        <i class="fas fa-chart-bar"></i>
+                        <h4>Select a Section to View Evaluation Results</h4>
+                        <p>Choose a section from the dropdown above to see detailed evaluation data and AI recommendations.</p>
+                    </div>
+
+                    <!-- Tabs Navigation (Initially Hidden) -->
+                    <div id="tabs-navigation" class="tabs hidden-content">
+                        <button class="tab active" onclick="switchTab('evaluation')">Evaluation Results</button>
+                        <button class="tab" onclick="switchTab('recommendations')">AI Recommendations</button>
+                    </div>
+
+                    {% else %}
+                    <!-- Show message when no sections are assigned -->
+                    <div class="form-card">
+                        <div class="section-prompt">
+                            <i class="fas fa-chart-bar"></i>
+                            <h4>No Sections Assigned</h4>
+                            <p>This dean account doesn't have any assigned sections. Evaluation data will appear here once sections are assigned.</p>
+                        </div>
+                    </div>
+
+                    <!-- Hide tabs when no sections -->
+                    <div id="tabs-navigation" class="tabs hidden-content">
+                        <button class="tab active" onclick="switchTab('evaluation')">Evaluation Results</button>
+                        <button class="tab" onclick="switchTab('recommendations')">AI Recommendations</button>
+                    </div>
+                    {% endif %}
+
+                    <!-- Evaluation Results Tab (Always present but hidden when no sections) -->
+                    <div id="evaluation-tab" class="tab-content active hidden-content">
+                        <div class="form-card">
+                            <h4>📊 Evaluation Results Overview - <span id="selected-section-name">Section</span></h4>
+                            
+                            <!-- Overall Stats Summary (Only shown for overall view) -->
+                            <div id="overallStats" class="stats-summary" style="display: none;">
+                                <div class="stat-item">
+                                    <span class="stat-value" id="totalSections">0</span>
+                                    <span class="stat-label">Total Sections</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="sectionsWithData">0</span>
+                                    <span class="stat-label">Sections with Data</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="totalEvaluations">0</span>
+                                    <span class="stat-label">Total Evaluations</span>
+                                </div>
+                            </div>
+                            
+                            <div id="evaluation-content">
+                                <!-- Content will be loaded dynamically via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Recommendations Tab (Always present but hidden when no sections) -->
+                    <div id="recommendations-tab" class="tab-content hidden-content">
+                        <div class="form-card">
+                            <h4>🤖 AI Recommendations - <span id="recommendations-section-name">Section</span></h4>
+                            <div id="recommendations-content">
+                                <!-- Content will be loaded dynamically via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>  <!-- Close evaluation-results-section -->
+            {% endif %}  <!-- Close evaluation_period_ended check -->
+        </div>  <!-- Close right column -->
+
+
+    {% if messages %}
+        <div class="row justify-content-center mt-3">
+            <div class="col-lg-8 col-md-10">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} text-center flash-message" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>  <!-- Close container -->
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Global variables to store section data
+    let sectionScoresData = {{ section_scores_json|safe }};
+    let sectionMapData = {{ section_map_json|safe }};
+    let peerScoresData = {{ peer_scores_json|safe }};
+    let selectedSectionId = null;
+    let selectedSectionCode = null;
+    let selectedSectionDisplay = null;
+    let currentlySelectedItem = null;
+    let currentRequestId = 0; // Add request tracking
+
+    console.log('Section Scores Data:', sectionScoresData);
+    console.log('Section Map Data:', sectionMapData);
+    console.log('Peer Scores Data:', peerScoresData);
+
+    // Helper function to format numbers to 2 decimal places
+    function formatToTwoDecimals(number) {
+        if (number === null || number === undefined || isNaN(number)) {
+            return '0.00';
+        }
+        return parseFloat(number).toFixed(2);
+    }
+
+    // Calculate overall results
+    function calculateOverallResults() {
+        console.log("Calculating overall results...");
+        
+        let totalSections = 0;
+        let sectionsWithData = 0;
+        let totalEvaluations = 0;
+        
+        // Initialize arrays to accumulate scores
+        let categoryScoresSum = [0, 0, 0, 0]; // For 4 categories
+        let totalPercentageSum = 0;
+        
+        // Iterate through all sections
+        for (const [sectionCode, sectionData] of Object.entries(sectionScoresData)) {
+            totalSections++;
+            
+            if (sectionData && sectionData.has_data) {
+                sectionsWithData++;
+                totalEvaluations += sectionData.evaluation_count || 0;
+                
+                // Accumulate category scores
+                for (let i = 0; i < 4; i++) {
+                    categoryScoresSum[i] += sectionData.category_scores[i] || 0;
+                }
+                
+                // Accumulate total percentage
+                totalPercentageSum += sectionData.total_percentage || 0;
+            }
+        }
+        
+        // Calculate averages
+        const averageCategoryScores = sectionsWithData > 0 
+            ? categoryScoresSum.map(score => score / sectionsWithData)
+            : [0, 0, 0, 0];
+            
+        const averageTotalPercentage = sectionsWithData > 0 
+            ? totalPercentageSum / sectionsWithData 
+            : 0;
+        
+        return {
+            has_data: sectionsWithData > 0,
+            total_sections: totalSections,
+            sections_with_data: sectionsWithData,
+            total_evaluations: totalEvaluations,
+            category_scores: averageCategoryScores,
+            total_percentage: averageTotalPercentage,
+            evaluation_count: totalEvaluations // Add this for API consistency
+        };
+    }
+
+    // Tab switching functionality
+    function switchTab(tabName) {
+        console.log('Switching to tab:', tabName);
+        
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Show selected tab content
+        document.getElementById(tabName + '-tab').classList.add('active');
+        
+        // Add active class to clicked tab
+        event.target.classList.add('active');
+
+        // Load content for the selected tab
+        loadTabContent(tabName);
+    }
+
+    // Section selection functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const sectionItems = document.querySelectorAll('.section-item, .overall-option, .peer-option');
+        console.log('Found section items:', sectionItems.length);
+        
+        // Only setup section selection if there are sections
+        if (sectionItems.length > 0) {
+            sectionItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Remove active class from previously selected item
+                    if (currentlySelectedItem) {
+                        currentlySelectedItem.classList.remove('active');
+                    }
+                    
+                    // Add active class to currently selected item
+                    this.classList.add('active');
+                    currentlySelectedItem = this;
+                    
+                    selectedSectionId = this.getAttribute('data-section');
+                    selectedSectionCode = this.getAttribute('data-section-code');
+                    selectedSectionDisplay = this.getAttribute('data-section-display') || 'Overall Results';
+                    
+                    console.log('Selected section:', {
+                        id: selectedSectionId,
+                        code: selectedSectionCode,
+                        display: selectedSectionDisplay
+                    });
+                    
+                    // Update dropdown button text
+                    if (selectedSectionId === 'overall') {
+                        document.getElementById('sectionDropdown').innerHTML = 
+                            `📈 Overall Results <i class="fas fa-chevron-down"></i>`;
+                    } else if (selectedSectionId === 'peer') {
+                        document.getElementById('sectionDropdown').innerHTML = 
+                            `👥 Peer Evaluation Results <i class="fas fa-chevron-down"></i>`;
+                    } else {
+                        document.getElementById('sectionDropdown').innerHTML = 
+                            `📊 ${selectedSectionDisplay} <i class="fas fa-chevron-down"></i>`;
+                    }
+                    
+                    // Close the dropdown
+                    const dropdownElement = document.getElementById('sectionDropdown');
+                    const dropdown = bootstrap.Dropdown.getInstance(dropdownElement);
+                    if (dropdown) {
+                        dropdown.hide();
+                    }
+                    
+                    // Hide section prompt and show tabs
+                    document.getElementById('section-prompt').classList.add('hidden-content');
+                    document.getElementById('tabs-navigation').classList.remove('hidden-content');
+                    document.getElementById('evaluation-tab').classList.remove('hidden-content');
+                    document.getElementById('recommendations-tab').classList.remove('hidden-content');
+                    
+                    // Update section names in all tabs
+                    document.getElementById('selected-section-name').textContent = selectedSectionDisplay;
+                    document.getElementById('recommendations-section-name').textContent = selectedSectionDisplay;
+                    
+                    // Load content for the selected section
+                    loadSectionData(selectedSectionId);
+                    
+                    // Switch to evaluation tab by default
+                    switchTab('evaluation');
+                });
+            });
+
+            // Close dropdown when clicking outside and remove any active states
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown')) {
+                    // Remove active class from all items when clicking outside
+                    sectionItems.forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    currentlySelectedItem = null;
+                }
+            });
+
+            // Auto-select overall option first if available
+            const overallOption = document.querySelector('.overall-option');
+            if (overallOption) {
+                overallOption.click();
+            } else if (sectionItems.length > 0) {
+                sectionItems[0].click();
+            }
+        } else {
+            // No sections available, keep everything hidden except the "No Sections" message
+            console.log('No sections available for this dean');
+            // The "No Sections Assigned" message will be shown by the template
+            
+            // Make sure tabs and evaluation content are hidden
+            document.getElementById('tabs-navigation').classList.add('hidden-content');
+            document.getElementById('evaluation-tab').classList.add('hidden-content');
+            document.getElementById('recommendations-tab').classList.add('hidden-content');
+        }
+    });
+
+    // Load section data
+    function loadSectionData(sectionId) {
+        console.log('Loading data for section:', sectionId);
+        console.log('Available section scores:', sectionScoresData);
+        
+        // Check if sectionScoresData is empty (no sections)
+        if (Object.keys(sectionScoresData).length === 0 && sectionId !== 'peer') {
+            console.log('No section data available');
+            loadNoDataContent();
+            return;
+        }
+        
+        let sectionData;
+        
+        if (sectionId === 'peer') {
+            // Load peer evaluation data
+            sectionData = peerScoresData;
+            console.log("Peer evaluation data:", sectionData);
+            
+            // Hide overall stats for peer evaluations
+            document.getElementById('overallStats').style.display = 'none';
+        } else if (sectionId === 'overall') {
+            // Calculate overall results
+            sectionData = calculateOverallResults();
+            console.log("Overall data:", sectionData);
+            
+            // Show overall stats
+            document.getElementById('overallStats').style.display = 'flex';
+            document.getElementById('totalSections').textContent = sectionData.total_sections;
+            document.getElementById('sectionsWithData').textContent = sectionData.sections_with_data;
+            document.getElementById('totalEvaluations').textContent = sectionData.total_evaluations;
+        } else {
+            // Individual section
+            const sectionCode = sectionMapData[sectionId];
+            sectionData = sectionScoresData[sectionCode];
+            console.log("Individual section data:", sectionData);
+            
+            // Hide overall stats
+            document.getElementById('overallStats').style.display = 'none';
+        }
+
+        if (sectionData && sectionData.has_data) {
+            console.log('Section has data, loading content...');
+            const sectionName = sectionId === 'overall' ? 'Overall' : 
+                               sectionId === 'peer' ? 'Peer Evaluation' :
+                               sectionMapData[sectionId];
+            loadEvaluationContent(sectionData, sectionName);
+            loadRecommendationsContent(sectionData, sectionName);
+        } else {
+            console.log('No data found for section, loading no data content');
+            loadNoDataContent();
+        }
+    }
+
+    // Load evaluation content
+    function loadEvaluationContent(sectionData, sectionCode) {
+        console.log('Loading evaluation content for:', sectionCode);
+        const evaluationContent = document.getElementById('evaluation-content');
+        
+        // Check if sectionData exists and has required properties
+        if (!sectionData || !sectionData.category_scores) {
+            console.error('Invalid section data:', sectionData);
+            loadNoDataContent();
+            return;
+        }
+        
+        const isOverall = sectionCode === 'Overall';
+        const isPeer = sectionCode === 'Peer Evaluation';
+        const sectionInfo = isPeer ? 'Peer Evaluations from Staff' :
+                           isOverall ? 'All Sections' : 
+                           `Section: ${sectionCode}`;
+        
+        // Format all percentages to 2 decimal places
+        const totalPercentage = formatToTwoDecimals(sectionData.total_percentage);
+        const category1Score = formatToTwoDecimals(sectionData.category_scores[0]);
+        const category2Score = formatToTwoDecimals(sectionData.category_scores[1]);
+        const category3Score = formatToTwoDecimals(sectionData.category_scores[2]);
+        const category4Score = formatToTwoDecimals(sectionData.category_scores[3]);
+        
+        // CORRECTED: Calculate percentage of max for each category with proper weights
+        const category1Percentage = formatToTwoDecimals(((sectionData.category_scores[0] / 35) * 100));
+        const category2Percentage = formatToTwoDecimals(((sectionData.category_scores[1] / 25) * 100));
+        const category3Percentage = formatToTwoDecimals(((sectionData.category_scores[2] / 20) * 100));
+        const category4Percentage = formatToTwoDecimals(((sectionData.category_scores[3] / 20) * 100));
+        
+        const content = `
+            <div class="evaluation-summary">
+                <div class="text-center mb-3">
+                    <h3 style="color: #47682c; margin: 0;">${isPeer ? 'Peer Evaluation Average Score' : isOverall ? 'Overall Average Score' : 'Overall Score'}</h3>
+                    <div style="font-size: 48px; font-weight: bold; color: #47682c;">
+                        ${totalPercentage}%
+                    </div>
+                    <div style="color: #7f8c8d; font-size: 14px;">
+                        ${sectionInfo} | Total Evaluations: ${sectionData.total_evaluations || sectionData.evaluation_count || 0}
+                    </div>
+                </div>
+
+                <!-- Max Score Information -->
+                <div class="max-score-info">
+                    <h5>📝 Scoring Information</h5>
+                    <p style="margin: 0; font-size: 14px;">
+                        <strong>Category Weights:</strong><br>
+                        • Mastery of Subject Matter: 35%<br>
+                        • Classroom Management: 25%<br>
+                        • Compliance to Policies: 20%<br>
+                        • Personality: 20%<br>
+                        Total Maximum Possible Score: <strong>100%</strong>
+                    </p>
+                </div>
+
+                <!-- Chart -->
+                <div class="chart-container">
+                    <canvas id="evaluationChart"></canvas>
+                </div>
+
+                <!-- Score Breakdown -->
+                <div class="score-breakdown">
+                    <div class="score-item">
+                        <div>
+                            <div class="score-category">Mastery of Subject Matter</div>
+                            <div class="score-max">Max: 35%</div>
+                        </div>
+                        <div class="score-value">
+                            ${category1Score}%
+                            <div class="score-percentage">
+                                (${category1Percentage}% of max)
+                            </div>
+                        </div>
+                    </div>
+                    <div class="score-item">
+                        <div>
+                            <div class="score-category">Classroom Management</div>
+                            <div class="score-max">Max: 25%</div>
+                        </div>
+                        <div class="score-value">
+                            ${category2Score}%
+                            <div class="score-percentage">
+                                (${category2Percentage}% of max)
+                            </div>
+                        </div>
+                    </div>
+                    <div class="score-item">
+                        <div>
+                            <div class="score-category">Compliance to Policies</div>
+                            <div class="score-max">Max: 20%</div>
+                        </div>
+                        <div class="score-value">
+                            ${category3Score}%
+                            <div class="score-percentage">
+                                (${category3Percentage}% of max)
+                            </div>
+                        </div>
+                    </div>
+                    <div class="score-item">
+                        <div>
+                            <div class="score-category">Personality</div>
+                            <div class="score-max">Max: 20%</div>
+                        </div>
+                        <div class="score-value">
+                            ${category4Score}%
+                            <div class="score-percentage">
+                                (${category4Percentage}% of max)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        evaluationContent.innerHTML = content;
+        
+        // Initialize chart
+        setTimeout(() => {
+            initializeEvaluationChart(sectionData, isOverall, isPeer);
+        }, 100);
+    }
+
+    // Load recommendations content with AI - CORRECTED VERSION
+    function loadRecommendationsContent(sectionData, sectionCode) {
+        const recommendationsContent = document.getElementById('recommendations-content');
+        const currentRequest = ++currentRequestId; // Track this request
+        
+        console.log(`📡 Loading AI recommendations for ${sectionCode}, Request ID: ${currentRequest}`);
+        
+        const isOverall = sectionCode === 'Overall';
+        const sectionRef = isOverall ? 'all your sections' : 'section ' + sectionCode;
+        
+        // Show loading state with section context
+        recommendationsContent.innerHTML = `
+            <div class="text-center" style="padding: 40px;">
+                <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-muted">🤖 Generating AI-powered teaching strategies for ${sectionCode}...</p>
+                <small class="text-muted">Analyzing evaluation data to provide personalized recommendations</small>
+            </div>
+        `;
+        
+        // Prepare section data for API
+        const apiSectionData = {
+            has_data: sectionData.has_data,
+            total_percentage: sectionData.total_percentage,
+            evaluation_count: sectionData.evaluation_count || sectionData.total_evaluations,
+            category_scores: sectionData.category_scores,
+            total_responses: sectionData.evaluation_count || sectionData.total_evaluations,
+            positive_comments: sectionData.positive_comments || [],
+            negative_comments: sectionData.negative_comments || [],
+            mixed_comments: sectionData.mixed_comments || []
+        };
+        
+        console.log(`🚀 Sending AI request for ${sectionCode}:`, apiSectionData);
+        
+        // Fetch AI recommendations from shared API with cache prevention
+        fetch('/api/ai-recommendations/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify({
+                section_data: apiSectionData,
+                section_code: sectionCode,
+                is_overall: isOverall,
+                timestamp: Date.now() // Prevent caching
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(apiResponse => {
+            // Check if this is still the current request (user didn't switch sections)
+            if (currentRequest !== currentRequestId) {
+                console.log('🔄 Request outdated, ignoring response');
+                return;
+            }
+            
+            console.log(`✅ AI Response for ${sectionCode}:`, apiResponse);
+            
+            // CORRECTED: Access the recommendations array from the response
+            let recommendations = [];
+            if (apiResponse.recommendations) {
+                recommendations = apiResponse.recommendations;
+                console.log(`🎯 Found ${recommendations.length} recommendations for ${sectionCode}`);
+            } else if (Array.isArray(apiResponse)) {
+                // Fallback: if response is directly the array
+                recommendations = apiResponse;
+            } else {
+                throw new Error('Invalid response format from AI API');
+            }
+            
+            displayRecommendations(recommendations, recommendationsContent, sectionCode);
+        })
+        .catch(error => {
+            // Check if this is still the current request
+            if (currentRequest !== currentRequestId) {
+                console.log('🔄 Request outdated, ignoring error');
+                return;
+            }
+            
+            console.error(`❌ Error fetching AI recommendations for ${sectionCode}:`, error);
+            // Fallback to smart recommendations
+            const fallbackRecommendations = generateSmartRecommendations(sectionData, sectionRef);
+            displayRecommendations(fallbackRecommendations, recommendationsContent, sectionCode);
+        });
+    }
+
+    // Display recommendations - UPDATED with section context
+    function displayRecommendations(recommendations, container, sectionCode) {
+        console.log(`📊 Displaying ${recommendations.length} recommendations for ${sectionCode}`);
+        
+        let recommendationsHTML = `
+            <div class="recommendation-header text-center mb-4">
+                <h5 style="color: #47682c;">🎯 AI-Powered Teaching Strategies</h5>
+                <p class="text-muted">Personalized recommendations for <strong>${sectionCode}</strong> based on evaluation data</p>
+            </div>
+            <div class="recommendation-list">
+        `;
+        
+        if (!recommendations || recommendations.length === 0) {
+            recommendationsHTML += `
+                <div class="text-center py-4">
+                    <i class="fas fa-robot fa-2x text-muted mb-3"></i>
+                    <p class="text-muted">No specific recommendations available for this section.</p>
+                </div>
+            `;
+        } else {
+            recommendations.forEach((rec, index) => {
+                const priorityColor = getPriorityColor(rec.priority);
+                const priorityIcon = rec.priority === 'High' ? '🚨' : rec.priority === 'Medium' ? '⚠️' : '💡';
+                
+                recommendationsHTML += `
+                    <div class="recommendation-item" style="
+                        background: linear-gradient(135deg, #f8fff8, #e8f5e8);
+                        border-left: 4px solid ${priorityColor};
+                        padding: 20px;
+                        margin: 15px 0;
+                        border-radius: 10px;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                        transition: transform 0.2s ease, box-shadow 0.2s ease;
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.15)'" 
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 10px rgba(0,0,0,0.1)'">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <h6 style="color: #2c3e50; margin: 0 0 5px 0; font-weight: 600;">${rec.title}</h6>
+                            </div>
+                            <span style="
+                                background: ${priorityColor};
+                                color: white;
+                                padding: 4px 12px;
+                                border-radius: 15px;
+                                font-size: 0.75rem;
+                                font-weight: bold;
+                                display: flex;
+                                align-items: center;
+                                gap: 4px;
+                            ">${priorityIcon} ${rec.priority} Priority</span>
+                        </div>
+                        <p style="margin: 0; color: #34495e; line-height: 1.6; font-size: 0.95rem;">${rec.description}</p>
+                        ${rec.reason ? `<div style="margin-top: 10px; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #95a5a6;">
+                            <small style="color: #7f8c8d; font-style: italic;">📊 ${rec.reason}</small>
+                        </div>` : ''}
+                    </div>
+                `;
+            });
+        }
+        
+        recommendationsHTML += `
+            </div>
+            <div class="text-center mt-4">
+                <small class="text-muted">💡 Recommendations generated by AI based on ${sectionCode} evaluation data</small>
+            </div>
+        `;
+        
+        container.innerHTML = recommendationsHTML;
+        
+        // Log successful display
+        console.log(`✅ Successfully displayed recommendations for ${sectionCode}`);
+    }
+
+    // Generate smart recommendations based on category performance (fallback) - IMPROVED
+    function generateSmartRecommendations(sectionData, sectionRef) {
+        console.log(`🔧 Generating fallback recommendations for ${sectionRef}`);
+        
+        const recommendations = [];
+        const categoryScores = sectionData.category_scores || [0, 0, 0, 0];
+        const maxScores = [35, 25, 20, 20];
+        const categoryNames = [
+            'Mastery of Subject Matter',
+            'Classroom Management', 
+            'Compliance to Policies',
+            'Personality'
+        ];
+        
+        // Calculate performance percentages
+        const performances = categoryScores.map((score, index) => (score / maxScores[index]) * 100);
+        
+        console.log(`Category performances for ${sectionRef}:`, performances);
+        
+        // Find weakest categories (below 80% of max)
+        const weakCategories = performances
+            .map((perf, index) => ({ 
+                index, 
+                perf, 
+                score: categoryScores[index],
+                name: categoryNames[index]
+            }))
+            .filter(item => item.perf < 80)
+            .sort((a, b) => a.perf - b.perf);
+        
+        console.log(`Weak categories for ${sectionRef}:`, weakCategories);
+        
+        // Generate recommendations based on weak categories
+        if (weakCategories.length > 0) {
+            // Focus on the weakest category
+            const weakest = weakCategories[0];
+            
+            recommendations.push({
+                title: `Improve ${weakest.name}`,
+                description: `Your ${weakest.name.toLowerCase()} score is ${formatToTwoDecimals(weakest.score)}% (${formatToTwoDecimals(weakest.perf)}% of maximum). Consider targeted strategies to enhance this area in ${sectionRef}.`,
+                priority: 'High',
+                reason: `Based on ${weakest.perf.toFixed(1)}% performance in ${weakest.name}`
+            });
+            
+            // Add second weakest if available
+            if (weakCategories.length > 1) {
+                const secondWeakest = weakCategories[1];
+                
+                recommendations.push({
+                    title: `Enhance ${secondWeakest.name}`,
+                    description: `Focus on improving ${secondWeakest.name.toLowerCase()} which is currently at ${formatToTwoDecimals(secondWeakest.score)}% (${formatToTwoDecimals(secondWeakest.perf)}% of maximum) in ${sectionRef}.`,
+                    priority: 'Medium',
+                    reason: `Based on ${secondWeakest.perf.toFixed(1)}% performance in ${secondWeakest.name}`
+                });
+            }
+            
+            // Add third recommendation based on overall score
+            if (sectionData.total_percentage < 75) {
+                recommendations.push({
+                    title: 'Comprehensive Teaching Strategy Review',
+                    description: `With an overall score of ${formatToTwoDecimals(sectionData.total_percentage)}%, consider a comprehensive review of your teaching methodologies and student engagement strategies for ${sectionRef}.`,
+                    priority: 'High',
+                    reason: `Based on overall score of ${sectionData.total_percentage.toFixed(1)}%`
+                });
+            }
+        } else {
+            // All categories performing well - suggest maintenance strategies
+            recommendations.push({
+                title: 'Maintain Teaching Excellence',
+                description: `All evaluation categories are performing well in ${sectionRef} (overall: ${formatToTwoDecimals(sectionData.total_percentage)}%). Continue your current effective teaching practices.`,
+                priority: 'Low',
+                reason: `All categories above 80% performance`
+            });
+            
+            recommendations.push({
+                title: 'Share Best Practices',
+                description: `Consider documenting and sharing your successful teaching strategies with colleagues to help improve teaching excellence across the institution.`,
+                priority: 'Low',
+                reason: 'High performance across all categories'
+            });
+        }
+        
+        // Add general recommendations if we need more
+        if (recommendations.length < 3) {
+            const generalRecs = [
+                {
+                    title: 'Incorporate Active Learning',
+                    description: `Try implementing think-pair-share or peer instruction activities in ${sectionRef} to boost engagement.`,
+                    priority: 'Medium',
+                    reason: 'General teaching improvement strategy'
+                },
+                {
+                    title: 'Enhance Student Feedback',
+                    description: `Consider implementing mid-semester feedback surveys in ${sectionRef} to identify areas for improvement.`,
+                    priority: 'Medium',
+                    reason: 'Continuous improvement strategy'
+                }
+            ];
+            
+            // Add general recommendations until we have 3 total
+            while (recommendations.length < 3 && generalRecs.length > 0) {
+                recommendations.push(generalRecs.shift());
+            }
+        }
+        
+        console.log(`🔧 Generated ${recommendations.length} fallback recommendations for ${sectionRef}`);
+        return recommendations.slice(0, 3); // Return max 3 recommendations
+    }
+
+    // Helper function to get priority colors
+    function getPriorityColor(priority) {
+        switch(priority) {
+            case 'High': return '#e74c3c';
+            case 'Medium': return '#f39c12';
+            case 'Low': return '#27ae60';
+            default: return '#47682c';
+        }
+    }
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Load no data content
+    function loadNoDataContent() {
+        const noDataHTML = `
+            <div class="no-data">
+                <i class="fas fa-chart-bar" style="font-size: 48px; margin-bottom: 15px; color: #bdc3c7;"></i>
+                <h5>No Evaluation Data Available</h5>
+                <p>No evaluation data found for the selected section.</p>
+            </div>
+        `;
+        
+        document.getElementById('evaluation-content').innerHTML = noDataHTML;
+        document.getElementById('recommendations-content').innerHTML = noDataHTML;
+        document.getElementById('overallStats').style.display = 'none';
+    }
+
+    // Load tab content
+    function loadTabContent(tabName) {
+        if (!selectedSectionId) {
+            console.log('No section selected');
+            return;
+        }
+        
+        let sectionData;
+        
+        if (selectedSectionId === 'peer') {
+            sectionData = peerScoresData;
+        } else if (selectedSectionId === 'overall') {
+            sectionData = calculateOverallResults();
+        } else {
+            sectionData = sectionScoresData[selectedSectionCode];
+        }
+        
+        console.log('Loading tab content for:', tabName, 'with data:', sectionData);
+        
+        if (!sectionData || !sectionData.has_data) {
+            loadNoDataContent();
+            return;
+        }
+        
+        const sectionName = selectedSectionId === 'peer' ? 'Peer Evaluation' :
+                           selectedSectionId === 'overall' ? 'Overall' :
+                           selectedSectionCode;
+        
+        switch(tabName) {
+            case 'evaluation':
+                loadEvaluationContent(sectionData, sectionName);
+                break;
+            case 'recommendations':
+                loadRecommendationsContent(sectionData, sectionName);
+                break;
+        }
+    }
+
+    // Initialize evaluation chart
+    function initializeEvaluationChart(sectionData, isOverall = false, isPeer = false) {
+        const ctx = document.getElementById('evaluationChart');
+        if (!ctx) {
+            console.error('Evaluation chart canvas not found');
+            return;
+        }
+        
+        // Check if sectionData has category_scores
+        if (!sectionData || !sectionData.category_scores) {
+            console.error('Invalid section data for chart:', sectionData);
+            return;
+        }
+        
+        // Format category scores to 2 decimal places for display in tooltips
+        const formattedCategoryScores = sectionData.category_scores.map(score => parseFloat(formatToTwoDecimals(score)));
+        
+        // Chart labels based on whether it's overall, peer, or individual
+        const labels = isPeer 
+            ? ['Peer: Subject Mastery', 'Peer: Classroom Mgmt', 'Peer: Compliance', 'Peer: Personality']
+            : isOverall 
+            ? ['Overall Subject Mastery', 'Overall Classroom Management', 'Overall Compliance', 'Overall Personality']
+            : ['Subject Mastery', 'Classroom Management', 'Compliance to Policies', 'Personality'];
+        
+        new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: formattedCategoryScores,
+                    backgroundColor: [
+                        '#47682c',
+                        '#5a8537',
+                        '#6ba043',
+                        '#7da345'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                // CORRECTED: Use proper max scores for each category
+                                const maxScores = [35, 25, 20, 20];
+                                const maxScore = maxScores[context.dataIndex];
+                                const percentageOfMax = formatToTwoDecimals((context.raw / maxScore) * 100);
+                                return `${context.label}: ${context.raw}% (${percentageOfMax}% of maximum)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Automatically fade out all flash messages after 3 seconds
+    setTimeout(() => {
+        const flashMessages = document.querySelectorAll('.flash-message');
+        flashMessages.forEach(flash => {
+            flash.classList.add('fade');
+            setTimeout(() => flash.remove(), 1000);
+        });
+    }, 3000);
+</script>
+
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Evaluation History{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Page Header with Status Indicator -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="card-title h3 mb-2">
+                                <i class="bi bi-clock-history me-2"></i>Evaluation History
+                            </h1>
+                            <p class="text-muted mb-0">Your evaluation results from all periods</p>
+                        </div>
+                        <div class="badge {% if evaluation_period_active %}bg-warning{% else %}bg-success{% endif %}">
+                            <i class="bi bi-{% if evaluation_period_active %}clock{% else %}check-circle{% endif %} me-1"></i>
+                            {% if evaluation_period_active %}Evaluation Active{% else %}Evaluation Period Ended{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Evaluation History List -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-check me-2"></i>Evaluation Results
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if evaluation_history %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Section</th>
+                                        <th>Overall Score</th>
+                                        <th>Category A</th>
+                                        <th>Category B</th>
+                                        <th>Category C</th>
+                                        <th>Category D</th>
+                                        <th>Responses</th>
+                                        
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for evaluation in evaluation_history %}
+                                    <tr class="{% if evaluation.status == 'Active' %}table-warning{% endif %}">
+                                        <td>
+                                            <strong>{{ evaluation.date|date:"M d, Y" }}</strong><br>
+                                            <small class="text-muted">{{ evaluation.date|date:"g:i A" }}</small>
+                                        </td>
+                                        <td>{{ evaluation.section }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if evaluation.overall_percentage >= 90 %}bg-success
+                                                {% elif evaluation.overall_percentage >= 80 %}bg-info
+                                                {% elif evaluation.overall_percentage >= 70 %}bg-warning
+                                                {% else %}bg-danger{% endif %}">
+                                                {{ evaluation.overall_percentage|floatformat:1 }}%
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ evaluation.category_scores.0|default:0|floatformat:1 }}%</small>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ evaluation.category_scores.1|default:0|floatformat:1 }}%</small>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ evaluation.category_scores.2|default:0|floatformat:1 }}%</small>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ evaluation.category_scores.3|default:0|floatformat:1 }}%</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ evaluation.total_responses }}</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox display-1 text-muted"></i>
+                            <h4 class="text-muted mt-3">No Evaluation History</h4>
+                            <p class="text-muted">
+                                No evaluation results found yet. Results will appear here as they become available.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+
+            <!-- Category Legend -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6 class="card-title">Category Legend:</h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <small><strong>Category A:</strong> Mastery of Subject Matter (35%)</small>
+                        </div>
+                        <div class="col-md-3">
+                            <small><strong>Category B:</strong> Classroom Management (25%)</small>
+                        </div>
+                        <div class="col-md-3">
+                            <small><strong>Category C:</strong> Compliance to Policies (20%)</small>
+                        </div>
+                        <div class="col-md-3">
+                            <small><strong>Category D:</strong> Personality (20%)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        color: #6c757d;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .table-warning {
+        background-color: rgba(255, 193, 7, 0.05) !important;
+    }
+</style>
+{% endblock %}

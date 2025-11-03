@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Evaluation Results</title>
+</head>
+<body>
+    <h1>Evaluation Results</h1>
+
+    <!-- Display the chart -->
+    <div id="chart-container">
+        {{ chart_html|safe }}
+    </div>
+
+    <!-- Optionally display the chart data in a table (for debugging/analysis) -->
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Question</th>
+                <th>Poor</th>
+                <th>Fair</th>
+                <th>Good</th>
+                <th>Excellent</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for question, data in chart_data.items %}
+                <tr>
+                    <td>{{ question }}</td>
+                    <td>{{ data.Poor|default:0 }}%</td>
+                    <td>{{ data.Fair|default:0 }}%</td>
+                    <td>{{ data.Good|default:0 }}%</td>
+                    <td>{{ data.Excellent|default:0 }}%</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>

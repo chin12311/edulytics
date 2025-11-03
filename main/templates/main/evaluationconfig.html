@@ -1,0 +1,135 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+
+<style>
+    .fade-alert {
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+        display: block;
+    }
+    .fade-alert.show {
+        opacity: 1;
+    }
+</style>
+
+<div class="container mt-5">
+
+    <!-- ✅ Placeholder Alerts -->
+    <div id="student-status" class="alert fade-alert" style="display: none;"></div>
+    <div id="peer-status" class="alert fade-alert" style="display: none;"></div>
+
+    <div class="card shadow-sm mb-5">
+        <div class="card-body">
+            <h2 class="text-center">{{ page_title }}</h2>
+
+            {% if message %}
+            <div class="alert alert-success text-center">
+                {{ message }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 🔹 Student Evaluation Release -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4 class="mb-3">Evaluation Release</h4>
+
+            <div class="d-flex justify-content-between">
+                <button 
+                    class="btn btn-success" 
+                    id="releaseStudentBtn"
+                    style="width: 48%;"
+                    {% if student_evaluation_released %}disabled{% endif %}>
+                    Release Evaluations
+                </button>
+
+                <button 
+                    class="btn btn-danger" 
+                    id="unreleaseStudentBtn" 
+                    style="width: 48%;"
+                    {% if not student_evaluation_released %}disabled{% endif %}>
+                    Unrelease Evaluations
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const csrfToken = '{{ csrf_token }}';
+
+    function showAlertWithFade(element, className, message) {
+        element.className = `alert fade-alert ${className}`;
+        element.textContent = message;
+        element.style.display = 'block';
+
+        // Fade in
+        requestAnimationFrame(() => {
+            element.classList.add('show');
+        });
+
+        // Fade out after 3 seconds
+        setTimeout(() => {
+            element.classList.remove('show');
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 500); // match CSS transition
+        }, 3000);
+    }
+
+    function updateStatusMessages(data, type) {
+        if (type === 'student' && 'student_evaluation_released' in data) {
+            const studentStatus = document.getElementById('student-status');
+            const studentReleased = data.student_evaluation_released;
+
+            showAlertWithFade(
+                studentStatus,
+                studentReleased ? 'alert-success' : 'alert-warning',
+                studentReleased
+                    ? 'Evaluation is released.'
+                    : 'Evaluation is Unreleased.'
+            );
+
+            document.getElementById('releaseStudentBtn').disabled = studentReleased;
+            document.getElementById('unreleaseStudentBtn').disabled = !studentReleased;
+        }
+    }
+
+    function handleRelease(url, successMessage, type) {
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateStatusMessages(data, type);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Something went wrong.');
+        });
+    }
+
+    // Student Evaluation Handlers
+    document.getElementById('releaseStudentBtn').addEventListener('click', function () {
+        handleRelease("{% url 'main:release_student_evaluation' %}", "Evaluation is released.", "student");
+    });
+
+    document.getElementById('unreleaseStudentBtn').addEventListener('click', function () {
+        handleRelease("{% url 'main:unrelease_student_evaluation' %}", "Evaluation is unreleased.", "student");
+    });
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'main/base.html' %}
+
+{% block content %}   
+<div class="container mt-5">
+
+    <!-- Wide Header Section -->
+    <div class="card shadow-sm border-0" style="background-color: #47682c; color: white;">
+        <div class="card-body p-2">
+
+            <!-- Left-aligned Details with Left Margin -->
+            <div class="text-start" style="margin-left: 20px;">  
+                <h3 class="mb-2">{{ faculty.user.username }}</h3>   
+                
+                <!-- Display full name instead of acronym -->
+                <p class="fs-6 mb-1">
+                    {% if faculty.institute == "IBM" %}
+                        Institute of Business and Management
+                    {% elif faculty.institute == "ICSLIS" %}
+                        Institute of Computing Studies and Library Information Science
+                    {% elif faculty.institute == "IEAS" %}
+                        Institute of Education, Arts and Services
+                    {% else %}
+                        {{ faculty.institute }}
+                    {% endif %}
+                </p>     
+
+                <p class="fs-7">{{ faculty.role }}</p>  
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Dropdown Section -->
+    <div class="mt-4">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sectionDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: #47682c; color: white;">
+                Section
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="sectionDropdown">
+                <li><a class="dropdown-item section-item" data-section="Section A" href="#">Section A</a></li>
+                <li><a class="dropdown-item section-item" data-section="Section B" href="#">Section B</a></li>
+                <li><a class="dropdown-item section-item" data-section="Section C" href="#">Section C</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Section Content Boxes (Initially Hidden) -->
+    <div class="mt-4">
+        <div class="section-box card shadow-sm border-0 p-4" style="background-color: #47682c; color: white; height: 400px; width: 100%; display: none; opacity: 0; transition: opacity 0.5s ease-in-out; align-items: center; justify-content: center;">
+            <h2 class="text-white" id="sectionTitle">Data Analytics</h2>
+        </div>
+    </div>
+
+    </div>
+
+    <script>
+        document.querySelectorAll('.section-item').forEach(item => {
+            item.addEventListener('click', function() {
+                let sectionBox = document.querySelector('.section-box');
+                let sectionTitle = document.getElementById('sectionTitle');
+                
+                sectionBox.style.opacity = '0';
+                setTimeout(() => {
+                    sectionTitle.textContent = 'Data Analytics';
+                    sectionBox.style.display = 'flex';
+                    setTimeout(() => { sectionBox.style.opacity = '1'; }, 10);
+                }, 400);
+            });
+        });
+    </script>
+{% endblock %}

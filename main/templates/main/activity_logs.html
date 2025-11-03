@@ -1,0 +1,328 @@
+{% extends 'main/base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block title %}Admin Activity Logs{% endblock %}
+
+{% block body_style %} 
+style="background-image: url('{% static 'img/phoenix-background.png' %}'); 
+        background-repeat: no-repeat; 
+        background-size: cover; 
+        background-position: center; 
+        min-height: 100vh;" 
+{% endblock %}
+
+{% block content %}
+<style>
+    .form-card {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-top: 50px;
+        opacity: 0;
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+    h2 { 
+        font-family: 'Arial', sans-serif; 
+        font-weight: 600; 
+        color: #47682c; 
+        margin-bottom: 25px; 
+    }
+
+    .card {
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    .card-body {
+        padding: 25px;
+    }
+
+    .table {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .table thead {
+        background-color: #47682c;
+        color: white;
+    }
+
+    .table th {
+        border: none;
+        padding: 15px;
+        font-weight: 600;
+    }
+
+    .table td {
+        padding: 15px;
+        vertical-align: middle;
+        border-color: #e9ecef;
+    }
+
+    .badge {
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .stat-card {
+        background: #47682c;
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .pagination {
+        margin-top: 20px;
+    }
+
+    .pagination .page-link {
+        color: #47682c;
+        border-color: #47682c;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #47682c;
+        border-color: #47682c;
+    }
+
+    .back-btn {
+        background-color: #47682c;
+        border: none;
+        color: white;
+        border-radius: 20px;
+        padding: 10px 25px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .back-btn:hover {
+        background-color: #3a5a29;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .change-details {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 8px;
+        font-size: 13px;
+        border-left: 4px solid #47682c;
+        white-space: pre-line;
+        line-height: 1.6;
+    }
+
+    .change-details strong {
+        color: #47682c;
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .change-item {
+        padding: 5px 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .change-item:last-child {
+        border-bottom: none;
+    }
+
+    .toggle-details {
+        cursor: pointer;
+        color: #47682c;
+        text-decoration: underline;
+        font-size: 11px;
+        display: inline-block;
+        margin-top: 3px;
+    }
+
+    .toggle-details:hover {
+        color: #3a5a29;
+    }
+
+    .details-hidden {
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .form-card {
+            padding: 20px;
+            margin: 15px;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="form-card col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">📝 Admin Activity Logs</h2>
+        </div>
+        
+        <!-- Activity Logs Table -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="text-center mb-3">Activity History</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="180px">Date & Time</th>
+                                <th width="150px">Action</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for activity in activities %}
+                            <tr>
+                                <td>
+                                    {% timezone "Asia/Manila" %}
+                                    <small class="text-muted">{{ activity.timestamp|date:"M d, Y" }}</small><br>
+                                    <small class="text-muted">{{ activity.timestamp|date:"g:i:s A" }}</small>
+                                    {% endtimezone %}
+                                </td>
+                                <td>
+                                    {% if activity.action == 'create_account' %}
+                                        <span class="badge bg-success">➕ Create</span>
+                                    {% elif activity.action == 'update_account' %}
+                                        <span class="badge bg-primary">✏️ Update</span>
+                                    {% elif activity.action == 'delete_account' %}
+                                        <span class="badge bg-danger">🗑️ Delete</span>
+                                    {% elif activity.action == 'assign_section' %}
+                                        <span class="badge bg-info">📌 Assign</span>
+                                    {% elif activity.action == 'remove_section' %}
+                                        <span class="badge bg-warning">📍 Remove</span>
+                                    {% elif activity.action == 'release_evaluation' %}
+                                        <span class="badge bg-success">🚀 Release</span>
+                                    {% elif activity.action == 'unrelease_evaluation' %}
+                                        <span class="badge bg-warning">🛑 Unrelease</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ activity.get_action_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if activity.action == 'update_account' %}
+                                        {# Extract main description before "Changes:" #}
+                                        {% if "Changes:" in activity.description %}
+                                            <small>{{ activity.description|striptags|truncatewords:12 }}</small>
+                                        {% else %}
+                                            <small>{{ activity.description|striptags|truncatewords:15 }}</small>
+                                        {% endif %}
+                                        <br>
+                                        <span class="toggle-details" onclick="toggleDetails({{ activity.id }})">
+                                            📋 View Full Details
+                                        </span>
+                                        <div class="change-details details-hidden" id="details-{{ activity.id }}">
+                                            <strong>Update Details:</strong>
+                                            {{ activity.description|linebreaksbr }}
+                                        </div>
+                                    {% else %}
+                                        <small>{{ activity.description|linebreaksbr }}</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">
+                                    No activity logs yet. Admin actions will appear here.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if activities.has_other_pages %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if activities.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ activities.previous_page_number }}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Page {{ activities.number }} of {{ activities.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if activities.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ activities.next_page_number }}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ activities.paginator.num_pages }}">Last</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        Showing {{ activities.start_index }} - {{ activities.end_index }} of {{ total_logs }} total logs
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleDetails(activityId) {
+    const detailsDiv = document.getElementById('details-' + activityId);
+    const toggleBtn = event.target;
+    
+    if (detailsDiv.classList.contains('details-hidden')) {
+        detailsDiv.classList.remove('details-hidden');
+        toggleBtn.textContent = '📋 Hide Details';
+    } else {
+        detailsDiv.classList.add('details-hidden');
+        toggleBtn.textContent = '📋 View Details';
+    }
+}
+</script>
+
+{% endblock %}
