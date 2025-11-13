@@ -181,6 +181,39 @@ admin.site.register(Section)
 admin.site.register(SectionAssignment)
 admin.site.register(AiRecommendation)
 
+# Register EvaluationResult
+@admin.register(EvaluationResult)
+class EvaluationResultAdmin(admin.ModelAdmin):
+    list_display = ('user', 'evaluation_period', 'total_percentage', 'total_responses', 'calculated_at')
+    list_filter = ('evaluation_period', 'total_percentage')
+    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'evaluation_period__name')
+    readonly_fields = ('user', 'evaluation_period', 'section', 'calculated_at', 'last_updated', 'total_percentage', 'average_rating', 'category_a_score', 'category_b_score', 'category_c_score', 'category_d_score')
+    ordering = ('-calculated_at',)
+    
+    def has_add_permission(self, request):
+        return False  # Results should be auto-calculated
+    
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser  # Only superusers can delete
+
+# Register EvaluationHistory
+@admin.register(EvaluationHistory)
+class EvaluationHistoryAdmin(admin.ModelAdmin):
+    list_display = ('user', 'evaluation_period', 'evaluation_type', 'total_percentage', 'total_responses', 'archived_at')
+    list_filter = ('evaluation_type', 'evaluation_period', 'archived_at')
+    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'evaluation_period__name')
+    readonly_fields = ('user', 'evaluation_period', 'evaluation_type', 'section', 'archived_at', 'period_start_date', 'period_end_date', 'total_percentage', 'average_rating', 'category_a_score', 'category_b_score', 'category_c_score', 'category_d_score')
+    ordering = ('-archived_at', '-period_start_date')
+    
+    def has_add_permission(self, request):
+        return False  # History should be auto-created when archiving
+    
+    def has_change_permission(self, request, obj=None):
+        return False  # History records should be immutable
+    
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser  # Only superusers can delete
+
 # Register AdminActivityLog
 @admin.register(AdminActivityLog)
 class AdminActivityLogAdmin(admin.ModelAdmin):

@@ -209,29 +209,43 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <input type="text" name="studentNumber" id="id_studentNumber" 
                            value="{{ form.studentNumber.value|default:'' }}" 
                            class="form-control mb-3 custom-input-width text-center" 
-                           placeholder="e.g., 204001" maxlength="7" pattern="[0-9]*" inputmode="numeric">
+                           placeholder="e.g., 21-1766" maxlength="7" pattern="[0-9\-]*" inputmode="decimal">
                     <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         var studentNumberInput = document.getElementById('id_studentNumber');
                         if (studentNumberInput) {
-                            // Prevent all non-numeric and non-dash characters
+                            // Auto-format student number with hyphen (XX-XXXX)
                             studentNumberInput.addEventListener('input', function(e) {
-                                // Remove any non-digit and non-dash characters immediately
-                                this.value = this.value.replace(/[^0-9-]/g, '');
+                                // Remove all non-numeric characters first
+                                let value = this.value.replace(/[^0-9]/g, '');
+                                
+                                // Auto-format: add hyphen after 2 digits
+                                if (value.length >= 2) {
+                                    value = value.substring(0, 2) + '-' + value.substring(2, 6);
+                                }
+                                
+                                // Limit to 7 characters (XX-XXXX)
+                                this.value = value.substring(0, 7);
                             });
                             
-                            // Prevent pasting non-numeric and non-dash content
+                            // Prevent pasting non-numeric content
                             studentNumberInput.addEventListener('paste', function(e) {
                                 e.preventDefault();
                                 const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                                const numericOnly = pastedText.replace(/[^0-9-]/g, '');
-                                this.value = numericOnly;
+                                let numericOnly = pastedText.replace(/[^0-9]/g, '');
+                                
+                                // Auto-format pasted content
+                                if (numericOnly.length >= 2) {
+                                    numericOnly = numericOnly.substring(0, 2) + '-' + numericOnly.substring(2, 6);
+                                }
+                                
+                                this.value = numericOnly.substring(0, 7);
                             });
                             
-                            // Block keyboard input of non-numeric and non-dash characters
+                            // Block keyboard input of non-numeric characters
                             studentNumberInput.addEventListener('keypress', function(e) {
                                 const char = String.fromCharCode(e.which);
-                                if (!/[0-9-]/.test(char)) {
+                                if (!/[0-9]/.test(char)) {
                                     e.preventDefault();
                                 }
                             });

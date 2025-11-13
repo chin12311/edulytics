@@ -35,8 +35,38 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
 
     h2, h3, h5 { font-family: 'Arial', sans-serif; font-weight: 600; color: #47682c; margin-bottom: 25px; }
     label { font-weight: bold; color: #47682c; margin-bottom: 5px; }
-    .form-control { border-radius: 20px; padding: 10px; border: 1px solid #ddd; transition: all 0.3s ease; }
-    .form-control:focus { border-color: #47682c; box-shadow: 0 0 5px rgba(71,104,44,0.3); }
+    
+    /* Style text inputs with rounded corners */
+    input[type="text"].form-control,
+    input[type="email"].form-control,
+    input[type="password"].form-control,
+    input[type="number"].form-control,
+    input[type="date"].form-control,
+    textarea.form-control { 
+        border-radius: 20px; 
+        padding: 10px; 
+        border: 1px solid #ddd; 
+        transition: all 0.3s ease; 
+    }
+    
+    /* Keep dropdowns/selects with normal corners */
+    select.form-control {
+        border-radius: 4px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        transition: all 0.3s ease;
+    }
+    
+    input[type="text"].form-control:focus,
+    input[type="email"].form-control:focus,
+    input[type="password"].form-control:focus,
+    input[type="number"].form-control:focus,
+    input[type="date"].form-control:focus,
+    textarea.form-control:focus,
+    select.form-control:focus { 
+        border-color: #47682c; 
+        box-shadow: 0 0 5px rgba(71,104,44,0.3); 
+    }
     .btn-success { background-color: #47682c; border: none; color: white; border-radius: 20px; padding: 12px 25px; font-weight: bold; transition: all 0.3s ease; margin: 5px; }
     .btn-success:hover { background-color: #3a5a29; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
     .btn-warning { background-color: #ffc107; border: none; color: white; border-radius: 20px; padding: 12px 25px; font-weight: bold; transition: all 0.3s ease; margin: 5px; }
@@ -232,6 +262,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <button class="btn btn-danger" onclick="resetAllFailures()" id="resetAllBtn">
                         Reset All Failures
                     </button>
+                    <a href="{% url 'main:manage_evaluation_questions' %}" class="btn btn-info">
+                        📋 Manage Questions
+                    </a>
                 </div>
             </div>
         </div>

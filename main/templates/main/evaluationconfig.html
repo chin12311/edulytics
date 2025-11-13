@@ -18,6 +18,7 @@
     <!-- ✅ Placeholder Alerts -->
     <div id="student-status" class="alert fade-alert" style="display: none;"></div>
     <div id="peer-status" class="alert fade-alert" style="display: none;"></div>
+    <div id="sync-status" class="alert fade-alert" style="display: none;"></div>
 
     <div class="card shadow-sm mb-5">
         <div class="card-body">
@@ -35,22 +36,23 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <h4 class="mb-3">Evaluation Release</h4>
+            <p class="text-muted mb-3">Click to release both student and peer evaluations simultaneously.</p>
 
             <div class="d-flex justify-content-between">
                 <button 
                     class="btn btn-success" 
                     id="releaseStudentBtn"
                     style="width: 48%;"
-                    {% if student_evaluation_released %}disabled{% endif %}>
-                    Release Evaluations
+                    {% if student_evaluation_released or peer_evaluation_released %}disabled{% endif %}>
+                    🚀 Release All Evaluations
                 </button>
 
                 <button 
                     class="btn btn-danger" 
                     id="unreleaseStudentBtn" 
                     style="width: 48%;"
-                    {% if not student_evaluation_released %}disabled{% endif %}>
-                    Unrelease Evaluations
+                    {% if not student_evaluation_released and not peer_evaluation_released %}disabled{% endif %}>
+                    ⛔ Unrelease All Evaluations
                 </button>
             </div>
         </div>
@@ -89,12 +91,25 @@
                 studentStatus,
                 studentReleased ? 'alert-success' : 'alert-warning',
                 studentReleased
-                    ? 'Evaluation is released.'
-                    : 'Evaluation is Unreleased.'
+                    ? 'Student Evaluation is released.'
+                    : 'Student Evaluation is Unreleased.'
             );
 
             document.getElementById('releaseStudentBtn').disabled = studentReleased;
             document.getElementById('unreleaseStudentBtn').disabled = !studentReleased;
+        }
+
+        if (type === 'peer' && 'peer_evaluation_released' in data) {
+            const peerStatus = document.getElementById('peer-status');
+            const peerReleased = data.peer_evaluation_released;
+
+            showAlertWithFade(
+                peerStatus,
+                peerReleased ? 'alert-success' : 'alert-warning',
+                peerReleased
+                    ? 'Peer Evaluation is released.'
+                    : 'Peer Evaluation is Unreleased.'
+            );
         }
     }
 
@@ -123,11 +138,95 @@
 
     // Student Evaluation Handlers
     document.getElementById('releaseStudentBtn').addEventListener('click', function () {
-        handleRelease("{% url 'main:release_student_evaluation' %}", "Evaluation is released.", "student");
+        // Release both student and peer evaluations
+        const syncStatus = document.getElementById('sync-status');
+        
+        // First release student evaluation
+        fetch("{% url 'main:release_student_evaluation' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateStatusMessages(data, 'student');
+                
+                // Then release peer evaluation
+                return fetch("{% url 'main:release_peer_evaluation' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({})
+                });
+            } else {
+                throw new Error(data.error || 'Failed to release student evaluation');
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateStatusMessages(data, 'peer');
+                showAlertWithFade(syncStatus, 'alert-success', '✅ Both Student and Peer Evaluations Released!');
+            } else {
+                showAlertWithFade(syncStatus, 'alert-warning', '⚠️ Student evaluation released, but peer evaluation encountered an issue: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            showAlertWithFade(syncStatus, 'alert-danger', '❌ Error: ' + err.message);
+        });
     });
 
     document.getElementById('unreleaseStudentBtn').addEventListener('click', function () {
-        handleRelease("{% url 'main:unrelease_student_evaluation' %}", "Evaluation is unreleased.", "student");
+        // Unrelease both student and peer evaluations
+        const syncStatus = document.getElementById('sync-status');
+        
+        // First unrelease student evaluation
+        fetch("{% url 'main:unrelease_student_evaluation' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateStatusMessages(data, 'student');
+                
+                // Then unrelease peer evaluation
+                return fetch("{% url 'main:unrelease_peer_evaluation' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({})
+                });
+            } else {
+                throw new Error(data.error || 'Failed to unrelease student evaluation');
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateStatusMessages(data, 'peer');
+                showAlertWithFade(syncStatus, 'alert-success', '✅ Both Student and Peer Evaluations Unreleased!');
+            } else {
+                showAlertWithFade(syncStatus, 'alert-warning', '⚠️ Student evaluation unreleased, but peer evaluation encountered an issue: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            showAlertWithFade(syncStatus, 'alert-danger', '❌ Error: ' + err.message);
+        });
     });
 
 </script>

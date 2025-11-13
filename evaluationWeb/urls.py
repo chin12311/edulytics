@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from register import views as v
 from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,3 +26,12 @@ urlpatterns = [
     path('', include('register.urls')),
     path('', include('django.contrib.auth.urls')),
 ]
+
+# Serve static files in production
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+else:
+    # In production, serve static files from STATIC_ROOT
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) if hasattr(settings, 'MEDIA_URL') else []
+

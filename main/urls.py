@@ -43,6 +43,7 @@ urlpatterns = [
     path('update-profile/<int:user_Id>/remove-assignment/<int:assignment_id>/', views.UpdateUser.as_view(), name='remove-section-assignment'),
     path('remove-section-assignment/<int:assignment_id>/', views.remove_section_assignment, name='remove-section-assignment'),
     path('api/ai-recommendations/', views.AIRecommendationsAPIView.as_view(), name='ai_recommendations'),
+    path('api/student-comments/', views.StudentCommentsAPIView.as_view(), name='student_comments'),
     path('admin-control/', views.admin_evaluation_control, name='admin_control'),
     path('activity-logs/', views.admin_activity_logs, name='activity_logs'),
     path('process-results/', views.process_results, name='process_results'),
@@ -53,5 +54,8 @@ urlpatterns = [
     path('unrelease-all-evaluations/', views.unrelease_all_evaluations, name='unrelease_all_evaluations'),
     path('export-accounts/', views.ExportAccountsView.as_view(), name='export_accounts'),
     path('import-accounts/', views.ImportAccountsView.as_view(), name='import_accounts'),
-    
+    path('manage-evaluation-questions/', views.manage_evaluation_questions, name='manage_evaluation_questions'),
+    path('update-evaluation-question/<str:question_type>/<int:question_id>/', views.update_evaluation_question, name='update_evaluation_question'),
+    path('bulk-update-evaluation-questions/', views.bulk_update_evaluation_questions, name='bulk_update_evaluation_questions'),
+    path('reset-evaluation-questions/', views.reset_evaluation_questions, name='reset_evaluation_questions'),
 ]

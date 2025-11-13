@@ -47,6 +47,7 @@ class UserProfile(models.Model):
         default=Role.STUDENT
     )
 
+    # Student number format: XX-XXXX (e.g., 21-1766) - max 7 characters
     studentnumber = models.CharField(max_length=7, blank=True, null=True)
     course = models.CharField(max_length=50, blank=True, null=True)
 
@@ -71,16 +72,20 @@ class UserProfile(models.Model):
                 raise ValidationError("Student must have a student number.")
             if not self.course:
                 raise ValidationError("Student must have a course.")
-            if not self.user.email.endswith("@cca.edu.ph"):
+            if self.user and not self.user.email.endswith("@cca.edu.ph"):
                 raise ValidationError("Students must use a @cca.edu.ph email.")
         else:
+            # Non-students should NOT have student fields
             if self.studentnumber or self.course or self.section:
                 raise ValidationError(
                     f"{self.role} should not have studentnumber, course, or section."
                 )
 
     def save(self, *args, **kwargs):
-        self.full_clean()
+        # Only call full_clean if skip_validation is not set
+        # This prevents double validation
+        if not kwargs.pop('skip_validation', False):
+            self.full_clean()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -88,6 +93,7 @@ class UserProfile(models.Model):
         return f"{name} ({self.role})"
 
     class Meta:
+        ordering = ['-id']  # Order by ID descending to show newest first
         constraints = [
             models.CheckConstraint(
                 check=Q(role=Role.STUDENT, studentnumber__isnull=False, course__isnull=False) |
@@ -207,15 +213,16 @@ class Evaluation(models.Model):
 # Evaluation Response
 # ------------------------
 class EvaluationResponse(models.Model):
-    evaluator = models.ForeignKey(User, related_name='evaluations', on_delete=models.CASCADE)
-    evaluatee = models.ForeignKey(User, related_name='evaluated_by', on_delete=models.CASCADE)
+    evaluator = models.ForeignKey(User, related_name='evaluations', on_delete=models.CASCADE, db_index=True)
+    evaluatee = models.ForeignKey(User, related_name='evaluated_by', on_delete=models.CASCADE, db_index=True)
+    evaluation_period = models.ForeignKey(EvaluationPeriod, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
 
     # Student information
     student_number = models.CharField(max_length=20, blank=True, null=True)
     student_section = models.CharField(max_length=50, blank=True, null=True)
     
     # Timestamp
-    submitted_at = models.DateTimeField(default=timezone.now)
+    submitted_at = models.DateTimeField(default=timezone.now, db_index=True)
 
     # Default answers
     question1 = models.CharField(max_length=50, default='Poor')
@@ -238,7 +245,9 @@ class EvaluationResponse(models.Model):
     comments = models.TextField(blank=True, null=True, verbose_name="Additional Comments/Suggestions")
 
     class Meta:
-        unique_together = ('evaluator', 'evaluatee')
+        # Allow same evaluator to evaluate same evaluatee in different periods
+        # But prevent duplicate evaluation within the same period
+        unique_together = ('evaluator', 'evaluatee', 'evaluation_period')
 
     def __str__(self):
         return f"{self.evaluator.get_full_name() or self.evaluator.username}'s Evaluation for {self.evaluatee.get_full_name() or self.evaluatee.username}"
@@ -317,6 +326,140 @@ class EvaluationResult(models.Model):
             round((self.very_satisfactory_count / total_ratings) * 100, 2),
             round((self.outstanding_count / total_ratings) * 100, 2)
         ]
+
+# ------------------------
+# Evaluation History
+# ------------------------
+class EvaluationHistory(models.Model):
+    """
+    Dedicated table for storing historical evaluation results.
+    This separates archived evaluation data from current active results.
+    Makes it easy to query and display evaluation history.
+    """
+    EVALUATION_TYPE_CHOICES = [
+        ('student', 'Student Evaluation'),
+        ('peer', 'Peer Evaluation'),
+    ]
+    
+    # Link to the user being evaluated
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="evaluation_history")
+    
+    # Evaluation period information
+    evaluation_period = models.ForeignKey(
+        EvaluationPeriod, 
+        on_delete=models.CASCADE,
+        related_name="history_records"
+    )
+    evaluation_type = models.CharField(
+        max_length=10, 
+        choices=EVALUATION_TYPE_CHOICES,
+        default='student'
+    )
+    
+    # Section information
+    section = models.ForeignKey(
+        'Section', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name="history_records"
+    )
+    
+    # Category scores (same as EvaluationResult)
+    category_a_score = models.FloatField(default=0.0)  # Mastery of Subject Matter (35%)
+    category_b_score = models.FloatField(default=0.0)  # Classroom Management (25%)
+    category_c_score = models.FloatField(default=0.0)  # Compliance to Policies (20%)
+    category_d_score = models.FloatField(default=0.0)  # Personality (20%)
+    
+    # Overall scores
+    total_percentage = models.FloatField(default=0.0)
+    average_rating = models.FloatField(default=0.0)  # 1-5 scale
+    
+    # Statistics
+    total_responses = models.IntegerField(default=0)
+    total_questions = models.IntegerField(default=15)
+    
+    # Rating distribution
+    poor_count = models.IntegerField(default=0)
+    unsatisfactory_count = models.IntegerField(default=0)
+    satisfactory_count = models.IntegerField(default=0)
+    very_satisfactory_count = models.IntegerField(default=0)
+    outstanding_count = models.IntegerField(default=0)
+    
+    # Timestamps
+    archived_at = models.DateTimeField(auto_now_add=True)
+    period_start_date = models.DateTimeField(null=True, blank=True)  # Snapshot of period start
+    period_end_date = models.DateTimeField(null=True, blank=True)    # Snapshot of period end
+    
+    class Meta:
+        unique_together = ['user', 'evaluation_period', 'section']
+        ordering = ['-period_start_date', 'user__username']
+        indexes = [
+            models.Index(fields=['user', '-period_start_date']),
+            models.Index(fields=['evaluation_type', '-period_start_date']),
+        ]
+    
+    def __str__(self):
+        section_info = f" - {self.section.code}" if self.section else ""
+        return f"{self.user.username} - {self.evaluation_period.name}{section_info} - {self.total_percentage}%"
+    
+    @property
+    def category_percentages(self):
+        """Calculate percentage of maximum for each category"""
+        max_scores = [35, 25, 20, 20]  # Maximum possible for each category
+        scores = [self.category_a_score, self.category_b_score, self.category_c_score, self.category_d_score]
+        
+        return [
+            round((score / max_score) * 100, 2) if max_score > 0 else 0.0
+            for score, max_score in zip(scores, max_scores)
+        ]
+
+    @property
+    def rating_distribution_percentages(self):
+        """Calculate percentage distribution of ratings"""
+        total_ratings = sum([
+            self.poor_count,
+            self.unsatisfactory_count,
+            self.satisfactory_count,
+            self.very_satisfactory_count,
+            self.outstanding_count
+        ])
+        
+        if total_ratings == 0:
+            return [0, 0, 0, 0, 0]
+            
+        return [
+            round((self.poor_count / total_ratings) * 100, 2),
+            round((self.unsatisfactory_count / total_ratings) * 100, 2),
+            round((self.satisfactory_count / total_ratings) * 100, 2),
+            round((self.very_satisfactory_count / total_ratings) * 100, 2),
+            round((self.outstanding_count / total_ratings) * 100, 2)
+        ]
+    
+    @classmethod
+    def create_from_result(cls, result):
+        """Create a history record from an EvaluationResult"""
+        return cls.objects.create(
+            user=result.user,
+            evaluation_period=result.evaluation_period,
+            evaluation_type=result.evaluation_period.evaluation_type,
+            section=result.section,
+            category_a_score=result.category_a_score,
+            category_b_score=result.category_b_score,
+            category_c_score=result.category_c_score,
+            category_d_score=result.category_d_score,
+            total_percentage=result.total_percentage,
+            average_rating=result.average_rating,
+            total_responses=result.total_responses,
+            total_questions=result.total_questions,
+            poor_count=result.poor_count,
+            unsatisfactory_count=result.unsatisfactory_count,
+            satisfactory_count=result.satisfactory_count,
+            very_satisfactory_count=result.very_satisfactory_count,
+            outstanding_count=result.outstanding_count,
+            period_start_date=result.evaluation_period.start_date,
+            period_end_date=result.evaluation_period.end_date,
+        )
 
 # ------------------------
 # Evaluation Comment
@@ -441,3 +584,43 @@ def can_view_evaluation_results(evaluation_type='student'):
         is_released=True, 
         evaluation_type=evaluation_type
     ).exists()
+
+
+# ------------------------
+# Evaluation Questions Models
+# ------------------------
+class EvaluationQuestion(models.Model):
+    """Store evaluation questions for student and peer evaluations"""
+    EVALUATION_TYPE_CHOICES = [
+        ('student', 'Student Evaluation'),
+        ('peer', 'Peer Evaluation'),
+    ]
+    
+    evaluation_type = models.CharField(max_length=10, choices=EVALUATION_TYPE_CHOICES, default='student')
+    question_number = models.IntegerField()  # 1, 2, 3, ..., 19
+    question_text = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('evaluation_type', 'question_number')
+        ordering = ['evaluation_type', 'question_number']
+    
+    def __str__(self):
+        return f"{self.get_evaluation_type_display()} - Q{self.question_number}: {self.question_text[:50]}..."
+
+
+class PeerEvaluationQuestion(models.Model):
+    """Store peer evaluation questions (11 questions total)"""
+    question_number = models.IntegerField(primary_key=True)  # 1-11
+    question_text = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['question_number']
+    
+    def __str__(self):
+        return f"Peer Q{self.question_number}: {self.question_text[:50]}..."
