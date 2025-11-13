@@ -143,6 +143,12 @@
         line-height: 1.5;
     }
 
+    .question-group > .question-text:first-of-type {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
     .rating-options {
         display: flex;
         justify-content: center;
@@ -212,14 +218,19 @@
     }
 
     .scale-items {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 15px;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
         text-align: center;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding: 10px 0;
     }
 
     .scale-item {
         padding: 10px;
+        flex-shrink: 0;
+        min-width: 80px;
     }
 
     .scale-value {
@@ -277,11 +288,26 @@
         padding: 12px 15px;
         font-size: 15px;
         transition: border-color 0.3s ease;
+        max-width: 100%;
+        width: 100%;
     }
 
     .form-control:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 3px rgba(103, 58, 183, 0.1);
+    }
+
+    /* Select dropdown specific styling */
+    select.form-control {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Handle long option text */
+    select.form-control option {
+        padding: 5px;
+        word-wrap: normal;
     }
 
     .comments-section {
@@ -323,6 +349,16 @@
         font-style: italic;
     }
 
+    .form-text {
+        font-size: 12px;
+        display: block;
+        margin-top: 8px;
+    }
+
+    .form-text.text-muted {
+        color: var(--text-light);
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
         .evaluation-container {
@@ -339,51 +375,420 @@
         }
 
         .form-header h1 {
-            font-size: 24px;
+            font-size: 22px;
+        }
+
+        .form-header p {
+            font-size: 14px;
+        }
+
+        .info-card {
+            padding: 15px;
+            margin-bottom: 20px;
         }
 
         .info-grid {
             grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .info-item label {
+            font-size: 13px;
+        }
+
+        .info-item .value {
+            font-size: 15px;
+        }
+
+        .form-section {
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        .section-header {
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+        }
+
+        .section-number {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+            margin-right: 12px;
+        }
+
+        .section-header h4 {
+            font-size: 18px;
+        }
+
+        .question-group {
+            margin-bottom: 25px;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .question-text {
+            font-weight: 500;
+            color: var(--text-dark);
+            margin-bottom: 15px;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        .question-group > .question-text:first-of-type {
+            font-size: 16px;
+            font-weight: 600;
         }
 
         .rating-options {
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .rating-label {
-            min-width: 60px;
-            padding: 12px 15px;
+            min-width: 55px;
+            padding: 12px 12px;
+            font-size: 13px;
         }
 
         .rating-value {
-            font-size: 20px;
+            font-size: 18px;
+        }
+
+        .rating-text {
+            font-size: 11px;
+        }
+
+        .scale-guide {
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .scale-guide h5 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
         }
 
         .scale-items {
-            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 8px 0;
+        }
+
+        .scale-item {
+            min-width: 65px;
+            padding: 8px;
+        }
+
+        .scale-value {
+            font-size: 20px;
+        }
+
+        .scale-description {
+            font-size: 12px;
         }
 
         .submit-btn {
             width: 100%;
-            padding: 18px 20px;
+            padding: 16px 20px;
+            font-size: 16px;
+        }
+
+        .comments-section {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+
+        .comments-section h5 {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .comments-section textarea {
+            min-height: 100px;
+            font-size: 14px;
+            padding: 12px;
+        }
+
+        .form-control {
+            padding: 12px;
+            font-size: 15px;
         }
     }
 
     @media (max-width: 480px) {
+        .evaluation-container {
+            margin: 10px;
+            border-radius: 10px;
+        }
+
+        .form-control {
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 14px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        select.form-control {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 1.5em;
+            padding-right: 2.5rem;
+        }
+
+    @media (max-width: 480px) {
+        .evaluation-container {
+            margin: 10px;
+            border-radius: 10px;
+        }
+
+        .form-content {
+            padding: 15px;
+        }
+
+        .form-header {
+            padding: 15px;
+        }
+
+        .form-header h1 {
+            font-size: 20px;
+            margin: 0 0 8px 0;
+        }
+
+        .form-header p {
+            font-size: 13px;
+            opacity: 0.95;
+        }
+
+        .info-card {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        .info-item label {
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .info-item .value {
+            font-size: 14px;
+        }
+
+        .form-section {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        .section-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+        }
+
+        .section-number {
+            width: 26px;
+            height: 26px;
+            font-size: 11px;
+            margin-right: 10px;
+        }
+
+        .section-header h4 {
+            font-size: 16px;
+        }
+
+        .question-group {
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .question-text {
+            font-size: 14px;
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .question-group > .question-text:first-of-type {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
         .rating-options {
-            flex-direction: column;
-            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .rating-option {
+            position: relative;
         }
 
         .rating-label {
-            width: 100%;
-            max-width: 200px;
-            flex-direction: row;
-            justify-content: space-between;
+            min-width: 50px;
+            padding: 10px 10px;
+            font-size: 12px;
+            border-radius: 8px;
         }
 
         .rating-value {
-            margin-bottom: 0;
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .rating-text {
+            font-size: 10px;
+        }
+
+        .scale-guide {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        .scale-guide h5 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        .scale-items {
+            gap: 8px;
+            padding: 5px 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .scale-item {
+            min-width: 60px;
+            padding: 6px;
+        }
+
+        .scale-value {
+            font-size: 18px;
+            margin-bottom: 3px;
+        }
+
+        .scale-description {
+            font-size: 11px;
+        }
+
+        .submit-section {
+            padding: 20px 0 10px 0;
+            text-align: center;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 15px;
+            border-radius: 8px;
+        }
+
+        .submit-section p {
+            font-size: 12px;
+            margin-top: 12px;
+        }
+
+        .comments-section {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 2px solid #1a73e8;
+        }
+
+        .comments-section h5 {
+            font-size: 15px;
+            margin-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .comments-section p {
+            font-size: 13px;
+            margin: 10px 0;
+        }
+
+        .comments-section textarea {
+            width: 100%;
+            min-height: 90px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .comments-note {
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .form-control {
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .warning-message {
+            padding: 12px;
+            margin: 12px 0;
+            font-size: 13px;
+            border-radius: 6px;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .evaluation-container {
+            margin: 5px;
+        }
+
+        .form-content {
+            padding: 12px;
+        }
+
+        .form-header {
+            padding: 12px;
+        }
+
+        .form-header h1 {
+            font-size: 18px;
+        }
+
+        .section-number {
+            width: 24px;
+            height: 24px;
+            font-size: 10px;
+            margin-right: 8px;
+        }
+
+        .section-header h4 {
+            font-size: 15px;
+        }
+
+        .question-text {
+            font-size: 13px;
+        }
+
+        .rating-label {
+            min-width: 45px;
+            padding: 8px 8px;
+            font-size: 11px;
+        }
+
+        .scale-item {
+            min-width: 50px;
         }
     }
 
@@ -448,13 +853,18 @@
                 <div class="question-group">
                     <label for="evaluatee" class="question-text">Choose the instructor you want to evaluate:</label>
                     <select class="form-control" name="evaluatee" id="evaluatee" required>
+                        <option value="">-- Select an Instructor --</option>
                         {% for user in faculty %}
                             <option value="{{ user.id }}" {% if user.id in evaluated_ids %}disabled{% endif %}>
-                                {{ user.get_full_name }} ({{ user.username }}) - {{ user.userprofile.institute }}
-                                {% if user.id in evaluated_ids %}(Already Evaluated){% endif %}
+                                {{ user.get_full_name|default:user.username }} - 
+                                {{ user.userprofile.role }}
+                                {% if user.id in evaluated_ids %} (Already Evaluated){% endif %}
                             </option>
                         {% endfor %}
                     </select>
+                    <small class="form-text text-muted">
+                        You can only evaluate each instructor once per evaluation period.
+                    </small>
                 </div>
             </div>
 
@@ -485,15 +895,15 @@
                 </div>
             </div>
 
-            <!-- Section 1: Mastery of Subject Matter (35%) -->
+            <!-- All 19 Evaluation Questions -->
             <div class="form-section">
                 <div class="section-header">
-                    <div class="section-number">1</div>
-                    <h4>Mastery of Subject Matter (35%)</h4>
+                    <div class="section-number">📋</div>
+                    <h4>Teacher Evaluation</h4>
                 </div>
 
                 <div class="question-group">
-                    <div class="question-text">How well does the instructor demonstrate comprehensive knowledge of the subject matter?</div>
+                    <div class="question-text">Demonstrates mastery of the subject and the ability to translate competencies into meaningful lessons.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -514,7 +924,7 @@
                 </div>
 
                 <div class="question-group">
-                    <div class="question-text">Does the instructor effectively explain complex concepts in a way that's easy to understand?</div>
+                    <div class="question-text">Shows ability to stimulate independent and critical thinking</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -535,7 +945,7 @@
                 </div>
 
                 <div class="question-group">
-                    <div class="question-text">How well does the instructor relate course content to real-world applications and current developments?</div>
+                    <div class="question-text">Is focused and explains the lesson clearly</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -556,7 +966,7 @@
                 </div>
 
                 <div class="question-group">
-                    <div class="question-text">Does the instructor demonstrate expertise when answering student questions and providing additional explanations?</div>
+                    <div class="question-text">Knowledgable and uses a variety of teaching strategies.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -575,17 +985,9 @@
                         {% endfor %}
                     </div>
                 </div>
-            </div>
-
-            <!-- Section 2: Classroom Management (25%) -->
-            <div class="form-section">
-                <div class="section-header">
-                    <div class="section-number">2</div>
-                    <h4>Classroom Management (25%)</h4>
-                </div>
 
                 <div class="question-group">
-                    <div class="question-text">How effectively does the instructor maintain discipline and order in the classroom?</div>
+                    <div class="question-text">Demonstrates enthusiasm for the subject matter</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -604,9 +1006,17 @@
                         {% endfor %}
                     </div>
                 </div>
-                
+            </div>
+
+            <!-- Category B: Classroom Management -->
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-number">🏫</div>
+                    <h4>Classroom Management</h4>
+                </div>
+
                 <div class="question-group">
-                    <div class="question-text">Does the instructor manage classroom time effectively and maintain an appropriate pace for learning?</div>
+                    <div class="question-text">Establishes and communicates clearly parameters for student classroom behaviour based on student handbook and OVPAA Guidelines for the conduct of Flexible Learning Modalities.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -625,9 +1035,9 @@
                         {% endfor %}
                     </div>
                 </div>
-
+                
                 <div class="question-group">
-                    <div class="question-text">How well does the instructor handle classroom disruptions and maintain a conducive learning environment?</div>
+                    <div class="question-text">Promote self-discipline, respect and treats all students in fair and equitable manner.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -648,7 +1058,7 @@
                 </div>
 
                 <div class="question-group">
-                    <div class="question-text">Does the instructor establish clear classroom rules and expectations that are consistently enforced?</div>
+                    <div class="question-text">Keeps accurate accounting of student's attendance and records</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -667,17 +1077,9 @@
                         {% endfor %}
                     </div>
                 </div>
-            </div>
-
-            <!-- Section 3: Compliance to Policies (20%) -->
-            <div class="form-section">
-                <div class="section-header">
-                    <div class="section-number">3</div>
-                    <h4>Compliance to Policies (20%)</h4>
-                </div>
 
                 <div class="question-group">
-                    <div class="question-text">How consistently does the instructor follow the scheduled class hours and start/end classes on time?</div>
+                    <div class="question-text">Demonstrates fairness and consistency in handling student's problems.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -698,7 +1100,7 @@
                 </div>
 
                 <div class="question-group">
-                    <div class="question-text">Does the instructor maintain accurate and fair attendance records according to institutional policies?</div>
+                    <div class="question-text">Maintains harmonious relations with students characterized by mutual respect and understanding.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -717,9 +1119,17 @@
                         {% endfor %}
                     </div>
                 </div>
+            </div>
+
+            <!-- Category C: Compliance to Policies -->
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-number">✅</div>
+                    <h4>Compliance to Policies</h4>
+                </div>
 
                 <div class="question-group">
-                    <div class="question-text">How well does the instructor follow the prescribed curriculum and course syllabus?</div>
+                    <div class="question-text">Reports to class regularly.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -740,7 +1150,7 @@
                 </div>
 
                 <div class="question-group">
-                    <div class="question-text">Does the instructor adhere to institutional policies regarding grading, assignments, and academic standards?</div>
+                    <div class="question-text">Demonstrates exceptional punctuality in observing work hours and college official functions.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -759,17 +1169,9 @@
                         {% endfor %}
                     </div>
                 </div>
-            </div>
-            
-            <!-- Section 4: Personality (20%) -->
-            <div class="form-section">
-                <div class="section-header">
-                    <div class="section-number">4</div>
-                    <h4>Personality (20%)</h4>
-                </div>
 
                 <div class="question-group">
-                    <div class="question-text">How approachable and accessible is the instructor to students?</div>
+                    <div class="question-text">Returns quizzes, examination results, assignments and other activities on time.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -790,7 +1192,7 @@
                 </div>
 
                 <div class="question-group">
-                    <div class="question-text">Does the instructor demonstrate enthusiasm and passion for teaching?</div>
+                    <div class="question-text">Informs the students on their academic performances and grades.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
@@ -811,12 +1213,104 @@
                 </div>
 
                 <div class="question-group">
-                    <div class="question-text">How well does the instructor demonstrate respect and fairness towards all students?</div>
+                    <div class="question-text">Uses Google Meet and Classroom as the official platform for online classes.</div>
                     <div class="rating-options">
                         {% for i in "54321" %}
                         <div class="rating-option">
                             <input type="radio" name="question15" value="{{ i }}" id="q15_{{ i }}" required>
                             <label class="rating-label" for="q15_{{ i }}">
+                                <span class="rating-value">{{ i }}</span>
+                                <span class="rating-text">
+                                    {% if i == "5" %}Outstanding
+                                    {% elif i == "4" %}Very Sat
+                                    {% elif i == "3" %}Satisfactory
+                                    {% elif i == "2" %}Unsat
+                                    {% else %}Poor{% endif %}
+                                </span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category D: Personality -->
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-number">😊</div>
+                    <h4>Personality</h4>
+                </div>
+
+                <div class="question-group">
+                    <div class="question-text">Commands respect by example in appearance, manners and behaviour and language.</div>
+                    <div class="rating-options">
+                        {% for i in "54321" %}
+                        <div class="rating-option">
+                            <input type="radio" name="question16" value="{{ i }}" id="q16_{{ i }}" required>
+                            <label class="rating-label" for="q16_{{ i }}">
+                                <span class="rating-value">{{ i }}</span>
+                                <span class="rating-text">
+                                    {% if i == "5" %}Outstanding
+                                    {% elif i == "4" %}Very Sat
+                                    {% elif i == "3" %}Satisfactory
+                                    {% elif i == "2" %}Unsat
+                                    {% else %}Poor{% endif %}
+                                </span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="question-group">
+                    <div class="question-text">Maintains a good disposition.</div>
+                    <div class="rating-options">
+                        {% for i in "54321" %}
+                        <div class="rating-option">
+                            <input type="radio" name="question17" value="{{ i }}" id="q17_{{ i }}" required>
+                            <label class="rating-label" for="q17_{{ i }}">
+                                <span class="rating-value">{{ i }}</span>
+                                <span class="rating-text">
+                                    {% if i == "5" %}Outstanding
+                                    {% elif i == "4" %}Very Sat
+                                    {% elif i == "3" %}Satisfactory
+                                    {% elif i == "2" %}Unsat
+                                    {% else %}Poor{% endif %}
+                                </span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="question-group">
+                    <div class="question-text">Relates well with students in a pleasing manner.</div>
+                    <div class="rating-options">
+                        {% for i in "54321" %}
+                        <div class="rating-option">
+                            <input type="radio" name="question18" value="{{ i }}" id="q18_{{ i }}" required>
+                            <label class="rating-label" for="q18_{{ i }}">
+                                <span class="rating-value">{{ i }}</span>
+                                <span class="rating-text">
+                                    {% if i == "5" %}Outstanding
+                                    {% elif i == "4" %}Very Sat
+                                    {% elif i == "3" %}Satisfactory
+                                    {% elif i == "2" %}Unsat
+                                    {% else %}Poor{% endif %}
+                                </span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="question-group">
+                    <div class="question-text">Possesses a sense of balance that combines good humor, sincerity and fairness when confronted with difficulties in the classroom.</div>
+                    <div class="rating-options">
+                        {% for i in "54321" %}
+                        <div class="rating-option">
+                            <input type="radio" name="question19" value="{{ i }}" id="q19_{{ i }}" required>
+                            <label class="rating-label" for="q19_{{ i }}">
                                 <span class="rating-value">{{ i }}</span>
                                 <span class="rating-text">
                                     {% if i == "5" %}Outstanding

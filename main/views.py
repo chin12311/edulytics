@@ -1,37 +1,37 @@
 from datetime import timezone
 from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from django.views import View
+from django.db import transaction
+from django.core.paginator import Paginator
 import openai
-from .models import EvaluationComment, EvaluationPeriod, EvaluationResult, UserProfile, Role, AiRecommendation
-from django.http import HttpResponseForbidden
+from .models import EvaluationComment, EvaluationPeriod, EvaluationResult, UserProfile, Role, AiRecommendation, EvaluationHistory
+from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib.auth.models import User
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
-from .models import Evaluation, UserProfile, Role
+from .models import Evaluation, EvaluationResponse, Section, SectionAssignment, EvaluationFailureLog, AdminActivityLog
 from django.urls import reverse
 import re
-from django.contrib.auth import logout
+from django.contrib.auth import logout, update_session_auth_hash
 from django.views.decorators.cache import cache_control
-from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseForbidden
-from .models import EvaluationResponse
-from django.contrib.auth import update_session_auth_hash
-from .models import Section, UserProfile, Role, SectionAssignment, EvaluationFailureLog, AdminActivityLog
-from .models import Role
 from openai import OpenAI
 import google.generativeai as genai
 from django.conf import settings
 import json
-from .ai_service import TeachingAIRecommendationService
+import logging
 import time
+from .ai_service import TeachingAIRecommendationService
 from .decorators import evaluation_results_required, profile_settings_allowed
-from .utils import log_admin_activity
-from .utils import can_view_evaluation_results
+from .utils import log_admin_activity, can_view_evaluation_results
 from main.services.evaluation_service import EvaluationService
+from .validation_utils import AccountValidator
+from .email_service import EvaluationEmailService
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
@@ -47,10 +47,17 @@ class IndexView(View):
 
             # Admin view
             if user_profile.role == Role.ADMIN:
-                students = UserProfile.objects.filter(role=Role.STUDENT)
+                # Use select_related to prevent N+1 queries on User lookups
+                # Order by ID descending to show newest accounts first
+                students_list = UserProfile.objects.filter(role=Role.STUDENT).select_related('user').order_by('-id')
+
+                # Add pagination (25 items per page)
+                paginator = Paginator(students_list, 25)
+                page_number = request.GET.get('page', 1)
+                students = paginator.get_page(page_number)
 
                 # Distinct list of student courses
-                course = students.values_list('course', flat=True).distinct()
+                course = students_list.values_list('course', flat=True).distinct()
 
                 # Retrieve the selected user from the session (if any)
                 selected_user_id = request.session.get('selected_user')
@@ -59,6 +66,7 @@ class IndexView(View):
                 context = {
                     'user_profile': user_profile,
                     'students': students,
+                    'paginator': paginator,
                     'course': course,
                     'selected_user': selected_user,
                 }
@@ -111,15 +119,15 @@ class UpdateUser(View):
                     if profile.section:
                         student_current_section = profile.section.id
                         section_display = f"{profile.section.code} ({profile.section.get_year_level_display()})"
-                        print(f"DEBUG GET: Student {user.username} - current section: {student_current_section} ({section_display})")
+                        logger.debug(f"Student {user.username} - current section: {student_current_section} ({section_display})")
                     else:
-                        print(f"DEBUG GET: Student {user.username} - no current section")
+                        logger.debug(f"Student {user.username} - no current section")
 
-                # For staff, get assigned sections
+                # For staff, get assigned sections (prevent N+1 queries)
                 assigned_sections = None
                 currently_assigned_ids = []
                 if profile.role in [Role.DEAN, Role.COORDINATOR, Role.FACULTY]:
-                    assigned_sections = SectionAssignment.objects.filter(user=user)
+                    assigned_sections = SectionAssignment.objects.filter(user=user).select_related('section')
                     currently_assigned_ids = assigned_sections.values_list('section_id', flat=True)
 
                 # Capture the previous page or fallback to index
@@ -127,7 +135,8 @@ class UpdateUser(View):
                 if not next_url:
                     try:
                         next_url = reverse('main:index')
-                    except:
+                    except Exception as e:
+                        logger.warning(f"Error generating reverse URL for main:index: {str(e)}")
                         next_url = '/'
 
                 # Check for success message
@@ -157,6 +166,7 @@ class UpdateUser(View):
                 traceback.print_exc()
                 return HttpResponse(f"Error loading page: {str(e)}", status=500)
 
+        @transaction.atomic
         def post(self, request, user_Id):
        
             try:
@@ -168,62 +178,53 @@ class UpdateUser(View):
                 old_username = user.username
                 old_email = user.email
 
-                # Get form data - USE DIFFERENT VARIABLE NAMES
-                new_username = request.POST.get("username")
-                new_email = request.POST.get("email")
-                new_password = request.POST.get("password")
-                confirm_password = request.POST.get("confirm_password")
+                # Get form data
+                new_username = request.POST.get("username", "").strip()
+                new_email = request.POST.get("email", "").strip()
+                new_password = request.POST.get("password", "").strip()
+                confirm_password = request.POST.get("confirm_password", "").strip()
                 section_id = request.POST.get("section")
 
-                # Validate password if provided
+                # Build validation data
+                validation_data = {}
+                if new_username:
+                    validation_data['username'] = new_username
+                if new_email:
+                    validation_data['email'] = new_email
                 if new_password:
-                    # Check minimum length
-                    if len(new_password) < 8:
-                        context = {
-                            'user': user,
-                            'sections': Section.objects.all(),
-                            'years': list(Section.objects.values_list("year_level", flat=True).distinct()),
-                            'next_url': request.POST.get('next', '/'),
-                            'error': 'Password must be at least 8 characters long!',
-                        }
-                        
-                        # Add staff-specific context if needed
-                        if profile.role in [Role.DEAN, Role.COORDINATOR, Role.FACULTY]:
-                            assigned_sections = SectionAssignment.objects.filter(user=user)
-                            currently_assigned_ids = assigned_sections.values_list('section_id', flat=True)
-                            context.update({
-                                'assigned_sections': assigned_sections,
-                                'currently_assigned_ids': list(currently_assigned_ids),
-                            })
-                        elif profile.role == Role.STUDENT:
-                            if profile.section:
-                                context['student_current_section'] = profile.section.id
-                        
-                        return render(request, 'main/update.html', context)
+                    validation_data['password'] = new_password
+                    validation_data['confirm_password'] = confirm_password
+
+                # Comprehensive validation using AccountValidator
+                validation_result = AccountValidator.validate_account_update(
+                    validation_data,
+                    exclude_user_id=user.id
+                )
+
+                if not validation_result['valid']:
+                    # Render form with validation errors
+                    error_messages = " | ".join(validation_result['errors'].values())
+                    context = {
+                        'user': user,
+                        'sections': Section.objects.all(),
+                        'years': list(Section.objects.values_list("year_level", flat=True).distinct()),
+                        'next_url': request.POST.get('next', '/'),
+                        'error': error_messages,
+                    }
                     
-                    # Check if passwords match
-                    if new_password != confirm_password:
-                        context = {
-                            'user': user,
-                            'sections': Section.objects.all(),
-                            'years': list(Section.objects.values_list("year_level", flat=True).distinct()),
-                            'next_url': request.POST.get('next', '/'),
-                            'error': 'Passwords do not match!',
-                        }
-                        
-                        # Add staff-specific context if needed
-                        if profile.role in [Role.DEAN, Role.COORDINATOR, Role.FACULTY]:
-                            assigned_sections = SectionAssignment.objects.filter(user=user)
-                            currently_assigned_ids = assigned_sections.values_list('section_id', flat=True)
-                            context.update({
-                                'assigned_sections': assigned_sections,
-                                'currently_assigned_ids': list(currently_assigned_ids),
-                            })
-                        elif profile.role == Role.STUDENT:
-                            if profile.section:
-                                context['student_current_section'] = profile.section.id
-                        
-                        return render(request, 'main/update.html', context)
+                    # Add staff-specific context if needed
+                    if profile.role in [Role.DEAN, Role.COORDINATOR, Role.FACULTY]:
+                        assigned_sections = SectionAssignment.objects.filter(user=user).select_related('section')
+                        currently_assigned_ids = assigned_sections.values_list('section_id', flat=True)
+                        context.update({
+                            'assigned_sections': assigned_sections,
+                            'currently_assigned_ids': list(currently_assigned_ids),
+                        })
+                    elif profile.role == Role.STUDENT:
+                        if profile.section:
+                            context['student_current_section'] = profile.section.id
+                    
+                    return render(request, 'main/update.html', context)
 
 
                 # Store old section for comparison
@@ -281,7 +282,7 @@ class UpdateUser(View):
                                 
                                     
                                 else:
-                                    print("DEBUG POST - No old section, no evaluations to delete")
+                                    logger.debug("No old section, no evaluations to delete")
                             
                                 # Update the section
                                 profile.section = section
@@ -350,8 +351,8 @@ class UpdateUser(View):
                 
                     
                 
-                    # Get current assignments
-                    current_assignments = SectionAssignment.objects.filter(user=user)
+                    # Get current assignments with related section data (prevent N+1 queries)
+                    current_assignments = SectionAssignment.objects.filter(user=user).select_related('section')
                     current_section_ids = list(current_assignments.values_list('section_id', flat=True))
                     
                     # Track section changes for staff
@@ -446,13 +447,13 @@ class UpdateUser(View):
                                 )
                                 if created:
                                     added_section_codes.append(section.code)
-                                    print(f"DEBUG POST - Created new assignment for section: {section.code}")
+                                    logger.debug(f"Created new assignment for section: {section.code}")
                                 else:
-                                    print(f"DEBUG POST - Assignment already exists for section: {section.code}")
+                                    logger.debug(f"Assignment already exists for section: {section.code}")
                             except Section.DoesNotExist:
-                                print(f"DEBUG POST - Section with ID {section_id} does not exist")
+                                logger.warning(f"Section with ID {section_id} does not exist")
                             except Exception as e:
-                                print(f"DEBUG POST - ERROR creating assignment for section {section_id}: {str(e)}")
+                                logger.error(f"ERROR creating assignment for section {section_id}: {str(e)}")
                         
                         # Track added sections
                         if added_section_codes:
@@ -478,7 +479,8 @@ class UpdateUser(View):
                 if not next_url:
                     try:
                         next_url = reverse('main:update-user', args=[user_Id])
-                    except:
+                    except Exception as e:
+                        logger.warning(f"Error generating update-user URL: {str(e)}")
                         next_url = f'/update-user/{user_Id}/'
 
 
@@ -486,9 +488,7 @@ class UpdateUser(View):
 
 
             except Exception as e:
-                print(f"ERROR in UpdateUser POST: {str(e)}")
-                import traceback
-                traceback.print_exc()
+                logger.error(f"ERROR in UpdateUser POST: {str(e)}", exc_info=True)
                 return HttpResponse(f"Error updating profile: {str(e)}", status=500)
 
     
@@ -519,42 +519,48 @@ class SelectStudentView(View):
 
         return redirect(next_url)
     
-    
 @method_decorator(cache_control(no_store=True, no_cache=True, must_revalidate=True), name='dispatch')
 class DeanOnlyView(View):
     def get(self, request):
-        print(f"DEBUG: DeanOnlyView accessed by user: {request.user}")
-        print(f"DEBUG: User authenticated: {request.user.is_authenticated}")
+        logger.debug(f"DeanOnlyView accessed by user: {request.user}")
+        logger.debug(f"User authenticated: {request.user.is_authenticated}")
         
         if not request.user.is_authenticated:
-            print("DEBUG: User not authenticated, redirecting to login")
+            logger.info("User not authenticated, redirecting to login")
             return redirect('/login')
 
         try:
             user_profile = UserProfile.objects.get(user=request.user)
-            print(f"DEBUG: User role: {user_profile.role}")
-            print(f"DEBUG: User institute: {user_profile.institute}")
+            logger.debug(f"User role: {user_profile.role}")
+            logger.debug(f"User institute: {user_profile.institute}")
 
             # ✅ Allow Admin AND Dean to access dean management
             if user_profile.role in [Role.ADMIN, Role.DEAN]:
-                print("DEBUG: User has permission to access Dean page")
-                deans = UserProfile.objects.filter(role=Role.DEAN)
+                logger.debug("User has permission to access Dean page")
+                # Use select_related to prevent N+1 queries
+                deans_list = UserProfile.objects.filter(role=Role.DEAN).select_related('user')
+                
+                # Add pagination (25 items per page)
+                paginator = Paginator(deans_list, 25)
+                page_number = request.GET.get('page', 1)
+                deans = paginator.get_page(page_number)
                 
                 # ✅ Get distinct institutes from dean list
-                institutes = deans.values_list('institute', flat=True).distinct()
+                institutes = deans_list.values_list('institute', flat=True).distinct()
 
                 context = {
                     'user_profile': user_profile,
                     'deans': deans,
+                    'paginator': paginator,
                     'institutes': institutes
                 }
                 return render(request, 'main/dean.html', context)
             else:
-                print(f"DEBUG: User role '{user_profile.role}' not allowed to access Dean page")
+                logger.warning(f"User role '{user_profile.role}' not allowed to access Dean page")
                 return HttpResponseForbidden("You do not have permission to access this page.")
 
         except UserProfile.DoesNotExist:
-            print("DEBUG: UserProfile does not exist")
+            logger.warning("UserProfile does not exist")
             return redirect('/login')
         
 @method_decorator(cache_control(no_store=True, no_cache=True, must_revalidate=True), name='dispatch')        
@@ -568,23 +574,32 @@ class FacultyOnlyView(View):
 
             # 🔥 Filter by institute for Dean and Coordinator
             if user_profile.role in [Role.COORDINATOR, Role.DEAN]:
-                faculties = UserProfile.objects.filter(role=Role.FACULTY, institute=user_profile.institute)
-                coordinators = UserProfile.objects.filter(role=Role.COORDINATOR, institute=user_profile.institute)
+                faculties_list = UserProfile.objects.filter(role=Role.FACULTY, institute=user_profile.institute).select_related('user')
+                coordinators_list = UserProfile.objects.filter(role=Role.COORDINATOR, institute=user_profile.institute).select_related('user')
 
             # 🔥 Admin can see all faculties and coordinators
             elif user_profile.role == Role.ADMIN:
-                faculties = UserProfile.objects.filter(role=Role.FACULTY)
-                coordinators = UserProfile.objects.filter(role=Role.COORDINATOR)
+                faculties_list = UserProfile.objects.filter(role=Role.FACULTY).select_related('user')
+                coordinators_list = UserProfile.objects.filter(role=Role.COORDINATOR).select_related('user')
 
             else:
                 return HttpResponseForbidden("You do not have permission to access this page.")
             
-            institutes = coordinators.values_list('institute', flat=True).distinct()
+            # Add pagination (25 items per page)
+            faculties_paginator = Paginator(faculties_list, 25)
+            coordinators_paginator = Paginator(coordinators_list, 25)
+            page_number = request.GET.get('page', 1)
+            faculties = faculties_paginator.get_page(page_number)
+            coordinators = coordinators_paginator.get_page(page_number)
+            
+            institutes = coordinators_list.values_list('institute', flat=True).distinct()
 
             context = {
                 'user_profile': user_profile,
                 'faculties': faculties,
                 'coordinators': coordinators,
+                'faculties_paginator': faculties_paginator,
+                'coordinators_paginator': coordinators_paginator,
                 'institutes': institutes,
             }
             return render(request, 'main/faculty.html', context)
@@ -603,33 +618,39 @@ class CoordinatorOnlyView(View):
 
             # 🔥 Dean should see ALL coordinators in their institute
             if user_profile.role == Role.DEAN:
-                coordinators = UserProfile.objects.filter(
+                coordinators_list = UserProfile.objects.filter(
                     role=Role.COORDINATOR, 
                     institute=user_profile.institute
                 ).select_related('user')
 
             # 🔥 Coordinator should see only themselves (or other logic as needed)
             elif user_profile.role == Role.COORDINATOR:
-                coordinators = UserProfile.objects.filter(
+                coordinators_list = UserProfile.objects.filter(
                     role=Role.COORDINATOR, 
                     user=request.user  # Or adjust based on your requirements
                 ).select_related('user')
 
             # 🔥 Admin sees all coordinators
             elif user_profile.role == Role.ADMIN:
-                coordinators = UserProfile.objects.filter(
+                coordinators_list = UserProfile.objects.filter(
                     role=Role.COORDINATOR
                 ).select_related('user')
 
             else:
                 return HttpResponseForbidden("You do not have permission to access this page.")
 
-            institutes = coordinators.values_list('institute', flat=True).distinct()
+            # Add pagination (25 items per page)
+            paginator = Paginator(coordinators_list, 25)
+            page_number = request.GET.get('page', 1)
+            coordinators = paginator.get_page(page_number)
+
+            institutes = coordinators_list.values_list('institute', flat=True).distinct()
 
             # Pass filtered coordinators to the template
             context = {
                 'user_profile': user_profile,
                 'coordinators': coordinators,
+                'paginator': paginator,
                 'institutes': institutes,
             }
             return render(request, 'main/coordinator.html', context)
@@ -644,18 +665,96 @@ class DeleteAccountView(View):
         try:
             user = get_object_or_404(User, id=user_id)
             
+            # Store user info for logging
+            username = user.username
+            email = user.email
+            
             # Log admin activity before deletion
             log_admin_activity(
                 request=request,
                 action='delete_account',
-                description=f"Deleted account: {user.username} ({user.email})",
+                description=f"Deleted account: {username} ({email})",
                 target_user=user
             )
             
-            user.delete()
-            return JsonResponse({'message': 'User deleted successfully'}, status=200)
+            # 🗑️ COMPREHENSIVE DELETE: Remove all user-related data
+            # This ensures complete account removal from MySQL database
+            
+            try:
+                # 1. Delete UserProfile (CASCADE will handle this, but being explicit)
+                from main.models import UserProfile
+                UserProfile.objects.filter(user=user).delete()
+            except Exception as e:
+                print(f"Error deleting UserProfile: {e}")
+            
+            try:
+                # 2. Delete evaluation records - using correct field names
+                from main.models import Evaluation, EvaluationResponse, EvaluationResult, EvaluationHistory
+                
+                # Evaluation uses 'evaluator' field
+                Evaluation.objects.filter(evaluator=user).delete()
+                
+                # EvaluationResponse uses 'evaluator' and 'evaluatee' fields
+                EvaluationResponse.objects.filter(evaluator=user).delete()
+                EvaluationResponse.objects.filter(evaluatee=user).delete()
+                
+                # EvaluationResult uses 'user' field
+                EvaluationResult.objects.filter(user=user).delete()
+                
+                # EvaluationHistory uses 'user' field
+                EvaluationHistory.objects.filter(user=user).delete()
+            except Exception as e:
+                print(f"Error deleting evaluation records: {e}")
+            
+            try:
+                # 3. Delete AI recommendations if any
+                from main.models import AiRecommendation
+                AiRecommendation.objects.filter(user=user).delete()
+            except Exception as e:
+                print(f"Error deleting AiRecommendation: {e}")
+            
+            try:
+                # 4. Delete admin activity logs for this user
+                from main.models import AdminActivityLog
+                AdminActivityLog.objects.filter(target_user=user).delete()
+            except Exception as e:
+                print(f"Error deleting AdminActivityLog: {e}")
+            
+            try:
+                # 5. Delete section assignments
+                from main.models import SectionAssignment
+                SectionAssignment.objects.filter(user=user).delete()
+            except Exception as e:
+                print(f"Error deleting SectionAssignment: {e}")
+            
+            try:
+                # 6. Delete evaluation failure logs
+                from main.models import EvaluationFailureLog
+                EvaluationFailureLog.objects.filter(user=user).delete()
+            except Exception as e:
+                print(f"Error deleting EvaluationFailureLog: {e}")
+            
+            try:
+                # 7. Delete evaluation comments
+                from main.models import EvaluationComment
+                EvaluationComment.objects.filter(user=user).delete()
+            except Exception as e:
+                print(f"Error deleting EvaluationComment: {e}")
+            
+            try:
+                # 8. Finally delete the User from auth_user
+                user.delete()
+            except Exception as e:
+                return JsonResponse({'error': f'Failed to delete user account: {str(e)}'}, status=400)
+            
+            return JsonResponse({
+                'message': f'Account {username} ({email}) deleted successfully with all related data',
+                'status': 'success'
+            }, status=200)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'error': f'Deletion failed: {str(e)}'}, status=400)
     
     def post(self, request, user_id, *args, **kwargs):
         return self.delete(request, user_id, *args, **kwargs)
@@ -673,17 +772,24 @@ class EvaluationView(View):
 
             # Only Admin, Coordinator, Dean, Faculty, and Student can access
             if user_profile.role in [Role.ADMIN, Role.COORDINATOR, Role.DEAN, Role.FACULTY, Role.STUDENT]:
-                # Get the latest released evaluation
-                evaluation = Evaluation.objects.filter(is_released=True).order_by('-created_at').first()
+                # 🔍 CRITICAL FIX: Get the correct evaluation type based on user role
+                if user_profile.role == Role.STUDENT:
+                    # Students evaluate faculty - check for STUDENT evaluation
+                    evaluation = Evaluation.objects.filter(
+                        is_released=True,
+                        evaluation_type='student'
+                    ).order_by('-created_at').first()
+                    page_title = "Student Evaluation"
+                else:
+                    # Faculty/Dean/Coordinator evaluate each other - check for PEER evaluation
+                    evaluation = Evaluation.objects.filter(
+                        is_released=True,
+                        evaluation_type='peer'
+                    ).order_by('-created_at').first()
+                    page_title = "Staff Evaluation"
 
                 # Check if this is a redirect after successful submission
                 submitted = request.GET.get('submitted', False)
-                
-                # Set page title based on user role
-                if user_profile.role == Role.STUDENT:
-                    page_title = "Student Evaluation"
-                else:
-                    page_title = "Staff Evaluation"
 
                 # Always pass evaluation to the context — even if it's None
                 context = {
@@ -745,60 +851,146 @@ class EvaluationConfigView(View):
             'evaluation_period_ended': not student_evaluation_released,  # Add this
         }
         return render(request, 'main/evaluationconfig.html', context)
-
 # Update your release/unrelease functions to return better messages
 def release_student_evaluation(request):
-    print("🔍 DEBUG: release_student_evaluation called")
-    print(f"🔍 DEBUG: Request method: {request.method}")
-    print(f"🔍 DEBUG: User: {request.user}")
-    print(f"🔍 DEBUG: User authenticated: {request.user.is_authenticated}")
+    logger.debug("release_student_evaluation called")
+    logger.debug(f"Request method: {request.method}")
+    logger.debug(f"User: {request.user}")
     
     if request.method == 'POST':
-        print("🔍 DEBUG: Processing POST request")
+        logger.debug("Processing POST request to release student evaluation")
         try:
+            from django.utils import timezone
+            
             # Check if any student evaluation is already released
             student_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()
-            print(f"🔍 DEBUG: Student evaluation already released: {student_released}")
+            logger.debug(f"Student evaluation already released: {student_released}")
             
             if student_released:
-                print("🔍 DEBUG: Returning already released error")
+                logger.info("Attempting to release already released student evaluation")
                 return JsonResponse({'success': False, 'error': "Student evaluation is already released."})
+
+            # CRITICAL: Process results from previous active period BEFORE archiving
+            logger.info("Processing results from previous evaluation period...")
+            previous_period = EvaluationPeriod.objects.filter(
+                evaluation_type='student',
+                is_active=True
+            ).first()
+            
+            if previous_period:
+                # Process all staff results for the period that's about to be archived
+                staff_users = User.objects.filter(
+                    userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
+                ).distinct()
+                
+                for staff_user in staff_users:
+                    try:
+                        # Only process if there are responses in this period
+                        responses_in_period = EvaluationResponse.objects.filter(
+                            evaluatee=staff_user,
+                            submitted_at__gte=previous_period.start_date,
+                            submitted_at__lte=previous_period.end_date
+                        )
+                        
+                        if responses_in_period.exists():
+                            result = process_evaluation_results_for_user(staff_user, previous_period)
+                            if result:
+                                logger.info(f"Processed results for {staff_user.username} in period {previous_period.name}")
+                    except Exception as e:
+                        logger.error(f"Error processing {staff_user.username}: {str(e)}")
+            
+            # CRITICAL: Archive the previous active evaluation period AFTER processing results
+            logger.info("Archiving previous evaluation periods...")
+            previous_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='student',
+                is_active=True
+            )
+            
+            # Archive results to history for each period before deactivating
+            for period in previous_periods:
+                archive_period_results_to_history(period)
+            
+            # ALSO handle case where there are old inactive periods (for backward compatibility)
+            # Find the oldest inactive periods that haven't been archived yet
+            inactive_periods_without_history = []
+            for period in EvaluationPeriod.objects.filter(evaluation_type='student', is_active=False).order_by('start_date'):
+                # Check if this period's results are already in history
+                has_history = EvaluationHistory.objects.filter(evaluation_period=period).exists()
+                if not has_history:
+                    inactive_periods_without_history.append(period)
+            
+            # Archive any old results that haven't been archived yet
+            for period in inactive_periods_without_history:
+                logger.info(f"Archiving old inactive period: {period.name}")
+                archive_period_results_to_history(period)
+            
+            # Now deactivate the active periods
+            archived_periods = previous_periods.update(is_active=False, end_date=timezone.now())
+            logger.info(f"Archived {archived_periods} previous evaluation period(s)")
+
+            # Create a new active evaluation period for this release
+            new_period, created = EvaluationPeriod.objects.get_or_create(
+                name=f"Student Evaluation {timezone.now().strftime('%B %Y')}",
+                evaluation_type='student',
+                defaults={
+                    'start_date': timezone.now(),
+                    'end_date': timezone.now() + timezone.timedelta(days=30),
+                    'is_active': True
+                }
+            )
+            if created:
+                logger.info(f"Created new evaluation period: {new_period.name}")
+            else:
+                # If period already exists, make sure it's active
+                new_period.is_active = True
+                new_period.start_date = timezone.now()
+                new_period.save()
+                logger.info(f"Activated existing evaluation period: {new_period.name}")
 
             # Release all student evaluations that are not released
             evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='student')
             evaluation_count = evaluations.count()
-            print(f"🔍 DEBUG: Found {evaluation_count} unreleased student evaluations")
+            logger.debug(f"Found {evaluation_count} unreleased student evaluations")
             
-            updated_count = evaluations.update(is_released=True)
-            print(f"🔍 DEBUG: Updated {updated_count} evaluations")
+            updated_count = evaluations.update(is_released=True, evaluation_period=new_period)
+            logger.info(f"Updated {updated_count} evaluations to released status with new period")
 
             if updated_count > 0:
-                # Log admin activity
                 log_admin_activity(
                     request=request,
                     action='release_evaluation',
-                    description=f"Released student evaluation form - {updated_count} evaluation(s) activated"
+                    description=f"Released student evaluation form - {updated_count} evaluation(s) activated. Previous periods archived."
                 )
+                
+                # Send email notifications to all users
+                logger.info("Sending email notifications about evaluation release")
+                email_result = EvaluationEmailService.send_evaluation_released_notification('student')
+                logger.info(f"Email notification result: {email_result}")
                 
                 response_data = {
                     'success': True,
-                    'message': 'Student evaluation form has been released. Evaluation period started.',
+                    'message': 'Student evaluation form has been released. Evaluation period started. Previous evaluation results have been archived.',
                     'student_evaluation_released': True,
-                    'evaluation_period_ended': False
+                    'evaluation_period_ended': False,
+                    'periods_archived': archived_periods,
+                    'new_period': new_period.name,
+                    'email_notification': {
+                        'sent': email_result['sent_count'],
+                        'failed': len(email_result['failed_emails']),
+                        'message': email_result['message']
+                    }
                 }
-                print(f"🔍 DEBUG: Returning success: {response_data}")
+                logger.debug(f"Returning success: {response_data}")
                 return JsonResponse(response_data)
             else:
-                print("🔍 DEBUG: No evaluations to release")
+                logger.debug("No evaluations to release")
                 return JsonResponse({'success': False, 'error': 'No student evaluations to release.'})
         
         except Exception as e:
-            print(f"❌ DEBUG: Exception in release_student_evaluation: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Exception in release_student_evaluation: {e}", exc_info=True)
             return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
     
-    print("🔍 DEBUG: Not a POST request")
+    logger.debug("Not a POST request")
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 def unrelease_student_evaluation(request):
@@ -816,6 +1008,11 @@ def unrelease_student_evaluation(request):
             
             # ✅ PROCESS EVALUATION RESULTS FOR ALL STAFF - THIS IS CRITICAL
             processing_results = process_all_evaluation_results()
+            
+            # Send email notifications to all users
+            logger.info("Sending email notifications about evaluation close")
+            email_result = EvaluationEmailService.send_evaluation_unreleased_notification('student')
+            logger.info(f"Email notification result: {email_result}")
             
             # Build the response message
             message = 'Student evaluation form has been unreleased. Evaluation period ended.'
@@ -837,7 +1034,12 @@ def unrelease_student_evaluation(request):
                 'message': message,
                 'processing_results': processing_results,
                 'student_evaluation_released': False,
-                'evaluation_period_ended': True
+                'evaluation_period_ended': True,
+                'email_notification': {
+                    'sent': email_result['sent_count'],
+                    'failed': len(email_result['failed_emails']),
+                    'message': email_result['message']
+                }
             })
         else:
             return JsonResponse({
@@ -851,35 +1053,115 @@ def unrelease_student_evaluation(request):
 
 def release_peer_evaluation(request):
     if request.method == 'POST':
-        if Evaluation.is_evaluation_period_active('peer'):
-            return JsonResponse({
-                'success': False, 
-                'error': "Peer evaluation is already released."
-            })
+        try:
+            from django.utils import timezone
+            
+            if Evaluation.is_evaluation_period_active('peer'):
+                return JsonResponse({
+                    'success': False, 
+                    'error': "Peer evaluation is already released."
+                })
 
-        # Create a new evaluation period for peer evaluation
-        evaluation_period = EvaluationPeriod.objects.create(
-            name=f"Peer Evaluation {timezone.now().strftime('%B %Y')}",
-            evaluation_type='peer',
-            start_date=timezone.now(),
-            end_date=timezone.now() + timezone.timedelta(days=30),  # 30-day evaluation period
-            is_active=True
-        )
+            # CRITICAL: Process results from previous active period BEFORE archiving
+            logger.info("Processing results from previous peer evaluation period...")
+            previous_period = EvaluationPeriod.objects.filter(
+                evaluation_type='peer',
+                is_active=True
+            ).first()
+            
+            if previous_period:
+                # Process all staff results for the period that's about to be archived
+                staff_users = User.objects.filter(
+                    userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
+                ).distinct()
+                
+                for staff_user in staff_users:
+                    try:
+                        # Only process if there are responses in this period
+                        responses_in_period = EvaluationResponse.objects.filter(
+                            evaluatee=staff_user,
+                            submitted_at__gte=previous_period.start_date,
+                            submitted_at__lte=previous_period.end_date
+                        )
+                        
+                        if responses_in_period.exists():
+                            result = process_evaluation_results_for_user(staff_user, previous_period)
+                            if result:
+                                logger.info(f"Processed peer results for {staff_user.username} in period {previous_period.name}")
+                    except Exception as e:
+                        logger.error(f"Error processing peer {staff_user.username}: {str(e)}")
+            
+            # CRITICAL: Archive the previous active evaluation period AFTER processing results
+            logger.info("Archiving previous peer evaluation periods...")
+            previous_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='peer',
+                is_active=True
+            )
+            
+            # Archive results to history for each period before deactivating
+            for period in previous_periods:
+                archive_period_results_to_history(period)
+            
+            # ALSO handle case where there are old inactive periods (for backward compatibility)
+            # Find the oldest inactive periods that haven't been archived yet
+            inactive_periods_without_history = []
+            for period in EvaluationPeriod.objects.filter(evaluation_type='peer', is_active=False).order_by('start_date'):
+                # Check if this period's results are already in history
+                has_history = EvaluationHistory.objects.filter(evaluation_period=period).exists()
+                if not has_history:
+                    inactive_periods_without_history.append(period)
+            
+            # Archive any old results that haven't been archived yet
+            for period in inactive_periods_without_history:
+                logger.info(f"Archiving old inactive period: {period.name}")
+                archive_period_results_to_history(period)
+            
+            # Now deactivate the active periods
+            archived_periods = previous_periods.update(is_active=False, end_date=timezone.now())
+            logger.info(f"Archived {archived_periods} previous peer evaluation period(s)")
 
-        evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='peer')
-        updated_count = evaluations.update(is_released=True)
+            # Create a new evaluation period for peer evaluation
+            evaluation_period = EvaluationPeriod.objects.create(
+                name=f"Peer Evaluation {timezone.now().strftime('%B %Y')}",
+                evaluation_type='peer',
+                start_date=timezone.now(),
+                end_date=timezone.now() + timezone.timedelta(days=30),  # 30-day evaluation period
+                is_active=True
+            )
 
-        if updated_count > 0:
+            evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='peer')
+            updated_count = evaluations.update(is_released=True, evaluation_period=evaluation_period)
+            logger.info(f"Updated {updated_count} peer evaluations with new period")
+
+            if updated_count > 0:
+                # Send email notifications to all users
+                logger.info("Sending email notifications about peer evaluation release")
+                email_result = EvaluationEmailService.send_evaluation_released_notification('peer')
+                logger.info(f"Email notification result: {email_result}")
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Peer evaluation form has been released. Evaluation period started. Previous evaluation results have been archived.',
+                    'peer_evaluation_released': True,
+                    'evaluation_period_ended': False,
+                    'periods_archived': archived_periods,
+                    'new_period': evaluation_period.name,
+                    'email_notification': {
+                        'sent': email_result['sent_count'],
+                        'failed': len(email_result['failed_emails']),
+                        'message': email_result['message']
+                    }
+                })
+            else:
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'No peer evaluations to release.'
+                })
+        except Exception as e:
+            logger.error(f"Exception in release_peer_evaluation: {e}", exc_info=True)
             return JsonResponse({
-                'success': True,
-                'message': 'Peer evaluation form has been released. Evaluation period started.',
-                'peer_evaluation_released': True,
-                'evaluation_period_ended': False
-            })
-        else:
-            return JsonResponse({
-                'success': False, 
-                'error': 'No peer evaluations to release.'
+                'success': False,
+                'error': f'Server error: {str(e)}'
             })
     return JsonResponse({
         'success': False, 
@@ -895,6 +1177,11 @@ def unrelease_peer_evaluation(request):
             # Process peer evaluation results
             processing_results = process_peer_evaluation_results()
             
+            # Send email notifications to all users
+            logger.info("Sending email notifications about peer evaluation close")
+            email_result = EvaluationEmailService.send_evaluation_unreleased_notification('peer')
+            logger.info(f"Email notification result: {email_result}")
+            
             message = 'Peer evaluation form has been unreleased. Evaluation period ended.'
             
             if processing_results['success']:
@@ -907,7 +1194,12 @@ def unrelease_peer_evaluation(request):
                 'success': True,
                 'message': message,
                 'peer_evaluation_released': False,
-                'evaluation_period_ended': True
+                'evaluation_period_ended': True,
+                'email_notification': {
+                    'sent': email_result['sent_count'],
+                    'failed': len(email_result['failed_emails']),
+                    'message': email_result['message']
+                }
             })
         else:
             return JsonResponse({
@@ -1445,9 +1737,24 @@ def submit_evaluation(request):
                 messages.error(request, 'You do not have permission to evaluate this user.')
                 return redirect('main:evaluationform')
 
-            # Prevent duplicate evaluation
-            if EvaluationResponse.objects.filter(evaluator=request.user, evaluatee=evaluatee).exists():
-                messages.error(request, 'You have already evaluated this instructor.')
+            # Get the current active evaluation period
+            try:
+                current_period = EvaluationPeriod.objects.get(
+                    evaluation_type='student',
+                    is_active=True
+                )
+            except EvaluationPeriod.DoesNotExist:
+                messages.error(request, 'No active evaluation period found.')
+                return redirect('main:evaluationform')
+
+            # Prevent duplicate evaluation IN THE SAME PERIOD
+            # Allow re-evaluation in different periods
+            if EvaluationResponse.objects.filter(
+                evaluator=request.user, 
+                evaluatee=evaluatee,
+                evaluation_period=current_period
+            ).exists():
+                messages.error(request, 'You have already evaluated this instructor in this evaluation period.')
                 return redirect('main:evaluationform')
 
             # Convert numeric values to text ratings
@@ -1504,6 +1811,7 @@ def submit_evaluation(request):
             evaluation_response = EvaluationResponse(
                 evaluator=request.user,
                 evaluatee=evaluatee,
+                evaluation_period=current_period,
                 student_number=student_number,
                 student_section=student_section,
                 comments=comments,
@@ -1580,26 +1888,82 @@ def unrelease_student_evaluation(request):
 # 🔹 Release Peer Evaluation
 def release_peer_evaluation(request):
     if request.method == 'POST':
-        # Check if any peer evaluation is already released
-        if Evaluation.objects.filter(is_released=True, evaluation_type='peer').exists():
-            return JsonResponse({'success': False, 'error': "Peer evaluation is already released."})
+        try:
+            from django.utils import timezone
+            
+            logger.info("🔹 Starting release_peer_evaluation...")
+            
+            # CRITICAL: Archive the previous active evaluation period before releasing new one
+            logger.info("Archiving previous peer evaluation periods...")
+            archived_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='peer',
+                is_active=True
+            ).update(is_active=False, end_date=timezone.now())
+            logger.info(f"✅ Archived {archived_periods} previous peer evaluation period(s)")
 
-        # Release all peer evaluations that are not released
-        evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='peer')
-        updated_count = evaluations.update(is_released=True)
+            # Create a new evaluation period for peer evaluation
+            evaluation_period = EvaluationPeriod.objects.create(
+                name=f"Peer Evaluation {timezone.now().strftime('%B %Y')}",
+                evaluation_type='peer',
+                start_date=timezone.now(),
+                end_date=timezone.now() + timezone.timedelta(days=30),
+                is_active=True
+            )
+            logger.info(f"✅ Created new peer evaluation period: {evaluation_period.id} - {evaluation_period.name}")
 
-        # Return updated status to the frontend
-        student_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()
-        peer_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='peer').exists()
+            # 🔹 SMART CLEANUP: Only delete unreleased records from RECENT periods (not all history)
+            # Get all old evaluation periods (not the new one we just created)
+            old_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='peer'
+            ).exclude(id=evaluation_period.id)
+            
+            # Delete unreleased peer evaluations from old periods only
+            deleted_count, _ = Evaluation.objects.filter(
+                evaluation_type='peer',
+                is_released=False,
+                evaluation_period__in=old_periods
+            ).delete()
+            logger.info(f"🗑️  Cleaned up {deleted_count} old unreleased peer evaluation record(s)")
 
-        if updated_count > 0:
-            return JsonResponse({
-                'success': True,
-                'student_evaluation_released': student_evaluation_released,
-                'peer_evaluation_released': peer_evaluation_released
-            })
-        else:
-            return JsonResponse({'success': False, 'error': 'No peer evaluations to release.'})
+            # Create a FRESH peer evaluation record with the new period
+            peer_eval = Evaluation.objects.create(
+                evaluation_type='peer',
+                is_released=True,
+                evaluation_period=evaluation_period
+            )
+            logger.info(f"✅ Created fresh peer evaluation record: {peer_eval.id} for period {evaluation_period.id}")
+
+            # Verify the record was created and is released
+            peer_eval_check = Evaluation.objects.filter(
+                id=peer_eval.id,
+                evaluation_type='peer',
+                is_released=True,
+                evaluation_period=evaluation_period
+            ).exists()
+            logger.info(f"✅ Verification - Peer eval exists with correct period: {peer_eval_check}")
+
+            # Return updated status to the frontend
+            student_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()
+            peer_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='peer').exists()
+
+            logger.info(f"📊 Status: Student Released={student_evaluation_released}, Peer Released={peer_evaluation_released}")
+
+            if peer_evaluation_released:
+                return JsonResponse({
+                    'success': True,
+                    'student_evaluation_released': student_evaluation_released,
+                    'peer_evaluation_released': peer_evaluation_released,
+                    'periods_archived': archived_periods,
+                    'new_period': evaluation_period.name
+                })
+            else:
+                logger.error("❌ Peer evaluation was not created successfully!")
+                return JsonResponse({'success': False, 'error': 'Failed to create peer evaluation record.'})
+        except Exception as e:
+            logger.error(f"❌ Exception in release_peer_evaluation: {e}", exc_info=True)
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
 
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
@@ -1607,22 +1971,39 @@ def release_peer_evaluation(request):
 # 🔹 Unrelease Peer Evaluation
 def unrelease_peer_evaluation(request):
     if request.method == 'POST':
-        # Unrelease all peer evaluations that are currently released
-        evaluations = Evaluation.objects.filter(is_released=True, evaluation_type='peer')
-        updated_count = evaluations.update(is_released=False)
+        try:
+            from django.utils import timezone
+            
+            logger.info("🔹 Starting unrelease_peer_evaluation...")
+            
+            # Unrelease all peer evaluations that are currently released
+            evaluations = Evaluation.objects.filter(is_released=True, evaluation_type='peer')
+            updated_count = evaluations.update(is_released=False)
+            logger.info(f"✅ Unreleased {updated_count} peer evaluation record(s)")
 
-        # Return updated status to the frontend
-        student_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()
-        peer_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='peer').exists()
+            # Archive the active peer evaluation period
+            archived_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='peer',
+                is_active=True
+            ).update(is_active=False, end_date=timezone.now())
+            logger.info(f"✅ Archived {archived_periods} peer evaluation period(s)")
 
-        if updated_count > 0:
-            return JsonResponse({
-                'success': True,
-                'student_evaluation_released': student_evaluation_released,
-                'peer_evaluation_released': peer_evaluation_released
-            })
-        else:
-            return JsonResponse({'success': False, 'error': 'No peer evaluations to unrelease.'})
+            # Return updated status to the frontend
+            student_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()
+            peer_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='peer').exists()
+
+            if updated_count > 0 or archived_periods > 0:
+                return JsonResponse({
+                    'success': True,
+                    'student_evaluation_released': student_evaluation_released,
+                    'peer_evaluation_released': peer_evaluation_released,
+                    'periods_archived': archived_periods
+                })
+            else:
+                return JsonResponse({'success': False, 'error': 'No peer evaluations or periods to unrelease.'})
+        except Exception as e:
+            logger.error(f"❌ Exception in unrelease_peer_evaluation: {e}", exc_info=True)
+            return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
 
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
@@ -1782,13 +2163,21 @@ class EvaluationFormView(View):
         except UserProfile.DoesNotExist:
             return redirect('/login')
 
-def compute_category_scores(evaluatee, section_code=None):
+def compute_category_scores(evaluatee, section_code=None, evaluation_period=None):
     """
     Calculate evaluation scores for a specific evaluatee and optional section
+    CRITICAL: Now accepts evaluation_period to filter responses by date range
     """
     
     # Filter responses by evaluatee
     responses = EvaluationResponse.objects.filter(evaluatee=evaluatee)
+    
+    # CRITICAL FIX: If evaluation period provided, filter responses by its date range
+    if evaluation_period:
+        responses = responses.filter(
+            submitted_at__gte=evaluation_period.start_date,
+            submitted_at__lte=evaluation_period.end_date
+        )
     
     # Filter by section if provided
     if section_code:        
@@ -1887,104 +2276,119 @@ def compute_category_scores(evaluatee, section_code=None):
     return final_result
 
 def evaluation_form_staffs(request):
+    """
+    Display the staff peer evaluation form.
+    Note: Form submission is handled by submit_evaluation() view
+    
+    CRITICAL FIX: Must check for active period FIRST, then linked evaluation record
+    """
     if not request.user.is_authenticated:
         return redirect('/login')
 
     try:
         user_profile = UserProfile.objects.get(user=request.user)
 
-        # ✅ ALLOW DEAN to access staff evaluation form
+        # ✅ ALLOW DEAN/COORDINATOR/FACULTY to access staff evaluation form
         if user_profile.role in [Role.DEAN, Role.COORDINATOR, Role.FACULTY]:
-            evaluation = Evaluation.objects.filter(is_released=True, evaluation_type='peer').order_by('-created_at').first()
-
-            if not evaluation:
-                # Return a proper error page instead of HttpResponseForbidden
+            # 🔍 DEBUG: Log the request
+            logger.info(f"🔍 evaluation_form_staffs accessed by {request.user.username} ({user_profile.role})")
+            
+            # STEP 1: Get the current active peer evaluation period
+            logger.info("📍 STEP 1: Looking for active peer evaluation period...")
+            try:
+                current_peer_period = EvaluationPeriod.objects.get(
+                    evaluation_type='peer',
+                    is_active=True
+                )
+                logger.info(f"✅ Found active peer period: ID={current_peer_period.id}, Name={current_peer_period.name}")
+            except EvaluationPeriod.DoesNotExist:
+                logger.warning("❌ No active peer evaluation period found!")
+                logger.info("🔧 ATTEMPTING TO AUTO-CREATE MISSING PEER PERIOD...")
+                
+                # FALLBACK: Auto-create period if it doesn't exist
+                # This handles the case where release_peer_evaluation may not have run
+                try:
+                    from django.utils import timezone
+                    current_peer_period = EvaluationPeriod.objects.create(
+                        name=f"Peer Evaluation {timezone.now().strftime('%B %Y')}",
+                        evaluation_type='peer',
+                        start_date=timezone.now(),
+                        end_date=timezone.now() + timezone.timedelta(days=30),
+                        is_active=True
+                    )
+                    logger.warning(f"⚠️  AUTO-CREATED peer period: ID={current_peer_period.id}")
+                    logger.info("💡 HINT: Admin should run 'Release Evaluations' to properly set up evaluations")
+                except Exception as create_error:
+                    logger.error(f"❌ Failed to auto-create period: {create_error}")
+                    return render(request, 'main/no_active_evaluation.html', {
+                        'message': 'No active peer evaluation period found.',
+                        'page_title': 'Evaluation Unavailable',
+                    })
+            except Exception as e:
+                logger.error(f"❌ Error getting active peer period: {e}")
                 return render(request, 'main/no_active_evaluation.html', {
-                    'message': 'No active peer evaluation is currently available for staff members.',
+                    'message': 'Error retrieving evaluation period.',
                     'page_title': 'Evaluation Unavailable',
                 })
 
-            # Fetch the list of staff members (Faculty, Coordinators, Deans), excluding the currently logged-in user
+            # STEP 2: Check if peer evaluation is released and linked to this period
+            logger.info("📍 STEP 2: Looking for released peer evaluation linked to active period...")
+            evaluation = Evaluation.objects.filter(
+                is_released=True,
+                evaluation_type='peer',
+                evaluation_period=current_peer_period
+            ).first()
+
+            if not evaluation:
+                # Log available peer evaluations for debugging
+                all_peer_evals = Evaluation.objects.filter(evaluation_type='peer').order_by('-created_at')[:3]
+                logger.warning(f"❌ No released peer evaluation linked to active period!")
+                logger.warning(f"   Available peer evaluations: {[(e.id, e.is_released, e.evaluation_period_id) for e in all_peer_evals]}")
+                
+                logger.info("🔧 ATTEMPTING TO AUTO-CREATE MISSING EVALUATION...")
+                
+                # FALLBACK: Auto-create the evaluation record if it doesn't exist
+                try:
+                    evaluation = Evaluation.objects.create(
+                        evaluation_type='peer',
+                        is_released=True,
+                        evaluation_period=current_peer_period
+                    )
+                    logger.warning(f"⚠️  AUTO-CREATED peer evaluation: ID={evaluation.id}")
+                    logger.info("💡 HINT: Admin should run 'Release Evaluations' to properly set up evaluations")
+                except Exception as create_error:
+                    logger.error(f"❌ Failed to auto-create evaluation: {create_error}")
+                    return render(request, 'main/no_active_evaluation.html', {
+                        'message': 'No active peer evaluation is currently available for staff members.',
+                        'page_title': 'Evaluation Unavailable',
+                    })
+            
+            logger.info(f"✅ Found released peer evaluation: ID={evaluation.id}, Period={evaluation.evaluation_period_id}")
+
+            # STEP 3: Fetch the list of staff members (Faculty, Coordinators, Deans), excluding the currently logged-in user
+            logger.info("📍 STEP 3: Getting available staff members...")
             staff_members = User.objects.filter(
                 userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN],
                 userprofile__institute=user_profile.institute
             ).exclude(id=request.user.id)
+            
+            logger.info(f"✅ Found {staff_members.count()} staff members available for evaluation")
 
-            # ✅ ADD THIS: Get already evaluated staff members
+            # STEP 4: Get already evaluated staff members FOR THIS PERIOD ONLY
+            logger.info("📍 STEP 4: Getting already-evaluated staff list...")
             evaluated_ids = EvaluationResponse.objects.filter(
-                evaluator=request.user
+                evaluator=request.user,
+                evaluation_period=current_peer_period
             ).values_list('evaluatee_id', flat=True)
 
-            # ✅ ADD THIS: Rating options for the template
-            rating_options = [
-                ('1', 'Poor'),
-                ('2', 'Unsatisfactory'),
-                ('3', 'Satisfactory'),
-                ('4', 'Very Satisfactory'),
-                ('5', 'Outstanding')
-            ]
+            logger.info(f"✅ User has already evaluated {len(evaluated_ids)} staff members in this period")
 
-            if request.method == 'POST':
-                evaluatee_id = request.POST.get('evaluatee')
-                
-                if not evaluatee_id:
-                    messages.error(request, "Please select a colleague to evaluate.")
-                    return redirect('main:evaluationform_staffs')
-                
-                try:
-                    evaluatee = User.objects.get(id=evaluatee_id)
-                    
-                    # ✅ ADD VALIDATION: Check if already evaluated
-                    if EvaluationResponse.objects.filter(evaluator=request.user, evaluatee=evaluatee).exists():
-                        messages.error(request, f"You have already evaluated {evaluatee.username}.")
-                        return redirect('main:evaluationform_staffs')
-                    
-                    # Validate that all questions are answered
-                    for i in range(1, 16):
-                        question_key = f'question{i}'
-                        if not request.POST.get(question_key):
-                            messages.error(request, f"Please answer all questions. Missing question {i}.")
-                            return redirect('main:evaluationform_staffs')
-
-                    # Create a new EvaluationResponse object
-                    response = EvaluationResponse.objects.create(
-                        evaluator=request.user,
-                        evaluatee=evaluatee,
-                        student_section=f"{user_profile.institute} Staff",
-                        comments=request.POST.get('comments', ''),
-                        question1=request.POST.get('question1'),
-                        question2=request.POST.get('question2'),
-                        question3=request.POST.get('question3'),
-                        question4=request.POST.get('question4'),
-                        question5=request.POST.get('question5'),
-                        question6=request.POST.get('question6'),
-                        question7=request.POST.get('question7'),
-                        question8=request.POST.get('question8'),
-                        question9=request.POST.get('question9'),
-                        question10=request.POST.get('question10'),
-                        question11=request.POST.get('question11'),
-                        question12=request.POST.get('question12'),
-                        question13=request.POST.get('question13'),
-                        question14=request.POST.get('question14'),
-                        question15=request.POST.get('question15'),
-                    )
-
-                    messages.success(request, f"Evaluation submitted successfully for {evaluatee.username}.")
-                    return redirect('main:evaluation') 
-
-                except User.DoesNotExist:
-                    messages.error(request, "Selected colleague does not exist.")
-                    return redirect('main:evaluationform_staffs')
-                except Exception as e:
-                    messages.error(request, f"Error submitting evaluation: {str(e)}")
-                    return redirect('main:evaluationform_staffs')
-
-            # GET request (render form)
+            # ✅ All checks passed - prepare context
+            logger.info("✅ ALL CHECKS PASSED - Rendering form...")
             context = {
                 'evaluation': evaluation,
                 'faculty': staff_members,
-                'evaluated_ids': list(evaluated_ids),  # ✅ ADD THIS
-                'rating_options': rating_options,       # ✅ ADD THIS
+                'evaluated_ids': list(evaluated_ids),
                 'page_title': 'Peer Evaluation Form',
             }
             return render(request, 'main/evaluationform_staffs.html', context)
@@ -1998,7 +2402,6 @@ def evaluation_form_staffs(request):
     except UserProfile.DoesNotExist:
         messages.error(request, "User profile not found. Please contact administrator.")
         return redirect('/login')
-    
 def evaluated(request):
     evaluator = request.user
 
@@ -3888,6 +4291,126 @@ class AIRecommendationsAPIView(View):
             import traceback
             traceback.print_exc()
             return JsonResponse({'error': f'Failed to generate recommendations: {str(e)}'}, status=500)
+
+
+class StudentCommentsAPIView(View):
+    """
+    API to fetch student comments for a section
+    Comments are anonymous - no student name or section displayed
+    """
+    @method_decorator(login_required(login_url='login'))
+    def post(self, request):
+        try:
+            user = request.user
+            if not user.is_authenticated:
+                return JsonResponse({'error': 'Authentication required'}, status=401)
+            
+            # Check if user is faculty, coordinator, or dean
+            try:
+                user_profile = UserProfile.objects.get(user=user)
+                if user_profile.role not in [Role.FACULTY, Role.COORDINATOR, Role.DEAN]:
+                    return JsonResponse({'error': 'Only faculty, coordinators, and deans can view comments'}, status=403)
+            except UserProfile.DoesNotExist:
+                return JsonResponse({'error': 'User profile not found'}, status=403)
+            
+            data = json.loads(request.body)
+            section_id = data.get('section_id')
+            section_code = data.get('section_code')
+            
+            print(f"\n{'='*60}")
+            print(f"🔍 StudentCommentsAPIView - Fetching comments")
+            print(f"   User: {user.username}")
+            print(f"   Role: {user_profile.role}")
+            print(f"   Section Code: {section_code}")
+            print(f"   Section ID: {section_id}")
+            print(f"{'='*60}")
+            
+            comments = []
+            
+            if section_id == 'overall' or section_id == 'peer':
+                # For overall/peer, get ALL comments TO this user
+                # Dean/Coordinator/Faculty are being evaluated BY students
+                evaluation_responses = EvaluationResponse.objects.filter(
+                    evaluatee=user,
+                    comments__isnull=False
+                ).exclude(comments='')
+                
+            else:
+                # For a specific section, get comments FROM students about their experience
+                try:
+                    section_id = int(section_id)
+                    section = Section.objects.get(id=section_id)
+                    
+                    # Get all students in this section
+                    students_in_section = User.objects.filter(
+                        userprofile__section=section
+                    ).values_list('id', flat=True)
+                    
+                    # Get evaluation responses where:
+                    # - evaluator is a student in that section
+                    # - evaluatee is the faculty member being evaluated
+                    # - they left a comment
+                    # For faculty: evaluatee is themselves
+                    # For coordinator/dean: evaluatee is any faculty in their purview
+                    
+                    if user_profile.role == Role.FACULTY:
+                        # Faculty sees comments FROM students in their section about them
+                        evaluation_responses = EvaluationResponse.objects.filter(
+                            evaluatee=user,
+                            evaluator_id__in=students_in_section,
+                            comments__isnull=False
+                        ).exclude(comments='').distinct()
+                    else:
+                        # Coordinator/Dean sees comments from students in section about any faculty
+                        evaluation_responses = EvaluationResponse.objects.filter(
+                            evaluator_id__in=students_in_section,
+                            evaluatee__userprofile__section=section,
+                            comments__isnull=False
+                        ).exclude(comments='').distinct()
+                    
+                except (ValueError, Section.DoesNotExist) as e:
+                    print(f"❌ Section Error: {e}")
+                    evaluation_responses = EvaluationResponse.objects.none()
+            
+            # Extract just the comments (no student/section info)
+            for response in evaluation_responses:
+                if response.comments and response.comments.strip():
+                    comments.append(response.comments.strip())
+            
+            print(f"   Total evaluation responses: {evaluation_responses.count()}")
+            print(f"   Comments extracted: {len(comments)}")
+            if comments:
+                for idx, comment in enumerate(comments, 1):
+                    print(f"     {idx}. {comment[:60]}...")
+            print(f"{'='*60}\n")
+            
+            # Create response
+            response_data = {
+                'comments': comments,
+                'total_comments': len(comments),
+                'section_code': section_code,
+                'metadata': {
+                    'timestamp': time.time(),
+                }
+            }
+            
+            # Create response with no-cache headers
+            response = JsonResponse(response_data, safe=False)
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+            
+            return response
+            
+        except json.JSONDecodeError as e:
+            print(f"❌ JSON Error: {e}")
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        except Exception as e:
+            print(f"❌ API Error: {e}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'error': f'Failed to fetch comments: {str(e)}'}, status=500)
+
         
 @login_required
 def admin_evaluation_control(request):
@@ -4017,14 +4540,28 @@ class EvaluationHistoryView(View):
         
         evaluation_history = []
         
-        # Get processed evaluation results from EvaluationResult model (completed periods)
-        # This works REGARDLESS of whether evaluation period is active or not
+        # Get processed evaluation results from EvaluationResult model for COMPLETED periods ONLY
+        # Only show results from periods that are marked as inactive (completed)
         evaluation_results = EvaluationResult.objects.filter(
-            user=user
+            user=user,
+            evaluation_period__is_active=False  # Only show completed periods, not current
         ).select_related('evaluation_period', 'section').order_by('-evaluation_period__start_date')
         
         # Add processed results to history
         for result in evaluation_results:
+            # Get student comments for this period
+            # Filter by submission date within the evaluation period's date range
+            comments = []
+            responses = EvaluationResponse.objects.filter(
+                evaluatee=user,
+                submitted_at__gte=result.evaluation_period.start_date,
+                submitted_at__lte=result.evaluation_period.end_date
+            ).exclude(comments__isnull=True).exclude(comments='')
+            
+            for response in responses:
+                if response.comments:
+                    comments.append(response.comments)
+            
             evaluation_history.append({
                 'period_name': result.evaluation_period.name,
                 'date': result.calculated_at,
@@ -4039,47 +4576,14 @@ class EvaluationHistoryView(View):
                 ],
                 'total_responses': result.total_responses,
                 'is_processed': True,
-                'source': 'Processed'
+                'source': 'Completed Period',
+                'recommendations': [],  # TODO: Add from AI recommendations model when available
+                'comments': comments  # Populated with student comments
             })
         
-        # ALWAYS show completed results, even when evaluation period is active
-        # Check if there are any evaluation responses that haven't been processed yet
-        all_responses = EvaluationResponse.objects.filter(evaluatee=user)
-        
-        if all_responses.exists():
-            # Calculate current scores directly
-            category_scores = compute_category_scores(user)
-            a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
-            
-            # Check if we already have a processed result for similar data
-            # We'll consider it similar if the total percentage is within 1% and response count matches
-            has_similar_processed = any(
-                abs(eval['overall_percentage'] - total_percentage) < 1.0 and 
-                eval['total_responses'] == all_responses.count()
-                for eval in evaluation_history
-            )
-            
-            if not has_similar_processed:
-                # Add direct calculation to history with appropriate period name
-                if Evaluation.is_evaluation_period_active('student'):
-                    period_name = "Current Evaluation Period"
-                    status = "Active"
-                else:
-                    period_name = f"Evaluation {timezone.now().strftime('%B %Y')}"
-                    status = "Completed"
-                
-                evaluation_history.append({
-                    'period_name': period_name,
-                    'date': timezone.now(),
-                    'section': 'All Sections',
-                    'overall_percentage': total_percentage,
-                    'average_rating': (total_percentage / 20),
-                    'category_scores': [a_avg, b_avg, c_avg, d_avg],
-                    'total_responses': all_responses.count(),
-                    'is_processed': False,
-                    'source': 'Direct Calculation',
-                    'status': status
-                })
+        # NOTE: Current evaluation results are NOT shown here
+        # Current results are accessible from the profile settings dropdown
+        # They will move to history only after a NEW evaluation period is released
         
         # Sort by date (most recent first)
         evaluation_history.sort(key=lambda x: x['date'], reverse=True)
@@ -4089,6 +4593,21 @@ class EvaluationHistoryView(View):
         average_percentage = sum([eval['overall_percentage'] for eval in evaluation_history]) / total_evaluations if total_evaluations > 0 else 0
         latest_score = evaluation_history[0]['overall_percentage'] if total_evaluations > 0 else 0
         
+        # Get unique sections from evaluation history for filtering
+        sections_in_history = list(set([eval['section'] for eval in evaluation_history if eval['section'] != 'All Sections']))
+        
+        # Get user's assigned sections (for Faculty/Coordinator/Dean)
+        user_sections = []
+        if hasattr(user, 'faculty_assignments'):
+            # For Faculty - get from FacultyAssignment
+            from main.models import FacultyAssignment
+            assignments = FacultyAssignment.objects.filter(faculty=user).select_related('section')
+            user_sections = [{'id': a.section.id, 'code': a.section.code, 'name': str(a.section)} for a in assignments]
+        elif hasattr(user, 'userprofile') and user.userprofile.role in ['Coordinator', 'Dean']:
+            # For Coordinator/Dean - sections they oversee
+            sections_to_show = set([s for s in sections_in_history if s != 'All Sections'])
+            user_sections = [{'id': i, 'code': s, 'name': s} for i, s in enumerate(sorted(sections_to_show))]
+        
         context = {
             'user_profile': user_profile,
             'evaluation_history': evaluation_history,
@@ -4096,7 +4615,9 @@ class EvaluationHistoryView(View):
             'average_percentage': round(average_percentage, 2),
             'latest_score': round(latest_score, 2),
             'page_title': 'Evaluation History',
-            'evaluation_period_active': Evaluation.is_evaluation_period_active('student')
+            'evaluation_period_active': Evaluation.is_evaluation_period_active('student'),
+            'sections_in_history': sections_in_history,
+            'user_sections': user_sections
         }
         
         return render(request, 'main/evaluation_history.html', context)
@@ -4104,6 +4625,7 @@ class EvaluationHistoryView(View):
 def process_evaluation_results_for_user(user, evaluation_period=None):
     """
     Process evaluation responses and create/update EvaluationResult records for a specific user
+    CRITICAL: Only processes responses within the specified period's date range
     """
     from django.utils import timezone
     
@@ -4124,29 +4646,34 @@ def process_evaluation_results_for_user(user, evaluation_period=None):
             is_active=False
         )
     
-    # Get all evaluation responses for this user
-    responses = EvaluationResponse.objects.filter(evaluatee=user)
+    # CRITICAL FIX: Filter responses by the evaluation period's date range
+    # This ensures we only calculate results for responses submitted during THIS period
+    responses = EvaluationResponse.objects.filter(
+        evaluatee=user,
+        submitted_at__gte=evaluation_period.start_date,
+        submitted_at__lte=evaluation_period.end_date
+    )
     
     if not responses.exists():
         return None
     
-    # Calculate overall scores using your existing function
-    category_scores = compute_category_scores(user)
+    # Calculate overall scores using responses from THIS period only
+    category_scores = compute_category_scores(user, evaluation_period=evaluation_period)
     a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
     
-    # Calculate rating distribution
-    rating_distribution = get_rating_distribution(user)
+    # Calculate rating distribution for THIS period
+    rating_distribution = get_rating_distribution(user, evaluation_period=evaluation_period)
     poor, unsatisfactory, satisfactory, very_satisfactory, outstanding = rating_distribution
     
     # Calculate average rating (convert percentage to 5-point scale)
     average_rating = (total_percentage / 20)
     
-    # Get the most common section from evaluations (or use assigned sections)
+    # Get the most common section from evaluations in THIS period (or use assigned sections)
     section = None
     if hasattr(user, 'userprofile') and user.userprofile.section:
         section = user.userprofile.section
     else:
-        # Try to find the most common section from evaluations
+        # Try to find the most common section from evaluations IN THIS PERIOD
         from django.db.models import Count
         section_counts = responses.values('student_section').annotate(count=Count('id')).order_by('-count')
         if section_counts:
@@ -4184,12 +4711,44 @@ def process_evaluation_results_for_user(user, evaluation_period=None):
         return evaluation_result
         
     except Exception as e:
-        
+        logger.error(f"Error processing evaluation results for {user.username}: {str(e)}", exc_info=True)
         return None
 
-def get_rating_distribution(user):
-    """Get rating distribution for a user"""
+def archive_period_results_to_history(evaluation_period):
+    """
+    Archive all EvaluationResult records for a period to EvaluationHistory
+    This is called when a period is being archived/deactivated
+    """
+    try:
+        # Get all results for this evaluation period
+        results = EvaluationResult.objects.filter(evaluation_period=evaluation_period)
+        
+        archived_count = 0
+        for result in results:
+            # Create a history record from the result
+            history = EvaluationHistory.create_from_result(result)
+            archived_count += 1
+            logger.info(f"Archived result for {result.user.username} to history: {result.total_percentage}%")
+        
+        logger.info(f"Successfully archived {archived_count} evaluation results to history for period: {evaluation_period.name}")
+        return archived_count
+        
+    except Exception as e:
+        logger.error(f"Error archiving period results to history: {str(e)}", exc_info=True)
+        return 0
+
+def get_rating_distribution(user, evaluation_period=None):
+    """Get rating distribution for a user
+    CRITICAL: Now accepts evaluation_period to filter responses by date range
+    """
     responses = EvaluationResponse.objects.filter(evaluatee=user)
+    
+    # CRITICAL FIX: If evaluation period provided, filter responses by its date range
+    if evaluation_period:
+        responses = responses.filter(
+            submitted_at__gte=evaluation_period.start_date,
+            submitted_at__lte=evaluation_period.end_date
+        )
     
     poor = unsatisfactory = satisfactory = very_satisfactory = outstanding = 0
     
@@ -4418,12 +4977,226 @@ class ImportAccountsView(View):
             messages.error(request, f"Error importing accounts: {str(e)}")
             return render(request, 'main/import_accounts.html')
 
-    
 
-    
+# ============================================================================
+# EVALUATION QUESTIONS MANAGEMENT
+# ============================================================================
 
+@login_required(login_url='login')
+def manage_evaluation_questions(request):
+    """Admin view to manage all evaluation questions"""
+    from .models import EvaluationQuestion, PeerEvaluationQuestion
     
+    # Check if user is admin
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    if user_profile.role != Role.ADMIN:
+        messages.error(request, "You don't have permission to manage evaluation questions.")
+        return redirect('main:index')
+    
+    # Get all questions
+    student_questions = EvaluationQuestion.objects.filter(evaluation_type='student').order_by('question_number')
+    peer_questions = PeerEvaluationQuestion.objects.all().order_by('question_number')
+    
+    context = {
+        'student_questions': student_questions,
+        'peer_questions': peer_questions,
+        'page_title': 'Manage Evaluation Questions'
+    }
+    
+    return render(request, 'main/manage_evaluation_questions.html', context)
 
+
+@login_required(login_url='login')
+def update_evaluation_question(request, question_type, question_id):
+    """Update a single evaluation question"""
+    from .models import EvaluationQuestion, PeerEvaluationQuestion
+    
+    # Check if user is admin
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    if user_profile.role != Role.ADMIN:
+        return JsonResponse({'success': False, 'message': 'Permission denied'}, status=403)
+    
+    try:
+        if question_type == 'student':
+            question = get_object_or_404(EvaluationQuestion, id=question_id, evaluation_type='student')
+        elif question_type == 'peer':
+            question = get_object_or_404(PeerEvaluationQuestion, question_number=question_id)
+        else:
+            return JsonResponse({'success': False, 'message': 'Invalid question type'}, status=400)
+        
+        if request.method == 'POST':
+            question_text = request.POST.get('question_text', '').strip()
+            is_active = request.POST.get('is_active') == 'on'
+            
+            if not question_text:
+                return JsonResponse({'success': False, 'message': 'Question text cannot be empty'}, status=400)
+            
+            question.question_text = question_text
+            question.is_active = is_active
+            question.save()
+            
+            # Log admin activity
+            log_admin_activity(
+                request.user,
+                f'update_{question_type}_question',
+                description=f'Updated {question_type} evaluation question #{question.question_number if question_type == "peer" else question.question_number}'
+            )
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'{question_type.capitalize()} question updated successfully'
+            })
+        
+        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=400)
+        
+    except Exception as e:
+        logger.error(f"Error updating question: {str(e)}")
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+@login_required(login_url='login')
+def bulk_update_evaluation_questions(request):
+    """Bulk update evaluation questions"""
+    from .models import EvaluationQuestion, PeerEvaluationQuestion
+    
+    # Check if user is admin
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    if user_profile.role != Role.ADMIN:
+        return JsonResponse({'success': False, 'message': 'Permission denied'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        question_type = data.get('question_type')  # 'student' or 'peer'
+        questions = data.get('questions', [])  # List of {id, question_text}
+        
+        if not question_type or question_type not in ['student', 'peer']:
+            return JsonResponse({'success': False, 'message': 'Invalid question type'}, status=400)
+        
+        updated_count = 0
+        
+        for q_data in questions:
+            q_id = q_data.get('id')
+            q_text = q_data.get('question_text', '').strip()
+            
+            if not q_text:
+                continue
+            
+            try:
+                if question_type == 'student':
+                    question = EvaluationQuestion.objects.get(id=q_id, evaluation_type='student')
+                else:
+                    question = PeerEvaluationQuestion.objects.get(question_number=q_id)
+                
+                question.question_text = q_text
+                question.save()
+                updated_count += 1
+            except Exception as e:
+                logger.error(f"Error updating question {q_id}: {str(e)}")
+                continue
+        
+        # Log admin activity
+        log_admin_activity(
+            request.user,
+            f'bulk_update_{question_type}_questions',
+            description=f'Bulk updated {updated_count} {question_type} evaluation questions'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Successfully updated {updated_count} questions',
+            'updated_count': updated_count
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        logger.error(f"Error in bulk update: {str(e)}")
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+@login_required(login_url='login')
+def reset_evaluation_questions(request):
+    """Reset evaluation questions to default values"""
+    from .models import EvaluationQuestion, PeerEvaluationQuestion
+    
+    # Check if user is admin
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    if user_profile.role != Role.ADMIN:
+        return JsonResponse({'success': False, 'message': 'Permission denied'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=400)
+    
+    try:
+        # Default questions
+        default_student_questions = [
+            "Demonstrates mastery of the subject and the ability to translate competencies into meaningful lessons.",
+            "Shows ability to stimulate independent and critical thinking",
+            "Is focused and explains the lesson clearly",
+            "Knowledgable and uses a variety of teaching strategies.",
+            "Demonstrates enthusiasm for the subject matter",
+            "Establishes and communicates clearly parameters for student classroom behaviour based on student handbook and OVPAA Guidelines for the conduct of Flexible Learning Modalities.",
+            "Promote self-discipline, respect and treats all students in fair and equitable manner.",
+            "Keeps accurate accounting of student's attendance and records",
+            "Demonstrates fairness and consistency in handling student's problems.",
+            "Maintains harmonious relations with students characterized by mutual respect and understanding.",
+            "Reports to class regularly.",
+            "Demonstrates exceptional punctuality in observing work hours and college official functions.",
+            "Returns quizzes, examination results, assignments and other activities on time.",
+            "Informs the students on their academic performances and grades.",
+            "Uses Google Meet and Classroom as the official platform for online classes.",
+            "Commands respect by example in appearance, manners and behaviour and language.",
+            "Maintains a good disposition.",
+            "Relates well with students in a pleasing manner.",
+            "Possesses a sense of balance that combines good humor, sincerity and fairness when confronted with difficulties in the classroom",
+        ]
+        
+        default_peer_questions = [
+            "Conducts himself/herself in a manner that is consistent to CCA vision and mission.",
+            "Shows willingness to help colleagues in the performance of tasks and other assignments.",
+            "Complies with the college's policies and procedures.",
+            "Demonstrates professionalism and courtesy in relating with colleagues",
+            "Exhibits willingness to grow personally and professionally",
+            "Shows appreciation and respect for the output and ideas of colleagues",
+            "Shows willingness to accept responsibility for his/her actions",
+            "Demonstrates willingness to listen to colleague's ideas",
+            "Demonstrates good interpersonal relationships with colleagues",
+            "Shows willingness to share his/her expertise to colleagues",
+            "Exhibits leadership potentials and abilities",
+        ]
+        
+        # Reset student questions
+        for i, question_text in enumerate(default_student_questions, 1):
+            EvaluationQuestion.objects.update_or_create(
+                evaluation_type='student',
+                question_number=i,
+                defaults={'question_text': question_text, 'is_active': True}
+            )
+        
+        # Reset peer questions
+        for i, question_text in enumerate(default_peer_questions, 1):
+            PeerEvaluationQuestion.objects.update_or_create(
+                question_number=i,
+                defaults={'question_text': question_text, 'is_active': True}
+            )
+        
+        # Log admin activity
+        log_admin_activity(
+            request.user,
+            'reset_evaluation_questions',
+            description='Reset all evaluation questions to default values'
+        )
+        
+        messages.success(request, 'All evaluation questions have been reset to default values.')
+        return redirect('main:manage_evaluation_questions')
+        
+    except Exception as e:
+        logger.error(f"Error resetting questions: {str(e)}")
+        messages.error(request, f'Error resetting questions: {str(e)}')
+        return redirect('main:manage_evaluation_questions')
 
     
 

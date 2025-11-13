@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from main.models import UserProfile, Section, Role
 from django.core.exceptions import ValidationError
+from main.validation_utils import AccountValidator
 
 
 class AccountImportExportService:
@@ -134,7 +135,7 @@ class AccountImportExportService:
     @staticmethod
     def import_accounts_from_excel(excel_file):
         """
-        Import accounts from an Excel file.
+        Import accounts from an Excel file with comprehensive validation.
         
         Args:
             excel_file: The uploaded Excel file
@@ -171,6 +172,10 @@ class AccountImportExportService:
             # Create a mapping of header name to column index
             header_mapping = {header: idx + 1 for idx, header in enumerate(headers)}
             
+            # Track duplicate checking
+            usernames_in_batch = set()
+            emails_in_batch = set()
+            
             # Process each row
             with transaction.atomic():
                 for row_idx, row in enumerate(worksheet.iter_rows(min_row=2, values_only=False), 2):
@@ -194,6 +199,56 @@ class AccountImportExportService:
                             result['skipped'] += 1
                             continue
                         
+                        # ✅ VALIDATE USERNAME using AccountValidator
+                        is_update = User.objects.filter(username=username).exists()
+                        exclude_id = User.objects.filter(username=username).values_list('id', flat=True).first() if is_update else None
+                        
+                        valid, msg = AccountValidator.validate_username(
+                            username,
+                            exclude_user_id=exclude_id
+                        )
+                        if not valid:
+                            result['errors'].append(f"Row {row_idx}: {msg}")
+                            result['skipped'] += 1
+                            continue
+                        
+                        # Check for duplicates within batch
+                        if username in usernames_in_batch and not is_update:
+                            result['errors'].append(f"Row {row_idx}: Duplicate username '{username}' in batch")
+                            result['skipped'] += 1
+                            continue
+                        
+                        # ✅ VALIDATE EMAIL using AccountValidator
+                        valid, msg = AccountValidator.validate_email(
+                            email,
+                            exclude_user_id=exclude_id
+                        )
+                        if not valid:
+                            result['errors'].append(f"Row {row_idx}: {msg}")
+                            result['skipped'] += 1
+                            continue
+                        
+                        # Check for email duplicates within batch
+                        if email in emails_in_batch and not is_update:
+                            result['errors'].append(f"Row {row_idx}: Duplicate email '{email}' in batch")
+                            result['skipped'] += 1
+                            continue
+                        
+                        # ✅ VALIDATE PASSWORD (only for new users or if provided)
+                        if not is_update or (password and password != '***EXISTING***'):
+                            valid, msg = AccountValidator.validate_password(password)
+                            if not valid:
+                                result['errors'].append(f"Row {row_idx}: Password invalid - {msg}")
+                                result['skipped'] += 1
+                                continue
+                        
+                        # ✅ VALIDATE DISPLAY NAME using AccountValidator
+                        valid, msg = AccountValidator.validate_display_name(display_name)
+                        if not valid:
+                            result['errors'].append(f"Row {row_idx}: {msg}")
+                            result['skipped'] += 1
+                            continue
+                        
                         # Validate role
                         role_map = {
                             'STUDENT': Role.STUDENT,
@@ -203,10 +258,58 @@ class AccountImportExportService:
                             'ADMIN': Role.ADMIN
                         }
                         
-                        if role not in role_map:
-                            result['errors'].append(f"Row {row_idx}: Invalid role '{role}'")
+                        valid, msg = AccountValidator.validate_role(role)
+                        if not valid:
+                            result['errors'].append(f"Row {row_idx}: {msg}")
                             result['skipped'] += 1
                             continue
+                        
+                        role_enum = role_map[role]
+                        
+                        # ✅ VALIDATE ROLE-SPECIFIC FIELDS
+                        if role_enum == Role.STUDENT:
+                            student_number = str(row_data.get('student_number', '')).strip()
+                            course = str(row_data.get('course', '')).strip()
+                            section_code = str(row_data.get('section', '')).strip()
+                            
+                            # Validate student number
+                            if not student_number:
+                                result['errors'].append(f"Row {row_idx}: Student number required for students")
+                                result['skipped'] += 1
+                                continue
+                            
+                            valid, msg = AccountValidator.validate_student_number(student_number)
+                            if not valid:
+                                result['errors'].append(f"Row {row_idx}: {msg}")
+                                result['skipped'] += 1
+                                continue
+                            
+                            # Validate course
+                            valid, msg = AccountValidator.validate_course(course)
+                            if not valid:
+                                result['errors'].append(f"Row {row_idx}: {msg}")
+                                result['skipped'] += 1
+                                continue
+                            
+                            # Validate section if provided
+                            if section_code:
+                                valid, msg, section = AccountValidator.validate_section(
+                                    Section.objects.filter(code=section_code).values_list('id', flat=True).first()
+                                )
+                                if not valid:
+                                    result['errors'].append(f"Row {row_idx}: Section '{section_code}' not found")
+                                    result['skipped'] += 1
+                                    continue
+                        
+                        elif role_enum in [Role.DEAN, Role.FACULTY, Role.COORDINATOR]:
+                            institute = str(row_data.get('institute', '')).strip()
+                            
+                            # Validate institute
+                            valid, msg = AccountValidator.validate_institute(institute)
+                            if not valid:
+                                result['errors'].append(f"Row {row_idx}: {msg}")
+                                result['skipped'] += 1
+                                continue
                         
                         # Check if user exists
                         user_exists = User.objects.filter(username=username).exists()
@@ -221,10 +324,10 @@ class AccountImportExportService:
                             
                             profile = user.userprofile
                             profile.display_name = display_name
-                            profile.role = role_map[role]
+                            profile.role = role_enum
                             
                             # Handle student-specific fields
-                            if role_map[role] == Role.STUDENT:
+                            if role_enum == Role.STUDENT:
                                 profile.studentnumber = str(row_data.get('student_number', '')).strip()
                                 profile.course = str(row_data.get('course', '')).strip()
                                 
@@ -238,7 +341,7 @@ class AccountImportExportService:
                                         result['errors'].append(f"Row {row_idx}: Section '{section_code}' not found")
                             
                             # Handle staff-specific fields
-                            elif role_map[role] in [Role.DEAN, Role.FACULTY, Role.COORDINATOR]:
+                            elif role_enum in [Role.DEAN, Role.FACULTY, Role.COORDINATOR]:
                                 profile.institute = str(row_data.get('institute', '')).strip()
                             
                             profile.save()
@@ -253,10 +356,10 @@ class AccountImportExportService:
                             
                             profile = user.userprofile
                             profile.display_name = display_name
-                            profile.role = role_map[role]
+                            profile.role = role_enum
                             
                             # Handle student-specific fields
-                            if role_map[role] == Role.STUDENT:
+                            if role_enum == Role.STUDENT:
                                 profile.studentnumber = str(row_data.get('student_number', '')).strip()
                                 profile.course = str(row_data.get('course', '')).strip()
                                 
@@ -270,11 +373,15 @@ class AccountImportExportService:
                                         result['errors'].append(f"Row {row_idx}: Section '{section_code}' not found")
                             
                             # Handle staff-specific fields
-                            elif role_map[role] in [Role.DEAN, Role.FACULTY, Role.COORDINATOR]:
+                            elif role_enum in [Role.DEAN, Role.FACULTY, Role.COORDINATOR]:
                                 profile.institute = str(row_data.get('institute', '')).strip()
                             
                             profile.save()
                             result['created'] += 1
+                            
+                            # Track batch duplicates
+                            usernames_in_batch.add(username)
+                            emails_in_batch.add(email)
                     
                     except Exception as e:
                         result['errors'].append(f"Row {row_idx}: {str(e)}")

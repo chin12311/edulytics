@@ -28,7 +28,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Use environment variable in production, default to False for safety
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = ['*']
 
@@ -79,8 +80,23 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'main.middleware.NoCacheMiddleware',
+    'main.middleware.RestrictAdminMiddleware',  # Restrict admin access to superusers only
     'django_user_agents.middleware.UserAgentMiddleware',
 ]
+
+# ===== SECURITY HEADERS =====
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_SECURITY_POLICY = {
+    'default-src': ("'self'",),
+    'script-src': ("'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"),
+    'style-src': ("'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"),
+    'img-src': ("'self'", "data:", "https:"),
+    'font-src': ("'self'", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"),
+}
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
 
 ROOT_URLCONF = 'evaluationWeb.urls'
 
@@ -106,13 +122,31 @@ WSGI_APPLICATION = 'evaluationWeb.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# MySQL Configuration
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME', 'evaluation'),
+        'USER': os.getenv('DB_USER', 'eval_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'eval_password'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'autocommit': True,
+        },
+        'CONN_MAX_AGE': 600,  # Connection pooling - 10 minutes
     }
 }
 
+# Cache Configuration for Rate Limiting
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -149,13 +183,17 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 # Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.1/howto/static-files/
+
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 
-# Use STATICFILES_DIRS only in development
-if DEBUG:
-    STATICFILES_DIRS = [
-        BASE_DIR / "static",  # This tells Django where to find static files in development
-    ]
+# STATICFILES_DIRS should be set for BOTH development and production
+# These are the directories where Django looks for static files
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # This tells Django where to find static files
+    BASE_DIR / "main" / "static",  # Also include main app static files
+]
 
 # STATIC_ROOT must always be set for collectstatic to work
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # This is where Django collects static files in production

@@ -1,0 +1,612 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Manage Evaluation Questions - Admin{% endblock %}
+
+{% block body_style %} 
+style="background-image: url('{% static 'img/phoenix-background.png' %}'); 
+        background-repeat: no-repeat; 
+        background-size: cover; 
+        background-position: center; 
+        min-height: 100vh;" 
+{% endblock %}
+
+{% block content %}
+<style>
+    .question-management-container {
+        max-width: 1200px;
+        margin: 50px auto;
+        padding: 20px;
+    }
+
+    .management-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+
+    .management-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #47682c;
+    }
+
+    .management-header h3 {
+        margin: 0;
+        color: #47682c;
+        font-weight: 600;
+    }
+
+    .question-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .question-item {
+        background: #f8f9fa;
+        border-left: 4px solid #47682c;
+        padding: 15px;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 15px;
+        transition: all 0.3s ease;
+    }
+
+    .question-item:hover {
+        background: #e8eef0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .question-content {
+        flex: 1;
+    }
+
+    .question-number {
+        font-weight: bold;
+        color: #47682c;
+        margin-bottom: 5px;
+    }
+
+    .question-text {
+        color: #333;
+        word-break: break-word;
+        line-height: 1.5;
+    }
+
+    .question-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .btn-edit {
+        background-color: #17a2b8;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-edit:hover {
+        background-color: #138496;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-save {
+        background-color: #47682c;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-save:hover {
+        background-color: #3a5a29;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-cancel {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cancel:hover {
+        background-color: #5a6268;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .edit-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .edit-textarea {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #47682c;
+        border-radius: 6px;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        resize: vertical;
+        min-height: 60px;
+    }
+
+    .edit-textarea:focus {
+        outline: none;
+        box-shadow: 0 0 5px rgba(71, 104, 44, 0.3);
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .control-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 25px;
+        flex-wrap: wrap;
+        display: none; /* Hidden */
+    }
+
+    .btn-primary {
+        background-color: #47682c;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #3a5a29;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-warning:hover {
+        background-color: #e0a800;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #47682c;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 5px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .alert {
+        padding: 12px 20px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    .alert .close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: inherit;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        border-bottom: 2px solid #ddd;
+    }
+
+    .tab {
+        padding: 12px 20px;
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: #666;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .tab.active {
+        color: #47682c;
+        border-bottom-color: #47682c;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .question-management-container {
+            padding: 10px;
+        }
+
+        .management-card {
+            padding: 15px;
+        }
+
+        .question-item {
+            flex-direction: column;
+        }
+
+        .question-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .control-buttons {
+            flex-direction: column;
+        }
+
+        .btn-primary, .btn-warning {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="question-management-container">
+    <!-- Display Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <span>{{ message }}</span>
+                <button class="close" onclick="this.parentElement.style.display='none';">&times;</button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="management-card">
+        <div class="management-header">
+            <h3>📋 Manage Evaluation Questions</h3>
+        </div>
+
+        <!-- Tab Buttons -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('student')">
+                👨‍🎓 Student Evaluation (19 Questions)
+            </button>
+            <button class="tab" onclick="switchTab('peer')">
+                👥 Peer Evaluation (11 Questions)
+            </button>
+        </div>
+
+        <!-- Student Evaluation Questions -->
+        <div id="student" class="tab-content active">
+            <div class="question-list" id="studentQuestionsList">
+                {% for question in student_questions %}
+                    <div class="question-item" id="student-{{ question.id }}">
+                        <div class="question-content">
+                            <div class="question-number">Question {{ question.question_number }}</div>
+                            <div class="question-text">{{ question.question_text }}</div>
+                        </div>
+                        <div class="question-actions">
+                            <button class="btn-edit" onclick="editQuestion('student', {{ question.id }}, '{{ question.question_text|escapejs }}')">
+                                Edit
+                            </button>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="alert alert-info">
+                        No student evaluation questions found. <a href="{% url 'main:manage_evaluation_questions' %}">Refresh</a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Peer Evaluation Questions -->
+        <div id="peer" class="tab-content">
+            <div class="question-list" id="peerQuestionsList">
+                {% for question in peer_questions %}
+                    <div class="question-item" id="peer-{{ question.question_number }}">
+                        <div class="question-content">
+                            <div class="question-number">Question {{ question.question_number }}</div>
+                            <div class="question-text">{{ question.question_text }}</div>
+                        </div>
+                        <div class="question-actions">
+                            <button class="btn-edit" onclick="editQuestion('peer', {{ question.question_number }}, '{{ question.question_text|escapejs }}')">
+                                Edit
+                            </button>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="alert alert-info">
+                        No peer evaluation questions found. <a href="{% url 'main:manage_evaluation_questions' %}">Refresh</a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal for Editing -->
+<div id="editModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5);">
+    <div style="background-color: white; margin: 10% auto; padding: 25px; border-radius: 10px; width: 90%; max-width: 600px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+        <h4 style="margin-top: 0; color: #47682c;">Edit Question</h4>
+        
+        <div id="editContent">
+            <!-- Form will be injected here -->
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn-save" id="modalSaveBtn" onclick="saveQuestion()">Save</button>
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentEditingQuestion = null;
+    let changedQuestions = {};
+
+    function switchTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+
+        // Show selected tab
+        document.getElementById(tabName).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    function editQuestion(type, id, currentText) {
+        currentEditingQuestion = { type, id, currentText };
+        
+        const editContent = document.getElementById('editContent');
+        editContent.innerHTML = `
+            <form>
+                <input type="hidden" id="editType" value="${type}">
+                <input type="hidden" id="editId" value="${id}">
+                
+                <div style="margin-bottom: 15px;">
+                    <label for="editQuestionText" style="font-weight: bold; color: #47682c;">Question Text:</label>
+                    <textarea id="editQuestionText" class="edit-textarea" required>${currentText}</textarea>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="editIsActive" checked>
+                    <label for="editIsActive">Active</label>
+                </div>
+            </form>
+        `;
+        
+        document.getElementById('editModal').style.display = 'block';
+        document.getElementById('editQuestionText').focus();
+    }
+
+    function saveQuestion() {
+        const type = document.getElementById('editType').value;
+        const id = document.getElementById('editId').value;
+        const questionText = document.getElementById('editQuestionText').value.trim();
+        const isActive = document.getElementById('editIsActive').checked;
+
+        if (!questionText) {
+            alert('Question text cannot be empty!');
+            return;
+        }
+
+        // Store changes locally
+        const key = `${type}-${id}`;
+        changedQuestions[key] = { type, id, questionText, isActive };
+
+        // Update UI
+        const questionElement = document.getElementById(`${type}-${id}`);
+        if (questionElement) {
+            questionElement.querySelector('.question-text').textContent = questionText;
+            questionElement.style.background = '#fff3cd';  // Highlight as changed
+        }
+
+        closeModal();
+        alert('Question updated. Don\'t forget to save all changes!');
+    }
+
+    function closeModal() {
+        document.getElementById('editModal').style.display = 'none';
+        currentEditingQuestion = null;
+    }
+
+    function saveAllChanges() {
+        if (Object.keys(changedQuestions).length === 0) {
+            alert('No changes to save!');
+            return;
+        }
+
+        const saveBtn = document.getElementById('saveBtnText');
+        const originalText = saveBtn.textContent;
+        saveBtn.innerHTML = '<span class="loading-spinner"></span>Saving...';
+
+        // Prepare data by type
+        const studentQuestions = [];
+        const peerQuestions = [];
+
+        Object.values(changedQuestions).forEach(q => {
+            if (q.type === 'student') {
+                studentQuestions.push({ id: q.id, question_text: q.questionText });
+            } else {
+                peerQuestions.push({ id: q.id, question_text: q.questionText });
+            }
+        });
+
+        // Send updates
+        let completed = 0;
+        let hasError = false;
+
+        if (studentQuestions.length > 0) {
+            fetch('{% url "main:bulk_update_evaluation_questions" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    question_type: 'student',
+                    questions: studentQuestions
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                completed++;
+                if (!data.success) hasError = true;
+                if (completed === (peerQuestions.length > 0 ? 2 : 1)) {
+                    finalizeSave(saveBtn, originalText, hasError);
+                }
+            })
+            .catch(e => {
+                completed++;
+                hasError = true;
+                console.error(e);
+                if (completed === (peerQuestions.length > 0 ? 2 : 1)) {
+                    finalizeSave(saveBtn, originalText, hasError);
+                }
+            });
+        }
+
+        if (peerQuestions.length > 0) {
+            fetch('{% url "main:bulk_update_evaluation_questions" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    question_type: 'peer',
+                    questions: peerQuestions
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                completed++;
+                if (!data.success) hasError = true;
+                if (completed === (studentQuestions.length > 0 ? 2 : 1)) {
+                    finalizeSave(saveBtn, originalText, hasError);
+                }
+            })
+            .catch(e => {
+                completed++;
+                hasError = true;
+                console.error(e);
+                if (completed === (studentQuestions.length > 0 ? 2 : 1)) {
+                    finalizeSave(saveBtn, originalText, hasError);
+                }
+            });
+        }
+    }
+
+    function finalizeSave(btn, originalText, hasError) {
+        btn.textContent = originalText;
+        if (!hasError) {
+            alert('All changes saved successfully!');
+            changedQuestions = {};
+            // Remove highlighting
+            document.querySelectorAll('.question-item').forEach(el => {
+                if (el.style.background === 'rgb(255, 243, 205)') {
+                    el.style.background = '#f8f9fa';
+                }
+            });
+        } else {
+            alert('Some changes were not saved. Please try again.');
+        }
+    }
+
+    function confirmReset() {
+        if (confirm('Are you sure you want to reset all questions to default values? This cannot be undone.')) {
+            fetch('{% url "main:reset_evaluation_questions" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(r => {
+                if (r.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Error resetting questions');
+                }
+            });
+        }
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('editModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+</script>
+
+{% endblock %}

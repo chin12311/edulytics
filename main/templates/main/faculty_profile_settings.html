@@ -598,6 +598,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <div id="tabs-navigation" class="tabs hidden-content">
                         <button class="tab active" onclick="switchTab('evaluation')">Evaluation Results</button>
                         <button class="tab" onclick="switchTab('recommendations')">AI Recommendations</button>
+                        <button class="tab" onclick="switchTab('comments')">Students Comments</button>
                     </div>
 
                     {% else %}
@@ -614,6 +615,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <div id="tabs-navigation" class="tabs hidden-content">
                         <button class="tab active" onclick="switchTab('evaluation')">Evaluation Results</button>
                         <button class="tab" onclick="switchTab('recommendations')">AI Recommendations</button>
+                        <button class="tab" onclick="switchTab('comments')">Students Comments</button>
                     </div>
                     {% endif %}
 
@@ -649,6 +651,16 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                         <div class="form-card">
                             <h4>🤖 AI Recommendations - <span id="recommendations-section-name">Section</span></h4>
                             <div id="recommendations-content">
+                                <!-- Content will be loaded dynamically via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Students Comments Tab (Always present but hidden when no sections) -->
+                    <div id="comments-tab" class="tab-content hidden-content">
+                        <div class="form-card">
+                            <h4>💬 Students Comments - <span id="comments-section-name">Section</span></h4>
+                            <div id="comments-content">
                                 <!-- Content will be loaded dynamically via JavaScript -->
                             </div>
                         </div>
@@ -1223,6 +1235,159 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         console.log(`✅ Successfully displayed recommendations for ${sectionCode}`);
     }
 
+    // Load comments content
+    function loadCommentsContent(sectionCode) {
+        const commentsContent = document.getElementById('comments-content');
+        
+        console.log(`📡 Loading student comments for ${sectionCode}`);
+        
+        // Update section name
+        document.getElementById('comments-section-name').textContent = sectionCode;
+        
+        // Show loading state
+        commentsContent.innerHTML = `
+            <div class="text-center" style="padding: 40px;">
+                <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-muted">💬 Loading student comments for ${sectionCode}...</p>
+                <small class="text-muted">Fetching feedback from students</small>
+            </div>
+        `;
+        
+        // Prepare data for API
+        const apiData = {
+            section_code: sectionCode,
+            section_id: selectedSectionId,
+            timestamp: Date.now()
+        };
+        
+        console.log(`🚀 Fetching comments for ${sectionCode}:`, apiData);
+        
+        // Fetch comments from API
+        fetch('/api/student-comments/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(apiData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(apiResponse => {
+            console.log(`✅ Comments Response for ${sectionCode}:`, apiResponse);
+            
+            let comments = [];
+            if (apiResponse.comments) {
+                comments = apiResponse.comments;
+                console.log(`🎯 Found ${comments.length} comments for ${sectionCode}`);
+            } else if (Array.isArray(apiResponse)) {
+                comments = apiResponse;
+            }
+            
+            displayComments(comments, commentsContent, sectionCode);
+        })
+        .catch(error => {
+            console.error(`❌ Error fetching comments for ${sectionCode}:`, error);
+            
+            // Show error message
+            commentsContent.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-circle fa-2x text-warning mb-3"></i>
+                    <p class="text-muted">Unable to load student comments at this time.</p>
+                    <small class="text-muted">Please try again later.</small>
+                </div>
+            `;
+        });
+    }
+
+    // Display comments
+    function displayComments(comments, container, sectionCode) {
+        console.log(`📊 Displaying ${comments.length} comments for ${sectionCode}`);
+        
+        let commentsHTML = `
+            <div class="comments-header text-center mb-4">
+                <h5 style="color: #47682c;">💬 Student Feedback</h5>
+                <p class="text-muted">Anonymous comments from students about their learning experience</p>
+            </div>
+            <div class="comments-list">
+        `;
+        
+        if (!comments || comments.length === 0) {
+            commentsHTML += `
+                <div class="text-center py-4">
+                    <i class="fas fa-comment fa-2x text-muted mb-3"></i>
+                    <p class="text-muted">No student comments available for this section yet.</p>
+                    <small class="text-muted">Comments will appear here as students provide feedback.</small>
+                </div>
+            `;
+        } else {
+            comments.forEach((comment, index) => {
+                // Sanitize comment text to prevent XSS
+                const sanitizedComment = escapeHtml(comment);
+                
+                commentsHTML += `
+                    <div class="comment-item" style="
+                        background: linear-gradient(135deg, #f9f9f9, #ffffff);
+                        border-left: 4px solid #47682c;
+                        padding: 20px;
+                        margin: 15px 0;
+                        border-radius: 10px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                        transition: transform 0.2s ease, box-shadow 0.2s ease;
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)'" 
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)'">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <i class="fas fa-quote-left" style="color: #bdc3c7; margin-right: 8px;"></i>
+                            </div>
+                            <span style="
+                                background: #47682c;
+                                color: white;
+                                padding: 4px 12px;
+                                border-radius: 15px;
+                                font-size: 0.75rem;
+                                font-weight: bold;
+                                display: inline-block;
+                            ">Comment #${index + 1}</span>
+                        </div>
+                        <p style="margin: 0; color: #34495e; line-height: 1.7; font-size: 0.95rem; font-style: italic;">"${sanitizedComment}"</p>
+                    </div>
+                `;
+            });
+        }
+        
+        commentsHTML += `
+            </div>
+            <div class="text-center mt-4">
+                <small class="text-muted">📋 Total comments: ${comments.length}</small>
+            </div>
+        `;
+        
+        container.innerHTML = commentsHTML;
+        
+        console.log(`✅ Successfully displayed comments for ${sectionCode}`);
+    }
+
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
     // Generate smart recommendations based on category performance (fallback) - IMPROVED
     function generateSmartRecommendations(sectionData, sectionRef) {
         console.log(`🔧 Generating fallback recommendations for ${sectionRef}`);
@@ -1407,6 +1572,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 break;
             case 'recommendations':
                 loadRecommendationsContent(sectionData, sectionName);
+                break;
+            case 'comments':
+                loadCommentsContent(sectionName);
                 break;
         }
     }

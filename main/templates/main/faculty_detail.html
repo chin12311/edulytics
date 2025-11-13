@@ -1,18 +1,170 @@
 {% extends 'main/base.html' %}
 
 {% block content %}   
+<style>
+    .container {
+        padding: 30px 20px;
+        background-color: #f8fafc;
+    }
+
+    #faculty-header h3 {
+        font-size: 2.2rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 8px;
+    }
+
+    #faculty-header p {
+        color: #4a5568;
+        margin-bottom: 6px;
+        font-size: 1.1rem;
+    }
+
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        background-color: white;
+        margin-bottom: 20px;
+        border: none;
+        transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .dropdown .dropdown-toggle {
+        background: linear-gradient(135deg, #47682c, #5a8236);
+        color: white;
+        border-radius: 25px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        border: none;
+        box-shadow: 0 2px 8px rgba(71, 104, 44, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .dropdown .dropdown-toggle:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(71, 104, 44, 0.4);
+    }
+
+    .dropdown-menu {
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        border: none;
+        padding: 8px 0;
+    }
+
+    .dropdown-item {
+        padding: 12px 20px;
+        font-size: 1rem;
+        transition: background-color 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+        background-color: #f7fafc;
+        color: #47682c;
+    }
+
+    .section-box {
+        background: white;
+        display: none;
+        opacity: 0;
+        transition: opacity 0.4s ease-in-out;
+        padding: 30px;
+        border-radius: 16px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        margin: 20px 0;
+    }
+
+    .section-box h2 {
+        margin-bottom: 25px;
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #2d3748;
+        background: linear-gradient(135deg, #47682c, #3a5220);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 20px 15px;
+        }
+
+        #faculty-header h3 {
+            font-size: 1.8rem;
+        }
+
+        #faculty-header p {
+            font-size: 1rem;
+        }
+
+        .section-box {
+            padding: 20px 15px;
+        }
+
+        .section-box h2 {
+            font-size: 1.4rem;
+        }
+
+        .dropdown-item {
+            font-size: 0.95rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .container {
+            padding: 15px 10px;
+        }
+
+        #faculty-header h3 {
+            font-size: 1.6rem;
+        }
+
+        #faculty-header p {
+            font-size: 0.95rem;
+        }
+
+        .section-box {
+            padding: 15px 10px;
+        }
+
+        .section-box h2 {
+            font-size: 1.3rem;
+        }
+
+        .dropdown .dropdown-toggle {
+            font-size: 0.95rem;
+            padding: 8px 15px;
+        }
+
+        .dropdown-item {
+            font-size: 0.9rem;
+            padding: 10px 15px;
+        }
+    }
+</style>
+
 <div class="container mt-5">
 
     <!-- Wide Header Section -->
-    <div class="card shadow-sm border-0" style="background-color: #47682c; color: white;">
-        <div class="card-body p-2">
+    <div class="card shadow-sm border-0" style="background: linear-gradient(135deg, #47682c, #5a8236); color: white;">
+        <div class="card-body p-3">
 
             <!-- Left-aligned Details with Left Margin -->
-            <div class="text-start" style="margin-left: 20px;">  
+            <div class="text-start" id="faculty-header" style="margin-left: 20px;">  
                 <h3 class="mb-2">{{ faculty.user.username }}</h3>   
                 
                 <!-- Display full name instead of acronym -->
-                <p class="fs-6 mb-1">
+                <p class="mb-1">
                     {% if faculty.institute == "IBM" %}
                         Institute of Business and Management
                     {% elif faculty.institute == "ICSLIS" %}
@@ -24,7 +176,7 @@
                     {% endif %}
                 </p>     
 
-                <p class="fs-7">{{ faculty.role }}</p>  
+                <p>{{ faculty.role }}</p>  
             </div>
 
         </div>
@@ -33,39 +185,44 @@
     <!-- Dropdown Section -->
     <div class="mt-4">
         <div class="dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sectionDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: #47682c; color: white;">
-                Section
+            <button class="btn dropdown-toggle" type="button" id="sectionDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                📊 Select Section
             </button>
             <ul class="dropdown-menu" aria-labelledby="sectionDropdown">
-                <li><a class="dropdown-item section-item" data-section="Section A" href="#">Section A</a></li>
-                <li><a class="dropdown-item section-item" data-section="Section B" href="#">Section B</a></li>
-                <li><a class="dropdown-item section-item" data-section="Section C" href="#">Section C</a></li>
+                <li><a class="dropdown-item" data-section="Section A" href="#">Section A</a></li>
+                <li><a class="dropdown-item" data-section="Section B" href="#">Section B</a></li>
+                <li><a class="dropdown-item" data-section="Section C" href="#">Section C</a></li>
             </ul>
         </div>
     </div>
 
     <!-- Section Content Boxes (Initially Hidden) -->
     <div class="mt-4">
-        <div class="section-box card shadow-sm border-0 p-4" style="background-color: #47682c; color: white; height: 400px; width: 100%; display: none; opacity: 0; transition: opacity 0.5s ease-in-out; align-items: center; justify-content: center;">
-            <h2 class="text-white" id="sectionTitle">Data Analytics</h2>
+        <div class="section-box">
+            <h2 id="sectionTitle">Select a section to view details</h2>
         </div>
     </div>
 
-    </div>
+</div>
 
-    <script>
-        document.querySelectorAll('.section-item').forEach(item => {
-            item.addEventListener('click', function() {
-                let sectionBox = document.querySelector('.section-box');
-                let sectionTitle = document.getElementById('sectionTitle');
-                
-                sectionBox.style.opacity = '0';
-                setTimeout(() => {
-                    sectionTitle.textContent = 'Data Analytics';
-                    sectionBox.style.display = 'flex';
-                    setTimeout(() => { sectionBox.style.opacity = '1'; }, 10);
-                }, 400);
-            });
+<script>
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            let sectionName = this.getAttribute('data-section');
+            let sectionBox = document.querySelector('.section-box');
+            let sectionTitle = document.getElementById('sectionTitle');
+            
+            sectionBox.style.opacity = '0';
+            setTimeout(() => {
+                sectionTitle.textContent = sectionName + ' - Details';
+                sectionBox.style.display = 'block';
+                document.getElementById('sectionDropdown').textContent = '📚 ' + sectionName;
+                setTimeout(() => { 
+                    sectionBox.style.opacity = '1'; 
+                }, 10);
+            }, 400);
         });
-    </script>
+    });
+</script>
 {% endblock %}
