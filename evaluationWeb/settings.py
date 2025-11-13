@@ -78,6 +78,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.gzip.GZipMiddleware',  # Compress responses (add before sessions)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -116,6 +117,13 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            # Cache compiled templates in production
+            'loaders': [
+                ('django.template.loaders.cached.Loader', [
+                    'django.template.loaders.filesystem.Loader',
+                    'django.template.loaders.app_directories.Loader',
+                ]),
+            ] if not DEBUG else None,
         },
     },
 ]
@@ -126,7 +134,7 @@ WSGI_APPLICATION = 'evaluationWeb.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# MySQL Configuration
+# MySQL Configuration with Performance Optimizations
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -139,16 +147,26 @@ DATABASES = {
             'charset': 'utf8mb4',
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             'autocommit': True,
+            # Performance optimizations
+            'connect_timeout': 10,
+            'read_timeout': 30,
+            'write_timeout': 30,
         },
         'CONN_MAX_AGE': 600,  # Connection pooling - 10 minutes
+        'ATOMIC_REQUESTS': False,  # Don't use atomic requests per view
     }
 }
 
-# Cache Configuration for Rate Limiting
+# Cache Configuration - Using Redis would be better, but locmem works for now
+# Add timeout for cache to improve performance
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5-minute cache timeout
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000
+        }
     }
 }
 
@@ -221,3 +239,21 @@ MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # keep default
 ]
+
+# ===== PERFORMANCE LOGGING =====
+# Log slow database queries to identify bottlenecks
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+        },
+    },
+}
