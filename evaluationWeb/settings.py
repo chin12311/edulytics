@@ -109,7 +109,15 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [os.path.join(BASE_DIR, 'templates')],
-        'APP_DIRS': False,  # Set to False when using custom loaders
+        'APP_DIRS': True,
+
+
+
+
+
+
+
+        
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -123,10 +131,7 @@ TEMPLATES = [
                     'django.template.loaders.filesystem.Loader',
                     'django.template.loaders.app_directories.Loader',
                 ]),
-            ] if not DEBUG else [
-                'django.template.loaders.filesystem.Loader',
-                'django.template.loaders.app_directories.Loader',
-            ],
+            ] if not DEBUG else None,
         },
     },
 ]
@@ -137,28 +142,39 @@ WSGI_APPLICATION = 'evaluationWeb.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# MySQL Configuration with Performance Optimizations
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'evaluation'),
-        'USER': os.getenv('DB_USER', 'eval_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'eval_password'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'autocommit': True,
-            # Performance optimizations
-            'connect_timeout': 10,
-            'read_timeout': 30,
-            'write_timeout': 30,
-        },
-        'CONN_MAX_AGE': 600,  # Connection pooling - 10 minutes
-        'ATOMIC_REQUESTS': False,  # Don't use atomic requests per view
+# Database Configuration - Support both MySQL and SQLite
+DB_ENGINE = os.getenv('DB_ENGINE', 'mysql')
+
+if DB_ENGINE.lower() == 'sqlite':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
     }
-}
+else:
+    # MySQL Configuration with Performance Optimizations
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('DB_NAME', 'evaluation'),
+            'USER': os.getenv('DB_USER', 'eval_user'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'eval_password'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'autocommit': True,
+                # Performance optimizations
+                'connect_timeout': 10,
+                'read_timeout': 30,
+                'write_timeout': 30,
+            },
+            'CONN_MAX_AGE': 600,  # Connection pooling - 10 minutes
+            'ATOMIC_REQUESTS': False,  # Don't use atomic requests per view
+        }
+    }
 
 # Cache Configuration - Using Redis would be better, but locmem works for now
 # Add timeout for cache to improve performance
