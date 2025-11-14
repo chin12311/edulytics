@@ -126,12 +126,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
             ],
             # Cache compiled templates in production
-            'loaders': [
-                ('django.template.loaders.cached.Loader', [
-                    'django.template.loaders.filesystem.Loader',
-                    'django.template.loaders.app_directories.Loader',
-                ]),
-            ] if not DEBUG else None,
+            'loaders': None,
         },
     },
 ]
