@@ -33,7 +33,12 @@ from .email_service import EvaluationEmailService
 # Setup logging
 logger = logging.getLogger(__name__)
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+# Initialize OpenAI client only if API key is available
+try:
+    client = OpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
+except Exception as e:
+    logger.warning(f"Failed to initialize OpenAI client: {e}")
+    client = None
 
 
     
