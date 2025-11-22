@@ -223,6 +223,9 @@ class EvaluationEmailService:
         is_peer = evaluation_type == 'peer'
         eval_name = "Peer Evaluation Form" if is_peer else "Student Evaluation Form"
         
+        # Get site URL from settings or environment
+        site_url = getattr(settings, 'SITE_URL', 'http://13.211.104.201')
+        
         html = f"""
         <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -263,7 +266,7 @@ class EvaluationEmailService:
                         <div style="background-color: #f0f8ff; border: 1px solid #b3d9ff; padding: 15px; margin: 20px 0; border-radius: 4px;">
                             <p style="margin: 0; font-size: 13px; color: #555;">
                                 <strong>Access Your Evaluation:</strong><br>
-                                Log in to <a href="http://localhost:8000" style="color: #576d2e; text-decoration: none;">Edulytics System</a>
+                                Log in to <a href="{site_url}" style="color: #576d2e; text-decoration: none;">Edulytics System</a>
                             </p>
                         </div>
                         
@@ -294,6 +297,9 @@ class EvaluationEmailService:
         is_peer = evaluation_type == 'peer'
         eval_name = "Peer Evaluation Form" if is_peer else "Student Evaluation Form"
         
+        # Get site URL from settings or environment
+        site_url = getattr(settings, 'SITE_URL', 'http://13.211.104.201')
+        
         text = f"""
 The {eval_name} has been officially released and is now ACTIVE.
 
@@ -307,7 +313,7 @@ KEY DETAILS:
 - Action Required: Please complete your evaluation
 
 ACCESS YOUR EVALUATION:
-Log in to the Edulytics System at http://localhost:8000
+Log in to the Edulytics System at {site_url}
 
 If you have any questions or experience technical difficulties,
 please contact the administration office.
