@@ -26,7 +26,10 @@ class RegisterView(View):
         return render(request, 'register/register.html', {'form': form, 'next_url': next_url})
 
     def post(self, request):
-        # Diagnostic logging for 500 error investigation
+        # Diagnostic logging / printing for 500 error investigation (prints ensure visibility)
+        print("[RegisterView.post] ENTER")
+        print("[RegisterView.post] Raw POST keys:", list(request.POST.keys()))
+        print("[RegisterView.post] Values: display_name=", request.POST.get('display_name'), " email=", request.POST.get('email'), " role=", request.POST.get('role'))
         logger.info("[RegisterView.post] Incoming Add Account request")
         logger.info(f"[RegisterView.post] Raw POST keys: {list(request.POST.keys())}")
         logger.info(f"[RegisterView.post] POST sample values: display_name={request.POST.get('display_name')}, email={request.POST.get('email')}, role={request.POST.get('role')}")
@@ -36,14 +39,18 @@ class RegisterView(View):
         if '?' in next_url:
             next_url = next_url.split('?')[0]
 
-        logger.info(f"[RegisterView.post] Form valid? {form.is_valid()}")
-        if not form.is_valid():
+        is_valid = form.is_valid()
+        print("[RegisterView.post] form.is_valid()=", is_valid)
+        logger.info(f"[RegisterView.post] Form valid? {is_valid}")
+        if not is_valid:
+            print("[RegisterView.post] Form errors:", form.errors)
             logger.warning(f"[RegisterView.post] Form errors: {form.errors}")
 
         if form.is_valid():
             try:
                 with transaction.atomic():
                     user = form.save()  # This now calls our custom save method
+                    print(f"[RegisterView.post] User created id={user.id} username={user.username}")
                     logger.info(f"[RegisterView.post] User object created id={user.id} username={user.username}")
                     
                     # Log admin activity for account creation
@@ -57,10 +64,14 @@ class RegisterView(View):
                 # Add success parameter to URL
                 separator = '&' if '?' in next_url else '?'
                 success_url = f"{next_url}{separator}account_added=success"
+                print(f"[RegisterView.post] Redirecting to {success_url}")
                 logger.info(f"[RegisterView.post] Redirecting to {success_url}")
                 return redirect(success_url)
 
             except Exception as e:
+                import traceback
+                print("[RegisterView.post] EXCEPTION:", e)
+                traceback.print_exc()
                 logger.error(f"[RegisterView.post] Exception during account creation: {str(e)}", exc_info=True)
                 form.add_error(None, f"Error creating account: {e}")
                 return render(request, 'register/register.html', {'form': form, 'next_url': next_url})
