@@ -1,0 +1,48 @@
+================================================================================
+HOW TO ACCESS THE LOGIN SYSTEM
+================================================================================
+
+CURRENT SETUP:
+- Application is running on YOUR COMPUTER (localhost)
+- Database is on YOUR COMPUTER (localhost:3306)
+- NOT deployed to AWS
+
+TO ACCESS THE LOGIN PAGE:
+
+1. OPEN YOUR BROWSER AND GO TO:
+   http://localhost:8000/login/
+
+2. LOG IN WITH:
+   Email: Christianbituonon4@gmail.com
+   Password: VNxv76dBIbL@JO7UDqLo
+
+3. AFTER LOGIN:
+   You'll be redirected to the main dashboard
+
+================================================================================
+WHAT YOU WERE TRYING:
+- You tried to use an AWS IP address
+- But the application is NOT deployed on AWS
+- It's only running on your local machine
+
+================================================================================
+IF YOU WANT TO ACCESS FROM ANOTHER COMPUTER:
+
+1. Make sure the computer is on the same network
+2. Find your computer's IP address:
+   - Windows: Open PowerShell, type: ipconfig
+   - Look for "IPv4 Address" (usually starts with 192.168. or 10.)
+   
+3. Then access from the other computer as:
+   http://<YOUR_IP>:8000/login/
+   
+   Example: http://192.168.1.100:8000/login/
+
+================================================================================
+TO CHECK IF DJANGO SERVER IS RUNNING:
+
+1. Open PowerShell
+2. Type: tasklist | findstr python
+3. You should see python.exe listed if the server is running
+
+================================================================================

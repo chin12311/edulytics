@@ -493,17 +493,26 @@
                         <a href="{% url 'main:dean_profile_settings' %}?next={{ request.get_full_path }}" class="btn btn-primary w-100" style="font-size: 14px; padding: 8px;">
                             Profile Settings
                         </a>
+                        <a href="{% url 'main:evaluation_history' %}" class="btn btn-outline-success w-100" style="font-size: 14px; padding: 8px;">
+                            📜 Evaluation History
+                        </a>
                     {% endif %}
 
                     {% if request.user.userprofile.role in 'Coordinator' %}
                         <a href="{% url 'main:coordinator_profile_settings' %}?next={{ request.get_full_path }}" class="btn btn-primary w-100" style="font-size: 14px; padding: 8px;">
                             Profile Settings
                         </a>
+                        <a href="{% url 'main:evaluation_history' %}" class="btn btn-outline-success w-100" style="font-size: 14px; padding: 8px;">
+                            📜 Evaluation History
+                        </a>
                     {% endif %}
 
                     {% if request.user.userprofile.role in 'Faculty' %}
                         <a href="{% url 'main:faculty_profile_settings' %}?next={{ request.get_full_path }}" class="btn btn-primary w-100" style="font-size: 14px; padding: 8px;">
                             Profile Settings
+                        </a>
+                        <a href="{% url 'main:evaluation_history' %}" class="btn btn-outline-success w-100" style="font-size: 14px; padding: 8px;">
+                            📜 Evaluation History
                         </a>
                     {% endif %}
                 </form>
@@ -559,11 +568,6 @@
         Evaluation
     </a>
 
-    <a href="{% url 'main:evaluation_history' %}" class="nav-link-custom {% if request.path == '/evaluation-history/' %}active{% endif %}">
-        <span class="nav-icon" style="background-image: url('{% static 'img/eval.png' %}');"></span>
-        📜 History
-    </a>
-
 {% elif request.user.userprofile.role == 'Coordinator' %}
     <a href="{% url 'main:faculty' %}" class="nav-link-custom {% if request.path == '/faculty/' %}active{% endif %}">
         <span class="nav-icon" style="background-image: url('{% static 'img/fac.png' %}');"></span>
@@ -573,11 +577,6 @@
     <a href="{% url 'main:evaluation' %}" class="nav-link-custom {% if request.path == '/evaluation/' %}active{% endif %}">
         <span class="nav-icon" style="background-image: url('{% static 'img/eval.png' %}');"></span>
         Evaluation
-    </a>
-
-    <a href="{% url 'main:evaluation_history' %}" class="nav-link-custom {% if request.path == '/evaluation-history/' %}active{% endif %}">
-        <span class="nav-icon" style="background-image: url('{% static 'img/eval.png' %}');"></span>
-        📜 History
     </a>
 
 {% elif request.user.userprofile.role == 'Dean' %}
@@ -594,11 +593,6 @@
     <a href="{% url 'main:evaluation' %}" class="nav-link-custom {% if request.path == '/evaluation/' %}active{% endif %}">
         <span class="nav-icon" style="background-image: url('{% static 'img/eval.png' %}');"></span>
         Evaluation
-    </a>
-
-    <a href="{% url 'main:evaluation_history' %}" class="nav-link-custom {% if request.path == '/evaluation-history/' %}active{% endif %}">
-        <span class="nav-icon" style="background-image: url('{% static 'img/eval.png' %}');"></span>
-        📜 History
     </a>
 {% endif %}
 
