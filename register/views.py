@@ -17,13 +17,20 @@ logger = logging.getLogger(__name__)
 
 class RegisterView(View):
     def get(self, request):
-        next_url = get_safe_next_url(request, '/')
+        # Get next URL but default to register page path without query params
+        next_url = get_safe_next_url(request, '/register/')
+        # Strip query parameters from next_url to avoid CSRF token in redirect
+        if '?' in next_url:
+            next_url = next_url.split('?')[0]
         form = RegisterForm()
         return render(request, 'register/register.html', {'form': form, 'next_url': next_url})
 
     def post(self, request):
         form = RegisterForm(request.POST)
-        next_url = get_safe_next_url(request, '/')
+        next_url = get_safe_next_url(request, '/register/')
+        # Strip query parameters from next_url to avoid CSRF token in redirect
+        if '?' in next_url:
+            next_url = next_url.split('?')[0]
 
         if form.is_valid():
             try:
