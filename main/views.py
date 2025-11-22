@@ -5195,17 +5195,21 @@ def reset_evaluation_questions(request):
         ]
         
         default_peer_questions = [
-            "Conducts himself/herself in a manner that is consistent to CCA vision and mission.",
-            "Shows willingness to help colleagues in the performance of tasks and other assignments.",
-            "Complies with the college's policies and procedures.",
-            "Demonstrates professionalism and courtesy in relating with colleagues",
-            "Exhibits willingness to grow personally and professionally",
-            "Shows appreciation and respect for the output and ideas of colleagues",
-            "Shows willingness to accept responsibility for his/her actions",
-            "Demonstrates willingness to listen to colleague's ideas",
-            "Demonstrates good interpersonal relationships with colleagues",
-            "Shows willingness to share his/her expertise to colleagues",
-            "Exhibits leadership potentials and abilities",
+            "Effectively communicates with others in the workplace",
+            "Listens actively and values others' opinions and perspectives",
+            "Shows respect in all professional interactions",
+            "Contributes actively to team discussions and collaborative efforts",
+            "Completes assigned duties and responsibilities on time",
+            "Demonstrates reliability and accountability in work",
+            "Takes initiative when appropriate and needed",
+            "Makes valuable contributions to institutional goals and objectives",
+            "Shows leadership qualities when needed or appropriate",
+            "Helps resolve conflicts constructively when they arise",
+            "Accepts and applies feedback for personal and professional improvement",
+            "Maintains focus and engagement in professional duties",
+            "Is prepared and organized in carrying out responsibilities",
+            "Demonstrates strong work ethic and professional integrity",
+            "Would you want to work with this colleague again in future projects?",
         ]
         
         # Reset student questions
