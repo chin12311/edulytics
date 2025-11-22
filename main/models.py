@@ -634,7 +634,7 @@ class EvaluationQuestion(models.Model):
 
 
 class PeerEvaluationQuestion(models.Model):
-    """Store peer evaluation questions (11 questions total)"""
+    """Store peer evaluation questions (15 questions total)"""
     question_number = models.IntegerField(primary_key=True)  # 1-11
     question_text = models.TextField()
     is_active = models.BooleanField(default=True)
