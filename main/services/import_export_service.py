@@ -160,7 +160,8 @@ class AccountImportExportService:
             headers = []
             for cell in worksheet[1]:
                 if cell.value:
-                    headers.append(cell.value.lower().strip())
+                    header = str(cell.value).strip().lower().replace(' ', '_')
+                    headers.append(header)
             
             # Validate headers
             required = {'username', 'email', 'password', 'display_name', 'role'}
@@ -263,7 +264,7 @@ class AccountImportExportService:
                         if role_enum == Role.STUDENT:
                             student_number = str(row_data.get('student_number', '')).strip()
                             course = str(row_data.get('course', '')).strip()
-                            section_code = str(row_data.get('section', '')).strip()
+                            section_value = str(row_data.get('section', '')).strip()
                             
                             # Validate student number
                             if not student_number:
@@ -284,13 +285,19 @@ class AccountImportExportService:
                                 result['skipped'] += 1
                                 continue
                             
-                            # Validate section if provided
-                            if section_code:
-                                valid, msg, section = AccountValidator.validate_section(
-                                    Section.objects.filter(code=section_code).values_list('id', flat=True).first()
-                                )
-                                if not valid:
-                                    result['errors'].append(f"Row {row_idx}: Section '{section_code}' not found")
+                            # Validate section if provided (supports "CODE (Label)" format)
+                            section_obj = None
+                            if section_value:
+                                normalized_section = section_value.split('(')[0].strip()
+                                if normalized_section:
+                                    section_obj = Section.objects.filter(code=normalized_section).first()
+                                    if not section_obj:
+                                        try:
+                                            section_obj = Section.objects.get(id=int(normalized_section))
+                                        except (ValueError, Section.DoesNotExist):
+                                            section_obj = None
+                                if not section_obj:
+                                    result['errors'].append(f"Row {row_idx}: Section '{section_value}' not found")
                                     result['skipped'] += 1
                                     continue
                         
@@ -325,13 +332,19 @@ class AccountImportExportService:
                                 profile.course = str(row_data.get('course', '')).strip()
                                 
                                 # Handle section
-                                section_code = str(row_data.get('section', '')).strip()
-                                if section_code:
-                                    try:
-                                        section = Section.objects.get(code=section_code)
+                                section_value = str(row_data.get('section', '')).strip()
+                                if section_value:
+                                    normalized_section = section_value.split('(')[0].strip()
+                                    section = Section.objects.filter(code=normalized_section).first()
+                                    if not section:
+                                        try:
+                                            section = Section.objects.get(id=int(normalized_section))
+                                        except (ValueError, Section.DoesNotExist):
+                                            section = None
+                                    if section:
                                         profile.section = section
-                                    except Section.DoesNotExist:
-                                        result['errors'].append(f"Row {row_idx}: Section '{section_code}' not found")
+                                    else:
+                                        result['errors'].append(f"Row {row_idx}: Section '{section_value}' not found")
                             
                             # Handle staff-specific fields
                             elif role_enum in [Role.DEAN, Role.FACULTY, Role.COORDINATOR]:
@@ -357,13 +370,19 @@ class AccountImportExportService:
                                 profile.course = str(row_data.get('course', '')).strip()
                                 
                                 # Handle section
-                                section_code = str(row_data.get('section', '')).strip()
-                                if section_code:
-                                    try:
-                                        section = Section.objects.get(code=section_code)
+                                section_value = str(row_data.get('section', '')).strip()
+                                if section_value:
+                                    normalized_section = section_value.split('(')[0].strip()
+                                    section = Section.objects.filter(code=normalized_section).first()
+                                    if not section:
+                                        try:
+                                            section = Section.objects.get(id=int(normalized_section))
+                                        except (ValueError, Section.DoesNotExist):
+                                            section = None
+                                    if section:
                                         profile.section = section
-                                    except Section.DoesNotExist:
-                                        result['errors'].append(f"Row {row_idx}: Section '{section_code}' not found")
+                                    else:
+                                        result['errors'].append(f"Row {row_idx}: Section '{section_value}' not found")
                             
                             # Handle staff-specific fields
                             elif role_enum in [Role.DEAN, Role.FACULTY, Role.COORDINATOR]:
