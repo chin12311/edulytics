@@ -75,7 +75,7 @@ class UserProfile(models.Model):
             if self.user and not self.user.email.endswith("@cca.edu.ph"):
                 raise ValidationError("Students must use a @cca.edu.ph email.")
         else:
-            # Non-students should NOT have student fields
+            # Non-students should NOT have student fields (check for truthy values, not just existence)
             if self.studentnumber or self.course or self.section:
                 raise ValidationError(
                     f"{self.role} should not have studentnumber, course, or section."
@@ -495,9 +495,31 @@ class Coordinator(models.Model):
 # AI Recommendation
 # ------------------------
 class AiRecommendation(models.Model):
+    EVALUATION_TYPE_CHOICES = [
+        ('student', 'Student'),
+        ('peer', 'Peer'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recommendations")
-    recommendation = models.TextField()
+    evaluation_period = models.ForeignKey(EvaluationPeriod, on_delete=models.CASCADE, null=True, blank=True, related_name="ai_recommendations")
+
+    # Structured fields matching AI service output
+    title = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
+    priority = models.CharField(max_length=20, blank=True)
+    reason = models.TextField(blank=True)
+
+    # Optional legacy field (kept for backward compatibility)
+    recommendation = models.TextField(blank=True)
+
+    evaluation_type = models.CharField(max_length=10, choices=EVALUATION_TYPE_CHOICES, default='student')
+    section_code = models.CharField(max_length=50, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "evaluation_period"]),
+        ]
 
     def __str__(self):
         return f"Recommendation for {self.user.email} at {self.created_at}"

@@ -267,12 +267,12 @@ class RegisterForm(forms.Form):
             studentnumber = None
             course = None
             section = None
-            institute = self.cleaned_data.get('institute', '')
+            institute = self.cleaned_data.get('institute', '') or None  # Convert empty string to None
         else:
-            studentnumber = self.cleaned_data.get('studentNumber', '')
-            course = self.cleaned_data.get('course', '')
+            studentnumber = self.cleaned_data.get('studentNumber', '') or None
+            course = self.cleaned_data.get('course', '') or None
             section = self.cleaned_data.get('section')
-            institute = ''  # Students don't have institute
+            institute = None  # Students don't have institute (use None, not empty string)
         
         # The signal should have already created the profile
         # Get or create it (in case signal failed)
