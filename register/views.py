@@ -26,16 +26,25 @@ class RegisterView(View):
         return render(request, 'register/register.html', {'form': form, 'next_url': next_url})
 
     def post(self, request):
+        # Diagnostic logging for 500 error investigation
+        logger.info("[RegisterView.post] Incoming Add Account request")
+        logger.info(f"[RegisterView.post] Raw POST keys: {list(request.POST.keys())}")
+        logger.info(f"[RegisterView.post] POST sample values: display_name={request.POST.get('display_name')}, email={request.POST.get('email')}, role={request.POST.get('role')}")
         form = RegisterForm(request.POST)
         next_url = get_safe_next_url(request, '/register/')
         # Strip query parameters from next_url to avoid CSRF token in redirect
         if '?' in next_url:
             next_url = next_url.split('?')[0]
 
+        logger.info(f"[RegisterView.post] Form valid? {form.is_valid()}")
+        if not form.is_valid():
+            logger.warning(f"[RegisterView.post] Form errors: {form.errors}")
+
         if form.is_valid():
             try:
                 with transaction.atomic():
                     user = form.save()  # This now calls our custom save method
+                    logger.info(f"[RegisterView.post] User object created id={user.id} username={user.username}")
                     
                     # Log admin activity for account creation
                     log_admin_activity(
@@ -48,10 +57,11 @@ class RegisterView(View):
                 # Add success parameter to URL
                 separator = '&' if '?' in next_url else '?'
                 success_url = f"{next_url}{separator}account_added=success"
+                logger.info(f"[RegisterView.post] Redirecting to {success_url}")
                 return redirect(success_url)
 
             except Exception as e:
-                logger.error(f"Error creating account: {str(e)}", exc_info=True)
+                logger.error(f"[RegisterView.post] Exception during account creation: {str(e)}", exc_info=True)
                 form.add_error(None, f"Error creating account: {e}")
                 return render(request, 'register/register.html', {'form': form, 'next_url': next_url})
 
