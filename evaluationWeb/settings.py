@@ -35,7 +35,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Use environment variable in production, default to False for safety
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']
+# Hosts and CSRF trusted origins (read from env for production)
+def _split_env_list(name: str):
+    val = os.getenv(name, '')
+    if not val:
+        return []
+    return [item.strip() for item in val.split(',') if item.strip()]
+
+# Default ALLOWED_HOSTS to '*' for local/dev, but prefer env when provided
+_env_allowed_hosts = _split_env_list('ALLOWED_HOSTS')
+ALLOWED_HOSTS = _env_allowed_hosts if _env_allowed_hosts else ['*']
+
+# CSRF trusted origins must be full scheme+host values
+# Example: CSRF_TRUSTED_ORIGINS="http://13.211.161.178,https://13.211.161.178"
+_env_csrf_origins = _split_env_list('CSRF_TRUSTED_ORIGINS')
+if _env_csrf_origins:
+    CSRF_TRUSTED_ORIGINS = _env_csrf_origins
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 SECRET_KEY = os.getenv('SECRET_KEY')
@@ -268,6 +283,22 @@ LOGGING = {
         'django.db.backends': {
             'handlers': ['console'],
             'level': 'DEBUG' if DEBUG else 'INFO',
+        },
+        # Add application loggers so INFO diagnostics appear in journalctl
+        'register': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'main': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # Catch-all root logger
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
         },
     },
 }
