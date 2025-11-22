@@ -1,0 +1,181 @@
+LOGIN TROUBLESHOOTING CHECKLIST
+================================================================================
+
+QUICK CHECKLIST - Do these first:
+
+[ ] 1. Server Running?
+    - Open PowerShell
+    - cd C:\Users\ADMIN\eval\evaluation
+    - python manage.py runserver 0.0.0.0:8000
+    - You should see: "Starting development server at http://0.0.0.0:8000/"
+
+[ ] 2. Can You Access Login Page?
+    - Open browser
+    - Go to: http://localhost:8000/login/
+    - You should see the login form
+
+[ ] 3. Try Login with Known Good Credentials
+    - Email: Christianbituonon4@gmail.com
+    - Password: VNxv76dBIbL@JO7UDqLo
+    - Click Login button
+
+[ ] 4. What Happens?
+    - [ ] A) Redirected to dashboard/home page (SUCCESS!)
+    - [ ] B) Stay on login page + error message (PROBLEM)
+    - [ ] C) Nothing happens (PROBLEM)
+    - [ ] D) Error message appears (PROBLEM)
+
+================================================================================
+
+IF YOU GOT SUCCESS (Option A): DONE! Login is working!
+
+================================================================================
+
+IF YOU GOT A PROBLEM (Options B, C, or D): Debug with F12
+
+[ ] 5. Open Browser Developer Tools
+    - Press: F12 (or Ctrl+Shift+I)
+    - You should see tools panel open at bottom of browser
+
+[ ] 6. Go to "Console" Tab
+    - Click "Console" tab
+    - Look for any RED text / error messages
+    - Screenshot or note any errors
+
+[ ] 7. Go to "Network" Tab
+    - Click "Network" tab
+    - Make sure recording is ON (red dot)
+    - Click on Email field and type: Christianbituonon4@gmail.com
+    - Click on Password field and type: VNxv76dBIbL@JO7UDqLo
+    - Click Login button
+    - Watch the Network tab for requests
+
+[ ] 8. Check Network Request
+    - You should see a POST request to /login/
+    - Click on it
+    - Check the "Status" column:
+      - 302: SUCCESS (page should have redirected)
+      - 200: FAILURE (form was rejected)
+      - 403: CSRF ERROR (token missing)
+
+[ ] 9. Right-click on POST Request
+    - "Copy as cURL"
+    - Paste into a file (hide password for security)
+    - Send to support/admin
+
+[ ] 10. Check Server Logs
+    - Look at the PowerShell terminal where server is running
+    - You should see a message like:
+      "LOGIN ATTEMPT from IP: 127.0.0.1"
+      "Email (cleaned): 'christianbituonon4@gmail.com'"
+      "Password length: 20"
+      "User found: Christian Bitu-onon1"
+      "authenticate() result: Christian Bitu-onon1"
+    - Screenshot this if you see it
+
+================================================================================
+
+QUICK FIXES - Try These:
+
+[ ] Clear Browser Cache
+    - Ctrl + Shift + Delete
+    - Select "All time"
+    - Check: Cookies, Cache, etc.
+    - Click Clear
+
+[ ] Try Private/Incognito Window
+    - Chrome: Ctrl + Shift + N
+    - Firefox: Ctrl + Shift + P
+    - Edge: Ctrl + Shift + InPrivate
+    - Try login again
+
+[ ] Try Different Browser
+    - If using Chrome, try Firefox
+    - If using Firefox, try Edge
+    - Try login again
+
+[ ] Restart Browser
+    - Close all browser windows
+    - Reopen browser
+    - Try login again
+
+[ ] Restart Server
+    - Stop server: Ctrl + C in PowerShell
+    - Start again: python manage.py runserver 0.0.0.0:8000
+    - Try login again
+
+================================================================================
+
+VERIFICATION - Run These Tests:
+
+[ ] Run Diagnostic
+    python FINAL_DIAGNOSTIC.py
+    (Should show all [OK])
+
+[ ] Run CSRF Test
+    python test_csrf_explicit_token.py
+    (Should show SUCCESS with 302)
+
+[ ] Check Form HTML
+    python inspect_login_form_html.py
+    (Should show CSRF INPUT FOUND)
+
+================================================================================
+
+INFORMATION TO PROVIDE FOR SUPPORT:
+
+When reporting the issue, provide:
+
+1. Browser and version:
+   - Chrome? Firefox? Edge? Safari?
+   - What version?
+
+2. Screenshot of error message (if any):
+   - Text exactly as shown
+
+3. Browser Console errors (F12 -> Console):
+   - Any red error messages?
+
+4. Network tab POST request details:
+   - Status code (302, 200, 403?)
+   - URL: /login/ or something else?
+
+5. Server logs when you try login:
+   - Copy-paste the messages shown in PowerShell
+
+6. Have you tried:
+   - [ ] Different browser?
+   - [ ] Incognito window?
+   - [ ] Clearing cache?
+   - [ ] Restarting server?
+
+================================================================================
+
+CREDENTIALS (Reference)
+
+Email: Christianbituonon4@gmail.com
+Password: VNxv76dBIbL@JO7UDqLo
+Username: Christian Bitu-onon1
+
+These credentials are 100% verified working in backend tests.
+
+================================================================================
+
+SUMMARY
+
+The system is 100% working in all backend tests:
+- [OK] User exists in database
+- [OK] Password is correct
+- [OK] Form submission works
+- [OK] CSRF token is present
+
+If you cannot login from browser:
+1. It's NOT a credentials problem
+2. It's NOT a database problem
+3. It's NOT an authentication problem
+
+It's a browser-server communication issue.
+
+Follow the diagnostic steps above to identify the exact cause.
+
+================================================================================

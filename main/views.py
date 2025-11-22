@@ -1852,6 +1852,14 @@ def release_student_evaluation(request):
         evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='student')
         updated_count = evaluations.update(is_released=True)
 
+        # Send email notifications
+        if updated_count > 0:
+            try:
+                email_result = EvaluationEmailService.send_evaluation_released_notification(evaluation_type='student')
+                logger.info(f"Email notification result: {email_result}")
+            except Exception as e:
+                logger.error(f"Failed to send email notifications: {e}", exc_info=True)
+
         # Return updated status to the frontend
         student_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()
         peer_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='peer').exists()
@@ -1874,6 +1882,14 @@ def unrelease_student_evaluation(request):
         # Unrelease all student evaluations that are currently released
         evaluations = Evaluation.objects.filter(is_released=True, evaluation_type='student')
         updated_count = evaluations.update(is_released=False)
+
+        # Send email notifications
+        if updated_count > 0:
+            try:
+                email_result = EvaluationEmailService.send_evaluation_unreleased_notification(evaluation_type='student')
+                logger.info(f"Email notification result: {email_result}")
+            except Exception as e:
+                logger.error(f"Failed to send email notifications: {e}", exc_info=True)
 
         # Return updated status to the frontend
         student_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()
@@ -1954,7 +1970,14 @@ def release_peer_evaluation(request):
 
             logger.info(f"📊 Status: Student Released={student_evaluation_released}, Peer Released={peer_evaluation_released}")
 
+            # Send email notifications
             if peer_evaluation_released:
+                try:
+                    email_result = EvaluationEmailService.send_evaluation_released_notification(evaluation_type='peer')
+                    logger.info(f"Email notification result: {email_result}")
+                except Exception as e:
+                    logger.error(f"Failed to send email notifications: {e}", exc_info=True)
+
                 return JsonResponse({
                     'success': True,
                     'student_evaluation_released': student_evaluation_released,
@@ -1993,6 +2016,14 @@ def unrelease_peer_evaluation(request):
                 is_active=True
             ).update(is_active=False, end_date=timezone.now())
             logger.info(f"✅ Archived {archived_periods} peer evaluation period(s)")
+
+            # Send email notifications
+            if updated_count > 0 or archived_periods > 0:
+                try:
+                    email_result = EvaluationEmailService.send_evaluation_unreleased_notification(evaluation_type='peer')
+                    logger.info(f"Email notification result: {email_result}")
+                except Exception as e:
+                    logger.error(f"Failed to send email notifications: {e}", exc_info=True)
 
             # Return updated status to the frontend
             student_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()

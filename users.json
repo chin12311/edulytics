@@ -1,0 +1,938 @@
+[
+{
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$et3jtxFCRHurTA69SNJVqc$Us+AbgoLNV6YToUEpBAgk21i9yDUFOQq+tcMwlzvC6I=",
+    "last_login": "2025-11-17T01:10:10.859Z",
+    "is_superuser": true,
+    "username": "Christian Bitu-onon1",
+    "first_name": "",
+    "last_name": "",
+    "email": "Christianbituonon4@gmail.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-02-19T15:31:16.925Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 13,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$ySZypVeTIBEIU05r2DVWtw$aU18hCiWIQkBQF7WyD3a5O1CTWCzKNYwyDsU7Jt7pgg=",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "Admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "Admin@gmail.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-03-19T06:23:18.308Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 64,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$ONmgQoB6khppUYemR3o4gP$58C497E8NL1HD0i2W4raxNyqaNEo+POJWWplZgeIiKc=",
+    "last_login": "2025-10-09T17:49:10.422Z",
+    "is_superuser": false,
+    "username": "Aeron Dave Caligagan",
+    "first_name": "",
+    "last_name": "",
+    "email": "aerondave.caligagan@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-04-04T18:17:38.665Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 67,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$Wem2aWJosnKfs4NL5RFYNX$sX+RedGphRCGyl618NEyucQk7luoazfXuU2uW5g9Lho=",
+    "last_login": "2025-10-02T12:21:54.271Z",
+    "is_superuser": false,
+    "username": "Alberto Reyes",
+    "first_name": "",
+    "last_name": "",
+    "email": "reyesalberto1610@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-04-05T09:40:56.963Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 69,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$yQWs2hj3qbWZ7Xr73e4gws$FeRz0/9QXeVVilS1hq1xKmET8u8vC6dqiIr3j/BgaYA=",
+    "last_login": "2025-04-21T04:35:30.306Z",
+    "is_superuser": false,
+    "username": "Jerold Oyando",
+    "first_name": "",
+    "last_name": "",
+    "email": "jeroldoyando22@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-04-05T10:49:49.861Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 70,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$y40GvTrILbftwz1MmUWViq$jig2b1vMveNOlJCu/LmW/Gxx5P9HGbBMws/3Ixm1mDc=",
+    "last_login": "2025-10-02T12:32:51.063Z",
+    "is_superuser": false,
+    "username": "James Bryan Yabut",
+    "first_name": "",
+    "last_name": "",
+    "email": "jamesyabut2003@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-04-05T11:02:56.661Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 76,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$SBv6yUggTTAePJ7yltjase$HnqsDFtrk1FD613zT848Z37cRVMrlh5zdtYvSbjLMlk=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "Johnrev Abanes",
+    "first_name": "",
+    "last_name": "",
+    "email": "Revabanes12@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-04-06T18:12:35.407Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 84,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$PoWYsAdBgCg9NLMhVdMUJf$SPGEwO2bj/hPP6cbsPRSUv5k+hpA9oHtkUcB2COtZYM=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "Lorence Mancenido",
+    "first_name": "",
+    "last_name": "",
+    "email": "lorence.mancenido@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-02T12:50:07.739Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 87,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$6joGm6XuGWSjsl5paGUyJ2$dcd7F58WJhaqfgMtrvmFkMBMMy01dKGm8GL3ZLFofsA=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "jeroldoyando",
+    "first_name": "",
+    "last_name": "",
+    "email": "jeroldoyando@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-02T18:23:52.395Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 88,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$fI1cFSUsdKWoosf1Uld5T3$f+aXldRMyJbIfVdHy7tjHf6+3HRC4WjPQmQfq20p6Vo=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "johnrev",
+    "first_name": "",
+    "last_name": "",
+    "email": "johnrev@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-02T18:26:37.711Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 89,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$bv4FFyKFgFfczElbzby6AX$Wlc1DjR05PEfFyX0gzkb0tUpg+rvAAjKjjjFbAV5wTg=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "aerondavecaligagan1",
+    "first_name": "",
+    "last_name": "",
+    "email": "aerondave.caligagan1@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-02T18:32:37.815Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 93,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$kweFnMsznw1Tp4LcfjPjF8$twnIgvUT134bI6fbDlCJo5+2AVSfgJkn0jrKtIXtfqM=",
+    "last_login": "2025-11-18T10:05:06.529Z",
+    "is_superuser": false,
+    "username": "jadepuno",
+    "first_name": "",
+    "last_name": "",
+    "email": "jade.puno@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-03T11:58:14.018Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 95,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$LUeyiH9clC45PeiYjs9vBs$t55RotKpyKDfSD9f0wZDb9Tgl1VT4qETPNNCGfzUNkc=",
+    "last_login": "2025-11-02T15:17:21.540Z",
+    "is_superuser": false,
+    "username": "Albertoreyes",
+    "first_name": "",
+    "last_name": "",
+    "email": "Alberto.reyes@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-03T11:59:11.926Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 98,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$U5558kMQT9N1Z9UICVoQiy$txlbpdc4eKcVUG1gEpW2suWkwG47CPyaIHPVd17QUnw=",
+    "last_login": "2025-11-12T11:39:44.475Z",
+    "is_superuser": false,
+    "username": "aeroncaligagan",
+    "first_name": "",
+    "last_name": "",
+    "email": "aeroncaligagan@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:34:17.380Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 99,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$93sjREcnee0DyGbqwP6MQw$jQu7dNvu43f3MnnyceWe8CODkL/KvdPAcQzB7h8qk0g=",
+    "last_login": "2025-11-12T12:03:21.827Z",
+    "is_superuser": false,
+    "username": "johnrevabanes",
+    "first_name": "",
+    "last_name": "",
+    "email": "johnrevabanes@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:36:19.160Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 100,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$UgeOsuOCp7TgCX1AxkJ8yG$XwGoJBNXqRUM6y6eU/xpJ3935upGKXK64VtCDa0490U=",
+    "last_login": "2025-11-12T10:32:19.075Z",
+    "is_superuser": false,
+    "username": "jovicabique",
+    "first_name": "",
+    "last_name": "",
+    "email": "jovicabique@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:37:12.562Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 101,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$rKfbw6pUFszOsYeVGpe7Ol$hovXh4/ZRr29OX8NToN/FxEIFtqpSUHZtWRhDlv6CTo=",
+    "last_login": "2025-10-11T19:38:54.146Z",
+    "is_superuser": false,
+    "username": "manoyabuque",
+    "first_name": "",
+    "last_name": "",
+    "email": "manoyabuque@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:38:15.646Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 102,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$250job1Pw4SxUSKVEqkM71$4eiwizHF9ulhAV3/saWZzaWfQKTvkcyc9qIGO8S5ecE=",
+    "last_login": "2025-10-11T19:40:11.294Z",
+    "is_superuser": false,
+    "username": "racaelaalcibar",
+    "first_name": "",
+    "last_name": "",
+    "email": "racaelaalcibar@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:39:17.967Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 104,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$bOPPx1J27gV2a15qkxg0P1$bV1r3msDxrXPXFYuKYfMhzrHtzzuqPiFo7ylXlr12eU=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "paulinabatac",
+    "first_name": "",
+    "last_name": "",
+    "email": "paulinabatac@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:41:56.897Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 105,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$tzJr8rhgQIchnzsnu3X85J$6GIKp4VEeqP+hyLO5etzCj7QcE8KXqtCRLVebYBudI0=",
+    "last_login": "2025-10-13T05:16:31.779Z",
+    "is_superuser": false,
+    "username": "ibrahimbilda",
+    "first_name": "",
+    "last_name": "",
+    "email": "ibrahimbilda@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:42:51.153Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 106,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$r8fGJlVfurec3n5haJn4km$9YFh2vE3dS+m8EFIsxNH0gPXlSBTle/V0STkhVzaBts=",
+    "last_login": "2025-10-26T14:06:36.663Z",
+    "is_superuser": false,
+    "username": "sylvesterbustos",
+    "first_name": "",
+    "last_name": "",
+    "email": "sylvesterbustos@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:43:43.221Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 107,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$y4HxsKp8O5Gklqzi0gNGUO$ZvgOpLK63GvHIHrcTjyZdji6KY4pwLqp4SXKMi7zG8s=",
+    "last_login": "2025-10-10T16:24:15.572Z",
+    "is_superuser": false,
+    "username": "johncalalo",
+    "first_name": "",
+    "last_name": "",
+    "email": "johncalalo@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:44:33.694Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 109,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$hPe8OMPVk8rl2brrOpqiN8$rBmyN9G9M4w+W41H3xmkNZvhA3nt0mr59mEV3Te2q7U=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "jowardclaudio",
+    "first_name": "",
+    "last_name": "",
+    "email": "jowardclaudio@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:47:03.783Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 110,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$bgeAbKIU6dV467AgW3UTqb$a8QIdtKfgUGYfEftmjqQKDhswHncd3SzxAeYhbR2fas=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "rafaeldavid",
+    "first_name": "",
+    "last_name": "",
+    "email": "rafaeldavid@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:47:46.339Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 111,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$K3bhQ8XnRUebqS1xsrgYpT$6H48sikZwnlw4ILv5dT58WSCENxLkgBwGGVOevznu2w=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "fritzdiaz",
+    "first_name": "",
+    "last_name": "",
+    "email": "fritzdiaz@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:48:54.552Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 112,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$op3B1hdJsJgcXRaE8D3kiR$W2LISOYH9nCIzJKY8g8FBieATrFSIDjvjCObjFgTPq4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "preciousflores",
+    "first_name": "",
+    "last_name": "",
+    "email": "preciousflores@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:49:51.265Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 113,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$WM1SmaE25aFiwE4aKZaDxS$NCJnIhTVp+BH4+zizJ5b+YRbh9Gmcjj3+dAgqqxTDNo=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "ruizgaton",
+    "first_name": "",
+    "last_name": "",
+    "email": "ruizgaton@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:50:48.607Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 114,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$I5cllrIIxSi0L7mbfJPXrY$FOLAJPq+JICE6aXdPnVaD5179shaxCBjH+j0mypkB6s=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "shamellehay",
+    "first_name": "",
+    "last_name": "",
+    "email": "shamellehay@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:51:45.802Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 115,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$8zazEHwRInN7kktLXEPqzR$zQlxLnBRMa9hN6vFzvYLwPbGNRq3ouUQjgqNminMVFo=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "ianilao",
+    "first_name": "",
+    "last_name": "",
+    "email": "ianilao@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:52:41.235Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 116,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$g0ku79eXGWQMbCmRHdWLXJ$jLvOJcYsHVAA0ftucnQarRfdZVUFs5bmojb0A2Vl7SM=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "jimuellagman",
+    "first_name": "",
+    "last_name": "",
+    "email": "jimuellagman@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:53:19.059Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 117,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$D9cPUsGQUNUKVkK0Y0qgd0$PvNqq/bfUSjXBqcbup035ecYZdDwf1hblQWxm5U9LrQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "clydelubat",
+    "first_name": "",
+    "last_name": "",
+    "email": "clydelubat@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:54:21.168Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 119,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$xPkqWPzib72l5Fzrvt5uvE$ZfCTVQPbLm/7sSAGRWSHR6f+XXmhD/HWoKdXhwWVDqk=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "lorencemancenido",
+    "first_name": "",
+    "last_name": "",
+    "email": "lorencemancenido@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:55:48.041Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 120,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$A2iblq4dAcudSULo69CeDC$6nXHlY6VTT3RJLa1bqda05wsywYBz3XfEXhRW4ozWEs=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "christianmangalao",
+    "first_name": "",
+    "last_name": "",
+    "email": "christianmangalao@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:56:40.583Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 121,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$Lx6etCTdRY44w7bDSWgLT9$X04CiL2YUIJMBsm8KQzkdmG+tk4LyQ7gesYMkabsL/s=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "marlonmiranda",
+    "first_name": "",
+    "last_name": "",
+    "email": "marlonmiranda@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:57:31.349Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 122,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$dEJuAliYTckkYR3R8nLrIP$ZTHCgqFuBGv0C14OlFY8wheOHeEgDrtGFvKvNthZqYc=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "christopheromania",
+    "first_name": "",
+    "last_name": "",
+    "email": "christopheromania@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:58:37.476Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 123,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$bmYoVPUfU0cukV9tJXAxRO$KQi89GsVIiktUS3/TpTB4Wdxzjyx9Wf+7hptZe/rObg=",
+    "last_login": "2025-11-15T17:15:58.249Z",
+    "is_superuser": false,
+    "username": "jeroldoyando1",
+    "first_name": "",
+    "last_name": "",
+    "email": "jeroldoyando@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T15:59:22.293Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 124,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$l8fwfa9wC5DgMtd8msU0Wl$VQdAlobC8HgO/4JpchdzaQT0IiVqCaiCL6ir67STllk=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "anthonyplanos",
+    "first_name": "",
+    "last_name": "",
+    "email": "anthonyplanos@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:00:17.780Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 125,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$HuwOFOSYCLVF7Zqhb0LNoO$tHzetTDckCH/L9SBuRpLEW+Osg3z7EV1thnK0x+miTc=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "rainersanchez",
+    "first_name": "",
+    "last_name": "",
+    "email": "rainersanchez@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:00:59.881Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 126,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$TGDyxHGjvRmWmEUQiiBuMT$S6Bic6lsoN1xZN0jCf7sUNv1/KEo/yX0voNwGY7rsuI=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "machristinasoriano",
+    "first_name": "",
+    "last_name": "",
+    "email": "machristinasoriano@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:01:55.180Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 127,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$WKlROH1wNzroukPX1dbwLg$qhk2Z0KkqWL73MpRoCoiSRcGmaMyfnchjfv4GpfNSN0=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "paultegio",
+    "first_name": "",
+    "last_name": "",
+    "email": "paultegio@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:02:51.723Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 128,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$DI4c3swpl3SkhRCF20aVlK$u0C/4GorNA2SG2DnttjSQ3qFb7NIB4Vvr0kn3cZexoQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "floriantubiera",
+    "first_name": "",
+    "last_name": "",
+    "email": "floriantubiera@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:03:33.038Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 129,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$RQ5WdwfvHuXUiBpGlzkQco$geEJwMqKchac/Xd9J7J3kmyQ4YoVIC3cAe7P+0VKFHU=",
+    "last_login": "2025-10-30T15:45:55.082Z",
+    "is_superuser": false,
+    "username": "marksebastian",
+    "first_name": "",
+    "last_name": "",
+    "email": "marksebastian@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:06:01.408Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 130,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$npED5mXcsewKSQxKGgyUfO$6DpMZGZlfXBvZ6i+9ZuL+J/Q20OsoK+fevd4Rde9kcg=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "paulomadrigal",
+    "first_name": "",
+    "last_name": "",
+    "email": "paulomadrigal@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:07:13.910Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 131,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$A7HGSK0nC5XpOsC6nu1F6p$d9ie7h3Znh5bAVCmvQi9cI7WTcGAxwhIT3lpNwudXeA=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "sethrodrigo",
+    "first_name": "",
+    "last_name": "",
+    "email": "sethrodrigo@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:08:49.977Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 132,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$nieWHwZnF9mmVxvzKaOMBF$rCI4PDsb4yFnRQl4xlXp81m4l8Aq47orO7Roc772HQo=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "jonathantupaz",
+    "first_name": "",
+    "last_name": "",
+    "email": "jonathantupaz@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:09:29.240Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 133,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$bKMZRQcrIdddnKqsOUCkK5$fykrvJDay3bL+x6vaaNvaOt1CCIMDUaFHnTGQJVPDAA=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "patriciamuldong",
+    "first_name": "",
+    "last_name": "",
+    "email": "patriciamuldong@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:11:51.991Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 134,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$Y0DfcJKp44dVswO6zr3OH4$c/o+cayH+SzN2w+poHJhUJJtMi8mUvjRmSC1ve/dAIQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "shanonticse",
+    "first_name": "",
+    "last_name": "",
+    "email": "shanonticse@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T16:12:24.877Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 135,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$2io9FyreFQVAVaLThA5N9d$sPUXTSnTdquYaNbrFrFMrKh4xKWAa0YoT7HYGN+Dbfc=",
+    "last_login": "2025-10-29T02:19:25.596Z",
+    "is_superuser": false,
+    "username": "johnmarko",
+    "first_name": "",
+    "last_name": "",
+    "email": "johnmarko@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-29T02:18:05.738Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 136,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$shYl0BJfeJkqyGvKnKzSMj$3K6iYXE8BcldaWFGpn403ahRDv+UfZ7wIE6/2/GwI6k=",
+    "last_login": "2025-10-29T03:13:27.420Z",
+    "is_superuser": false,
+    "username": "markponce",
+    "first_name": "",
+    "last_name": "",
+    "email": "markponce@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-29T03:12:08.538Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 138,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$EApqDpaTbgRZYzqBHIVsSP$7tXUtBxi8a25Tpg/oU5qi7Tmh+OdQQB16rd+6M1dTmI=",
+    "last_login": "2025-10-29T03:57:48.877Z",
+    "is_superuser": false,
+    "username": "johnmark",
+    "first_name": "",
+    "last_name": "",
+    "email": "johnmark@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-29T03:56:42.165Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 166,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$zMiloqgIWGvRitTtLgzpi8$5O178i0XmMG3oLpAXsmdl1eFn1FCpNEOqNLS8HizKoo=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "froilanbaguio",
+    "first_name": "",
+    "last_name": "",
+    "email": "froilanbaguio@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-11-13T08:34:02.577Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 167,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$uiIox56HywYBQFUBEqMWB3$LXP7j+JBO1sfzDq9SRF2qr0hVlnBxK4JdL4gzBFXd6Q=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "jamesyabut",
+    "first_name": "",
+    "last_name": "",
+    "email": "jamesyabut@cca.edu.ph",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-11-13T08:38:32.656Z",
+    "groups": [],
+    "user_permissions": []
+  }
+}
+]

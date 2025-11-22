@@ -311,17 +311,21 @@
                 <div class="timeline">
                     {% for period in evaluation_history %}
                         <div class="timeline-item">
-                            <div class="period-card">
+                            <div class="period-card" data-period-id="{{ period.evaluation_period_id }}">
                                 <!-- Period Header with Title and Score -->
                                 <div class="period-header">
                                     <div style="flex: 1;">
                                         <h4 class="period-title">
-                                            {{ period.period_name }}
+                                            Evaluation
                                         </h4>
                                         <div class="period-dates">
                                             <div>
-                                                <i class="fas fa-calendar-alt"></i>
-                                                <strong>Evaluation Date:</strong> {{ period.date|date:"F d, Y" }} at {{ period.date|time:"g:i A" }}
+                                                <i class="fas fa-calendar-plus"></i>
+                                                <strong>Start:</strong> {{ period.period_start_date|date:"F d, Y" }}
+                                            </div>
+                                            <div>
+                                                <i class="fas fa-calendar-check"></i>
+                                                <strong>End:</strong> {{ period.period_end_date|date:"F d, Y" }}
                                             </div>
                                         </div>
                                     </div>
@@ -348,10 +352,19 @@
                                                 {% endif %}
                                             </ul>
                                         </div>
+                                        <!-- AI Recommendations Toggle Button -->
+                                        <button class="btn btn-outline-secondary btn-sm" type="button" data-toggle-ai>
+                                            🤖 AI Recommendations
+                                        </button>
                                         <div class="score-badge {% if period.overall_percentage >= 90 %}score-excellent{% elif period.overall_percentage >= 80 %}score-good{% elif period.overall_percentage >= 70 %}score-average{% else %}score-poor{% endif %}">
                                             {{ period.overall_percentage|floatformat:1 }}%
                                         </div>
                                     </div>
+                                </div>
+
+                                <!-- No Data Banner (hidden by default) -->
+                                <div class="alert alert-warning py-2 px-3" role="alert" style="display:none;" data-no-data-banner>
+                                    No evaluation data available for this selection.
                                 </div>
 
                                 <!-- Period Content Grid -->
@@ -359,7 +372,7 @@
                                     <!-- Overall Rating -->
                                     <div class="info-box">
                                         <div class="info-box-title">Overall Rating</div>
-                                        <div class="info-box-value" style="color: #47682c;">
+                                        <div class="info-box-value" style="color: #47682c;" data-average-rating>
                                             {{ period.average_rating|floatformat:2 }} / 5.0
                                         </div>
                                         <small class="text-muted">
@@ -370,20 +383,13 @@
                                     <!-- Total Responses -->
                                     <div class="info-box">
                                         <div class="info-box-title">Evaluators</div>
-                                        <div class="info-box-value" style="color: #47682c;">
+                                        <div class="info-box-value" style="color: #47682c;" data-evaluator-count>
                                             {{ period.total_responses }}
                                         </div>
                                         <small class="text-muted">Total evaluations received</small>
                                     </div>
 
-                                    <!-- Evaluation Period Status -->
-                                    <div class="info-box">
-                                        <div class="info-box-title">Period</div>
-                                        <div class="info-box-value" style="color: #47682c; font-size: 1rem;">
-                                            {{ period.section }}
-                                        </div>
-                                        <small class="text-muted">{{ period.source }}</small>
-                                    </div>
+                                    
                                 </div>
 
                                 <!-- Category Scores -->
@@ -394,42 +400,42 @@
                                     <div class="category-item">
                                         <span class="category-label">📚 Subject Mastery</span>
                                         <div class="category-bar">
-                                            <div class="category-fill" style="width: {% widthratio period.category_scores.0 35 100 %}%;"></div>
+                                            <div class="category-fill" data-category-fill="0" style="width: {% widthratio period.category_scores.0 35 100 %}%;"></div>
                                         </div>
-                                        <span class="category-score">{{ period.category_scores.0|floatformat:1 }}%</span>
+                                        <span class="category-score" data-category-score="0">{{ period.category_scores.0|floatformat:1 }}%</span>
                                     </div>
 
                                     <!-- Category B -->
                                     <div class="category-item">
                                         <span class="category-label">🏫 Classroom Management</span>
                                         <div class="category-bar">
-                                            <div class="category-fill" style="width: {% widthratio period.category_scores.1 25 100 %}%;"></div>
+                                            <div class="category-fill" data-category-fill="1" style="width: {% widthratio period.category_scores.1 25 100 %}%;"></div>
                                         </div>
-                                        <span class="category-score">{{ period.category_scores.1|floatformat:1 }}%</span>
+                                        <span class="category-score" data-category-score="1">{{ period.category_scores.1|floatformat:1 }}%</span>
                                     </div>
 
                                     <!-- Category C -->
                                     <div class="category-item">
                                         <span class="category-label">✅ Compliance</span>
                                         <div class="category-bar">
-                                            <div class="category-fill" style="width: {% widthratio period.category_scores.2 20 100 %}%;"></div>
+                                            <div class="category-fill" data-category-fill="2" style="width: {% widthratio period.category_scores.2 20 100 %}%;"></div>
                                         </div>
-                                        <span class="category-score">{{ period.category_scores.2|floatformat:1 }}%</span>
+                                        <span class="category-score" data-category-score="2">{{ period.category_scores.2|floatformat:1 }}%</span>
                                     </div>
 
                                     <!-- Category D -->
                                     <div class="category-item">
                                         <span class="category-label">😊 Personality</span>
                                         <div class="category-bar">
-                                            <div class="category-fill" style="width: {% widthratio period.category_scores.3 20 100 %}%;"></div>
+                                            <div class="category-fill" data-category-fill="3" style="width: {% widthratio period.category_scores.3 20 100 %}%;"></div>
                                         </div>
-                                        <span class="category-score">{{ period.category_scores.3|floatformat:1 }}%</span>
+                                        <span class="category-score" data-category-score="3">{{ period.category_scores.3|floatformat:1 }}%</span>
                                     </div>
                                 </div>
 
                                 <!-- AI Recommendations -->
                                 {% if period.recommendations %}
-                                <div class="recommendations-section">
+                                <div class="recommendations-section" data-recommendations style="display:none;">
                                     <div class="recommendations-title">
                                         <i class="fas fa-lightbulb"></i>
                                         AI Recommendations
@@ -553,55 +559,265 @@
                 const sectionName = this.getAttribute('data-section-name');
                 const timelineItem = this.closest('.timeline-item');
                 const periodCard = timelineItem.querySelector('.period-card');
-                
-                console.log(`Selected ${resultType}` + (sectionName ? ` - ${sectionName}` : ''));
-                
-                // Update the period-specific display based on result type
-                handlePeriodResultSelection(resultType, periodCard, sectionName, sectionId);
+                const periodId = periodCard.getAttribute('data-period-id');
+
+                // Update header button text immediately for responsiveness
+                updateResultButton(periodCard, resultType, sectionName);
+
+                // Fetch fresh dataset for this period and update UI
+                fetchPeriodDataset(periodId)
+                    .then(dataset => {
+                        handlePeriodResultSelection(resultType, periodCard, sectionName, sectionId, dataset);
+                    })
+                    .catch(err => {
+                        console.error('Error loading period dataset:', err);
+                        showNoDataBanner(periodCard, 'Unable to load data for this period.');
+                    });
+            });
+        });
+
+        // Toggle AI recommendations visibility per period card
+        const aiButtons = document.querySelectorAll('[data-toggle-ai]');
+        aiButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const periodCard = this.closest('.period-card');
+                let recSection = periodCard.querySelector('[data-recommendations]');
+
+                // Create container if not present
+                if (!recSection) {
+                    recSection = document.createElement('div');
+                    recSection.className = 'recommendations-section';
+                    recSection.setAttribute('data-recommendations','');
+                    recSection.style.display = 'none';
+                    // Insert before comments section if exists, else at end of card
+                    const comments = periodCard.querySelector('.comments-section');
+                    if (comments && comments.parentNode) {
+                        comments.parentNode.insertBefore(recSection, comments);
+                    } else {
+                        periodCard.appendChild(recSection);
+                    }
+                }
+
+                // If already has content, just toggle
+                if (recSection.innerHTML && recSection.innerHTML.trim().length > 0) {
+                    const isHidden = recSection.style.display === 'none' || recSection.style.display === '';
+                    recSection.style.display = isHidden ? 'block' : 'none';
+                    return;
+                }
+
+                // Otherwise fetch/generate recommendations for current selection
+                const periodId = periodCard.getAttribute('data-period-id');
+                const selectedType = periodCard.getAttribute('data-selected-type') || 'overall';
+                const selectedSectionId = periodCard.getAttribute('data-selected-section-id');
+
+                // Show loading
+                recSection.style.display = 'block';
+                recSection.innerHTML = '<div class="recommendation-item">Loading AI recommendations…</div>';
+
+                // Get the period dataset, then call AI API with appropriate payload
+                fetch(`/api/evaluation-history/period/${periodId}/`, { method: 'GET', headers: { 'Content-Type': 'application/json' }})
+                    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+                    .then(j => {
+                        if (!j.success) throw new Error(j.error || 'Failed to load period data');
+                        const ds = j;
+                        let sectionData = null;
+                        let sectionCode = 'Overall';
+                        let evaluationType = 'student';
+
+                        if (selectedType === 'peer') {
+                            sectionData = ds.peer || null;
+                            evaluationType = 'peer';
+                        } else if (selectedType === 'section' && selectedSectionId) {
+                            const sid = parseInt(selectedSectionId, 10);
+                            const sec = (ds.sections || []).find(s => s.section_id === sid);
+                            if (sec) {
+                                sectionData = sec;
+                                sectionCode = sec.section_code || 'Section';
+                            }
+                        } else {
+                            sectionData = ds.overall || null;
+                        }
+
+                        // Build AI payload
+                        const apiSectionData = sectionData ? {
+                            has_data: !!sectionData.has_data,
+                            total_percentage: Number(sectionData.total_percentage || 0),
+                            evaluation_count: Number(sectionData.evaluation_count || sectionData.total_responses || 0),
+                            total_responses: Number(sectionData.total_responses || sectionData.evaluation_count || 0),
+                            category_scores: (sectionData.category_scores || [0,0,0,0])
+                        } : { has_data: false, total_percentage: 0, evaluation_count: 0, total_responses: 0, category_scores: [0,0,0,0] };
+
+                        return fetch('/api/ai-recommendations/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCookie('csrftoken')
+                            },
+                            body: JSON.stringify({
+                                section_data: apiSectionData,
+                                section_code: sectionCode,
+                                is_overall: selectedType === 'overall',
+                                evaluation_type: evaluationType,
+                                period_id: Number(periodId)
+                            })
+                        })
+                        .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+                        .then(resp => {
+                            const recs = resp && resp.recommendations ? resp.recommendations : [];
+                            renderRecommendations(recSection, recs);
+                        });
+                    })
+                    .catch(err => {
+                        console.error('AI recommendations error:', err);
+                        recSection.innerHTML = '<div class="recommendation-item">Unable to load AI recommendations at this time.</div>';
+                    });
             });
         });
     });
     
-    // Handle the selected result type for a specific period
-    function handlePeriodResultSelection(resultType, periodCard, sectionName, sectionId) {
-        // Extract period information
-        const periodName = periodCard.querySelector('.period-title')?.textContent || 'Period';
-        const categoryScores = Array.from(periodCard.querySelectorAll('.category-score'))
-            .map(el => parseFloat(el.textContent));
-        const overallPercentage = periodCard.querySelector('.score-badge')?.textContent || 'N/A';
-        
-        console.log(`Handling ${resultType} selection for ${periodName}`);
-        if (sectionName) {
-            console.log(`Section: ${sectionName}`);
-        }
-        
-        // Highlight or expand the selected result type
+    function fetchPeriodDataset(periodId) {
+        return fetch(`/api/evaluation-history/period/${periodId}/`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        }).then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+        }).then(j => {
+            if (!j.success) throw new Error(j.error || 'Failed');
+            return j;
+        });
+    }
+
+    function updateResultButton(periodCard, resultType, sectionName) {
         const button = periodCard.querySelector('.dropdown .btn');
-        let buttonText = {
-            'overall': '📈 Overall',
-            'peer': '👥 Peer Results'
-        }[resultType];
-        
-        // If section result, use section name
-        if (resultType === 'section' && sectionName) {
-            buttonText = `📚 ${sectionName}`;
-        }
-        
+        let buttonText = resultType === 'overall' ? '📈 Overall' : (resultType === 'peer' ? '👥 Peer Results' : `📚 ${sectionName || 'Section'}`);
         button.textContent = buttonText + ' ';
         const caret = document.createElement('i');
         caret.className = 'fas fa-chevron-down';
         button.appendChild(caret);
-        
-        // Show a subtle indicator that this result type is being viewed
-        const periodContent = periodCard.querySelector('.period-content');
-        if (periodContent) {
-            periodContent.style.borderTop = '3px solid #47682c';
-            periodContent.style.paddingTop = '15px';
-            periodContent.style.marginTop = '10px';
+
+        // Track current selection on the card for downstream actions (e.g., AI)
+        periodCard.setAttribute('data-selected-type', resultType);
+        if (resultType === 'section') {
+            periodCard.setAttribute('data-selected-section-name', sectionName || '');
+        } else {
+            periodCard.removeAttribute('data-selected-section-name');
         }
-        
-        // Log the action
-        console.log(`Now viewing ${resultType}${sectionName ? ` (${sectionName})` : ''} results for ${periodName}`);
+    }
+
+    function showNoDataBanner(periodCard, message) {
+        const banner = periodCard.querySelector('[data-no-data-banner]');
+        if (banner) {
+            banner.textContent = message || 'No evaluation data available for this selection.';
+            banner.style.display = '';
+        }
+    }
+
+    function hideNoDataBanner(periodCard) {
+        const banner = periodCard.querySelector('[data-no-data-banner]');
+        if (banner) banner.style.display = 'none';
+    }
+
+    function setBadgeClassByScore(badgeEl, score) {
+        badgeEl.classList.remove('score-excellent','score-good','score-average','score-poor');
+        if (score >= 90) badgeEl.classList.add('score-excellent');
+        else if (score >= 80) badgeEl.classList.add('score-good');
+        else if (score >= 70) badgeEl.classList.add('score-average');
+        else badgeEl.classList.add('score-poor');
+    }
+
+    function formatPct(val) { return (Math.round(val * 10) / 10).toFixed(1); }
+    function formatRating(val) { return (Math.round(val * 100) / 100).toFixed(2); }
+
+    // Handle the selected result type for a specific period using dataset
+    function handlePeriodResultSelection(resultType, periodCard, sectionName, sectionId, dataset) {
+        try {
+            hideNoDataBanner(periodCard);
+
+            let dataObj = null;
+            if (resultType === 'overall') {
+                dataObj = dataset.overall || null;
+            } else if (resultType === 'peer') {
+                dataObj = dataset.peer || null;
+            } else if (resultType === 'section') {
+                const sid = parseInt(sectionId, 10);
+                dataObj = (dataset.sections || []).find(s => s.section_id === sid) || null;
+                // Track selected section id/code for AI usage
+                periodCard.setAttribute('data-selected-section-id', String(sid));
+            }
+
+            if (!dataObj) {
+                showNoDataBanner(periodCard, 'No evaluation data available for this selection.');
+                dataObj = { category_scores: [0,0,0,0], total_percentage: 0, average_rating: 0, total_responses: 0, evaluation_count: 0 };
+            }
+
+            const hasData = !!dataObj.has_data;
+            if (!hasData) {
+                showNoDataBanner(periodCard, 'No evaluation data available for this selection.');
+            }
+
+            const totalPct = Number(dataObj.total_percentage || 0);
+            const avgRating = dataObj.average_rating != null ? Number(dataObj.average_rating) : (totalPct ? totalPct/20 : 0);
+            const evalCount = dataObj.total_responses != null ? Number(dataObj.total_responses) : Number(dataObj.evaluation_count || 0);
+
+            // Update badge
+            const badge = periodCard.querySelector('.score-badge');
+            if (badge) {
+                badge.textContent = `${formatPct(totalPct)}%`;
+                setBadgeClassByScore(badge, totalPct);
+            }
+
+            // Update info boxes
+            const avgEl = periodCard.querySelector('[data-average-rating]');
+            if (avgEl) avgEl.textContent = `${formatRating(avgRating)} / 5.0`;
+            const evalEl = periodCard.querySelector('[data-evaluator-count]');
+            if (evalEl) evalEl.textContent = `${evalCount}`;
+
+            // Update categories
+            const scores = (dataObj.category_scores || [0,0,0,0]).map(Number);
+            for (let i=0;i<4;i++) {
+                const scoreSpan = periodCard.querySelector(`[data-category-score="${i}"]`);
+                if (scoreSpan) scoreSpan.textContent = `${formatPct(scores[i] || 0)}%`;
+                const fill = periodCard.querySelector(`[data-category-fill="${i}"]`);
+                if (fill) fill.style.width = `${Math.max(0, Math.min(100, scores[i] || 0))}%`;
+            }
+
+            // Visual cue on content
+            const periodContent = periodCard.querySelector('.period-content');
+            if (periodContent) {
+                periodContent.style.borderTop = '3px solid #47682c';
+                periodContent.style.paddingTop = '15px';
+                periodContent.style.marginTop = '10px';
+            }
+        } catch (e) {
+            console.error('Error updating period card:', e);
+            showNoDataBanner(periodCard, 'An error occurred while updating the view.');
+        }
+    }
+
+    // Utility to get cookie value (for CSRF)
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    function renderRecommendations(container, recs) {
+        // Ensure container exists
+        if (!container) return;
+        container.style.display = 'block';
+        if (!recs || recs.length === 0) {
+            container.innerHTML = '<div class="recommendation-item">No AI recommendations available for this selection.</div>';
+            return;
+        }
+        let html = '<div class="recommendations-title"><i class="fas fa-lightbulb"></i> AI Recommendations</div>';
+        for (const rec of recs.slice(0,3)) {
+            const title = (rec.title || 'Recommendation');
+            const desc = (rec.description || rec.recommendation || '').replace(/\n/g,'<br>');
+            html += `<div class="recommendation-item"><strong>${title}</strong><br><small>${desc}</small></div>`;
+        }
+        container.innerHTML = html;
     }
 </script>
 

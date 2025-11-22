@@ -412,6 +412,99 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         float: right;
         margin-top: 8px;
     }
+
+    /* History Timeline Styles */
+    .history-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .history-item {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-left: 5px solid #47682c;
+        border-radius: 8px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .history-item:hover {
+        border-left-color: #5a8537;
+        box-shadow: 0 4px 12px rgba(71, 104, 44, 0.2);
+        transform: translateX(5px);
+    }
+
+    .history-item.selected {
+        background: linear-gradient(135deg, #f0f8f0, #e8f5e8);
+        border-left-color: #47682c;
+        box-shadow: 0 6px 15px rgba(71, 104, 44, 0.3);
+    }
+
+    .history-title {
+        font-weight: 600;
+        font-size: 16px;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .history-period {
+        font-size: 14px;
+        color: #666;
+        margin: 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .history-stats {
+        display: flex;
+        gap: 15px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #f0f0f0;
+        flex-wrap: wrap;
+    }
+
+    .history-stat {
+        font-size: 13px;
+        color: #7f8c8d;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .history-stat-value {
+        font-weight: 600;
+        color: #47682c;
+    }
+
+    .history-badge {
+        display: inline-block;
+        background: #e8f5e8;
+        color: #47682c;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .history-empty {
+        text-align: center;
+        padding: 40px 20px;
+        color: #95a5a6;
+    }
+
+    .history-empty i {
+        font-size: 48px;
+        color: #bdc3c7;
+        margin-bottom: 15px;
+        display: block;
+    }
 </style>
 
 <div class="container" style="min-height: 100vh; padding-top: 30px;">
@@ -665,6 +758,17 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                             </div>
                         </div>
                     </div>
+
+                    <!-- Evaluation History Tab -->
+                    <div id="history-tab" class="tab-content hidden-content">
+                        <div class="form-card">
+                            <h4>📜 Evaluation History</h4>
+                            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                                View your past evaluation periods and archived results
+                            </p>
+                            <div id="history-list" class="history-timeline"></div>
+                        </div>
+                    </div>
                 </div>  <!-- Close evaluation-results-section -->
             {% endif %}  <!-- Close evaluation_period_ended check -->
         </div>  <!-- Close right column -->
@@ -687,6 +791,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+    // Active student evaluation period id for saving recommendations
+    const ACTIVE_STUDENT_PERIOD_ID = {{ active_student_period_id|default:'null' }};
     // Global variables to store section data
     let sectionScoresData = {{ section_scores_json|safe }};
     let sectionMapData = {{ section_map_json|safe }};
@@ -762,6 +868,28 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
     // Tab switching functionality
     function switchTab(tabName) {
         console.log('Switching to tab:', tabName);
+        
+        // Special handling for history tab
+        if (tabName === 'history') {
+            loadHistoryTab();
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show history tab content
+            document.getElementById('history-tab').classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            return;
+        }
         
         // Hide all tab contents
         document.querySelectorAll('.tab-content').forEach(tab => {
@@ -1106,6 +1234,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 section_data: apiSectionData,
                 section_code: sectionCode,
                 is_overall: isOverall,
+                // Persist recommendations to the current active period, if present
+                period_id: ACTIVE_STUDENT_PERIOD_ID,
                 timestamp: Date.now() // Prevent caching
             })
         })
@@ -1645,6 +1775,249 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             setTimeout(() => flash.remove(), 1000);
         });
     }, 3000);
+
+    // ============================================
+    // EVALUATION HISTORY FUNCTIONS
+    // ============================================
+
+    // Load evaluation history
+    function loadHistoryTab() {
+        console.log('Loading evaluation history...');
+        const historyList = document.getElementById('history-list');
+        
+        // Show loading state
+        historyList.innerHTML = `
+            <div class="text-center" style="padding: 40px;">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Loading evaluation history...</p>
+            </div>
+        `;
+        
+        // Fetch history data from API
+        fetch('/api/evaluation-history/', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('History data received:', data);
+            displayEvaluationHistory(data.history_records || []);
+        })
+        .catch(error => {
+            console.error('Error loading history:', error);
+            historyList.innerHTML = `
+                <div class="history-empty">
+                    <i class="fas fa-inbox"></i>
+                    <p>Unable to load evaluation history</p>
+                </div>
+            `;
+        });
+    }
+
+    // Display history records
+    function displayEvaluationHistory(historyRecords) {
+        const historyList = document.getElementById('history-list');
+        
+        if (!historyRecords || historyRecords.length === 0) {
+            historyList.innerHTML = `
+                <div class="history-empty">
+                    <i class="fas fa-inbox"></i>
+                    <p>No evaluation history available</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let historyHTML = '<div class="history-timeline">';
+        
+        historyRecords.forEach((record, index) => {
+            const startDate = new Date(record.period_start_date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            const endDate = new Date(record.period_end_date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            const archivedDate = new Date(record.archived_at).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            const percentage = parseFloat(record.total_percentage).toFixed(2);
+            const evaluationType = record.evaluation_type === 'student' ? '👨‍🎓 Student' : '👥 Peer';
+            
+            historyHTML += `
+                <div class="history-item" onclick="selectHistoryPeriod(this, ${record.id}, '${record.evaluation_type}')">
+                    <div class="history-title">
+                        <span>📅</span>
+                        <span>${evaluationType} Evaluation</span>
+                    </div>
+                    
+                    <div class="history-period">
+                        <i class="fas fa-calendar-alt" style="color: #47682c;"></i>
+                        <strong>${startDate}</strong> to <strong>${endDate}</strong>
+                    </div>
+                    
+                    <div class="history-stats">
+                        <div class="history-stat">
+                            <i class="fas fa-percentage" style="color: #47682c;"></i>
+                            <span class="history-stat-value">${percentage}%</span>
+                            <span>Score</span>
+                        </div>
+                        <div class="history-stat">
+                            <i class="fas fa-users" style="color: #47682c;"></i>
+                            <span class="history-stat-value">${record.total_responses || 0}</span>
+                            <span>Responses</span>
+                        </div>
+                        <div class="history-stat">
+                            <i class="fas fa-archive" style="color: #47682c;"></i>
+                            <span class="history-badge">Archived: ${archivedDate}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        historyHTML += '</div>';
+        historyList.innerHTML = historyHTML;
+    }
+
+    // Select history period and load its data
+    function selectHistoryPeriod(element, periodId, evaluationType) {
+        console.log(`Loading history period ${periodId} (${evaluationType})`);
+        
+        // Update UI - mark as selected
+        document.querySelectorAll('.history-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        element.classList.add('selected');
+        
+        // Load the detailed data for this period
+        fetch(`/api/evaluation-history/${periodId}/`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Period data:', data);
+            // Display the results using existing functions
+            loadHistoryResults(data.data);
+        })
+        .catch(error => {
+            console.error('Error loading period data:', error);
+        });
+    }
+
+    // Load and display history results
+    function loadHistoryResults(periodData) {
+        // Show evaluation results tab
+        switchTab('evaluation');
+        
+        // Update section name
+        const periodName = periodData.evaluation_period_name || 'Archived Period';
+        document.getElementById('selected-section-name').textContent = periodName;
+        
+        // Display the historical scores
+        const evaluationContent = document.getElementById('evaluation-content');
+        
+        const totalPercentage = parseFloat(periodData.total_percentage || 0).toFixed(2);
+        const category1Score = parseFloat(periodData.category_a_score || 0).toFixed(2);
+        const category2Score = parseFloat(periodData.category_b_score || 0).toFixed(2);
+        const category3Score = parseFloat(periodData.category_c_score || 0).toFixed(2);
+        const category4Score = parseFloat(periodData.category_d_score || 0).toFixed(2);
+        
+        const categoryMaxScores = [35, 25, 20, 20];
+        const category1Percentage = ((category1Score / categoryMaxScores[0]) * 100).toFixed(2);
+        const category2Percentage = ((category2Score / categoryMaxScores[1]) * 100).toFixed(2);
+        const category3Percentage = ((category3Score / categoryMaxScores[2]) * 100).toFixed(2);
+        const category4Percentage = ((category4Score / categoryMaxScores[3]) * 100).toFixed(2);
+        
+        const content = `
+            <div class="evaluation-summary">
+                <div class="max-score-info">
+                    <h5>Total Score: <span style="color: #47682c; font-size: 28px;">${totalPercentage}%</span></h5>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 0;">
+                        Based on ${periodData.total_responses || 0} evaluations
+                    </p>
+                </div>
+                
+                <div class="score-breakdown">
+                    <div class="score-item">
+                        <div>
+                            <div class="score-category">📚 Subject Mastery</div>
+                            <div class="score-max">Max: 35%</div>
+                        </div>
+                        <div class="score-value">
+                            ${category1Score} <span class="score-max">/ 35</span>
+                            <div class="score-percentage">${category1Percentage}%</div>
+                        </div>
+                    </div>
+                    <div class="score-item">
+                        <div>
+                            <div class="score-category">🎯 Classroom Management</div>
+                            <div class="score-max">Max: 25%</div>
+                        </div>
+                        <div class="score-value">
+                            ${category2Score} <span class="score-max">/ 25</span>
+                            <div class="score-percentage">${category2Percentage}%</div>
+                        </div>
+                    </div>
+                    <div class="score-item">
+                        <div>
+                            <div class="score-category">📋 Policy Compliance</div>
+                            <div class="score-max">Max: 20%</div>
+                        </div>
+                        <div class="score-value">
+                            ${category3Score} <span class="score-max">/ 20</span>
+                            <div class="score-percentage">${category3Percentage}%</div>
+                        </div>
+                    </div>
+                    <div class="score-item">
+                        <div>
+                            <div class="score-category">😊 Personality</div>
+                            <div class="score-max">Max: 20%</div>
+                        </div>
+                        <div class="score-value">
+                            ${category4Score} <span class="score-max">/ 20</span>
+                            <div class="score-percentage">${category4Percentage}%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-summary" style="margin-top: 20px;">
+                    <div class="stat-item">
+                        <span class="stat-value">${periodData.total_responses || 0}</span>
+                        <span class="stat-label">Total Responses</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${(periodData.average_rating || 0).toFixed(1)}</span>
+                        <span class="stat-label">Avg Rating</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${new Date(periodData.archived_at).toLocaleDateString()}</span>
+                        <span class="stat-label">Archived</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        evaluationContent.innerHTML = content;
+    }
+
 </script>
 
 <!-- Add Font Awesome for icons -->
