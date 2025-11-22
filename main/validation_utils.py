@@ -173,11 +173,11 @@ class AccountValidator:
         if not role:
             return False, "Role is required"
         
-        role = str(role).strip().upper()
+        role = str(role).strip()
         
         valid_roles = [Role.STUDENT, Role.FACULTY, Role.DEAN, Role.COORDINATOR, Role.ADMIN]
         if role not in valid_roles:
-            return False, f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+            return False, f"Invalid role. Must be one of: Student, Faculty, Dean, Coordinator, Admin"
         
         return True, ""
     

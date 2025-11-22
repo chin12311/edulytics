@@ -191,7 +191,7 @@ class AccountImportExportService:
                         email = str(row_data.get('email', '')).strip()
                         password = str(row_data.get('password', '')).strip()
                         display_name = str(row_data.get('display_name', '')).strip()
-                        role = str(row_data.get('role', '')).strip().upper()
+                        role = str(row_data.get('role', '')).strip()
                         
                         # Validate required fields
                         if not all([username, email, password, display_name, role]):
@@ -250,21 +250,14 @@ class AccountImportExportService:
                             continue
                         
                         # Validate role
-                        role_map = {
-                            'STUDENT': Role.STUDENT,
-                            'FACULTY': Role.FACULTY,
-                            'DEAN': Role.DEAN,
-                            'COORDINATOR': Role.COORDINATOR,
-                            'ADMIN': Role.ADMIN
-                        }
-                        
                         valid, msg = AccountValidator.validate_role(role)
                         if not valid:
                             result['errors'].append(f"Row {row_idx}: {msg}")
                             result['skipped'] += 1
                             continue
                         
-                        role_enum = role_map[role]
+                        # Role is already in correct format (Student, Faculty, etc.)
+                        role_enum = role
                         
                         # ✅ VALIDATE ROLE-SPECIFIC FIELDS
                         if role_enum == Role.STUDENT:

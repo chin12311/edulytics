@@ -8,6 +8,7 @@ from .models import EvaluationComment, EvaluationPeriod, EvaluationResult, UserP
 from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
@@ -2462,6 +2463,9 @@ class DeanProfileSettingsView(View):
 
             evaluation_history = self.get_evaluation_history(user)
             
+            # Identify current active student evaluation period (if any)
+            active_student_period = EvaluationPeriod.objects.filter(evaluation_type='student', is_active=True).order_by('-start_date').first()
+
             return render(request, 'main/dean_profile_settings.html', {
                 'user': user,
                 'next_url': next_url,
@@ -2478,7 +2482,8 @@ class DeanProfileSettingsView(View):
                 'sections_with_data': sections_with_data,
                 'total_evaluations': total_evaluations,
                 'evaluation_period_ended': can_view_evaluation_results('student'),
-                'evaluation_history': evaluation_history, 
+                'evaluation_history': evaluation_history,
+                'active_student_period_id': active_student_period.id if active_student_period else None,
             })
         return redirect('login')
     
@@ -4248,6 +4253,7 @@ class AIRecommendationsAPIView(View):
             is_overall = data.get('is_overall', False)
             evaluation_type = data.get('evaluation_type', 'student')  # ADD THIS LINE
             role = data.get('role', getattr(user, 'userprofile', None) and user.userprofile.role or 'Educator')
+            period_id = data.get('period_id')
             
             print(f"🔍 API RECEIVED - Evaluation Type: {evaluation_type}")  # DEBUG LOG
             
@@ -4264,6 +4270,28 @@ class AIRecommendationsAPIView(View):
                 role=role,
                 evaluation_type=evaluation_type  # PASS IT TO THE SERVICE
             )
+
+            # Optionally persist recommendations for a specific period
+            if period_id:
+                try:
+                    period = EvaluationPeriod.objects.get(id=period_id)
+                    # Refresh saved recommendations for this user+period to avoid duplicates
+                    AiRecommendation.objects.filter(user=user, evaluation_period=period).delete()
+                    # Save each recommendation item
+                    for rec in (recommendations or []):
+                        AiRecommendation.objects.create(
+                            user=user,
+                            evaluation_period=period,
+                            title=str(rec.get('title', '')[:255]) if isinstance(rec, dict) else '',
+                            description=rec.get('description', '') if isinstance(rec, dict) else (str(rec) if rec else ''),
+                            priority=rec.get('priority', '') if isinstance(rec, dict) else '',
+                            reason=rec.get('reason', '') if isinstance(rec, dict) else '',
+                            recommendation=rec.get('description', '') if isinstance(rec, dict) else (str(rec) if rec else ''),
+                            evaluation_type=evaluation_type,
+                            section_code=section_code if section_code and section_code != 'Overall' else None
+                        )
+                except EvaluationPeriod.DoesNotExist:
+                    pass
             
             # Add request metadata to response for debugging
             response_data = {
@@ -4567,8 +4595,22 @@ class EvaluationHistoryView(View):
                 if response.comments:
                     comments.append(response.comments)
             
+            # gather saved AI recommendations for this period
+            rec_qs = AiRecommendation.objects.filter(user=user, evaluation_period=result.evaluation_period).order_by('-created_at')
+            rec_list = []
+            for r in rec_qs:
+                rec_list.append({
+                    'title': r.title or 'Recommendation',
+                    'description': r.description or r.recommendation or '',
+                    'priority': r.priority or '',
+                    'reason': r.reason or ''
+                })
+
             evaluation_history.append({
                 'period_name': result.evaluation_period.name,
+                'evaluation_period_id': result.evaluation_period.id,
+                'period_start_date': result.evaluation_period.start_date,
+                'period_end_date': result.evaluation_period.end_date,
                 'date': result.calculated_at,
                 'section': result.section.code if result.section else 'All Sections',
                 'overall_percentage': result.total_percentage,
@@ -4582,7 +4624,7 @@ class EvaluationHistoryView(View):
                 'total_responses': result.total_responses,
                 'is_processed': True,
                 'source': 'Completed Period',
-                'recommendations': [],  # TODO: Add from AI recommendations model when available
+                'recommendations': rec_list,
                 'comments': comments  # Populated with student comments
             })
         
@@ -4601,17 +4643,10 @@ class EvaluationHistoryView(View):
         # Get unique sections from evaluation history for filtering
         sections_in_history = list(set([eval['section'] for eval in evaluation_history if eval['section'] != 'All Sections']))
         
-        # Get user's assigned sections (for Faculty/Coordinator/Dean)
-        user_sections = []
-        if hasattr(user, 'faculty_assignments'):
-            # For Faculty - get from FacultyAssignment
-            from main.models import FacultyAssignment
-            assignments = FacultyAssignment.objects.filter(faculty=user).select_related('section')
-            user_sections = [{'id': a.section.id, 'code': a.section.code, 'name': str(a.section)} for a in assignments]
-        elif hasattr(user, 'userprofile') and user.userprofile.role in ['Coordinator', 'Dean']:
-            # For Coordinator/Dean - sections they oversee
-            sections_to_show = set([s for s in sections_in_history if s != 'All Sections'])
-            user_sections = [{'id': i, 'code': s, 'name': s} for i, s in enumerate(sorted(sections_to_show))]
+        # Get user's assigned sections for all roles (include sections even if no data)
+        from main.models import SectionAssignment
+        assigned_sections_qs = SectionAssignment.objects.filter(user=user).select_related('section')
+        user_sections = [{'id': a.section.id, 'code': a.section.code, 'name': str(a.section)} for a in assigned_sections_qs]
         
         context = {
             'user_profile': user_profile,
@@ -5203,5 +5238,244 @@ def reset_evaluation_questions(request):
         messages.error(request, f'Error resetting questions: {str(e)}')
         return redirect('main:manage_evaluation_questions')
 
-    
+
+# ============================================
+# EVALUATION HISTORY API ENDPOINTS
+# ============================================
+
+@login_required
+@require_http_methods(["GET"])
+def api_evaluation_history(request):
+    """API endpoint to fetch user's evaluation history"""
+    try:
+        user = request.user
+        records = EvaluationHistory.objects.filter(
+            user=user
+        ).select_related('evaluation_period').order_by('-archived_at')
+        
+        data = []
+        for r in records:
+            data.append({
+                'id': r.id,
+                'evaluation_period_id': r.evaluation_period.id,
+                'evaluation_period_name': r.evaluation_period.name,
+                'evaluation_type': r.evaluation_period.evaluation_type,
+                'period_start_date': r.period_start_date.isoformat(),
+                'period_end_date': r.period_end_date.isoformat(),
+                'archived_at': r.archived_at.isoformat(),
+                'total_percentage': float(r.total_percentage or 0),
+                'total_responses': r.total_responses or 0,
+                'average_rating': float(r.average_rating or 0)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'history_records': data,
+            'count': len(data)
+        })
+    except Exception as e:
+        logger.error(f"Error fetching evaluation history: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_evaluation_history_detail(request, history_id):
+    """API endpoint to fetch detailed evaluation history record"""
+    try:
+        user = request.user
+        r = EvaluationHistory.objects.select_related(
+            'evaluation_period', 'user'
+        ).get(id=history_id, user=user)
+        
+        data = {
+            'id': r.id,
+            'evaluation_period_name': r.evaluation_period.name,
+            'evaluation_period_id': r.evaluation_period.id,
+            'evaluation_type': r.evaluation_period.evaluation_type,
+            'period_start_date': r.period_start_date.isoformat(),
+            'period_end_date': r.period_end_date.isoformat(),
+            'archived_at': r.archived_at.isoformat(),
+            'total_percentage': float(r.total_percentage or 0),
+            'category_a_score': float(r.category_a_score or 0),
+            'category_b_score': float(r.category_b_score or 0),
+            'category_c_score': float(r.category_c_score or 0),
+            'category_d_score': float(r.category_d_score or 0),
+            'total_responses': r.total_responses or 0,
+            'average_rating': float(r.average_rating or 0),
+            'poor_count': r.poor_count or 0,
+            'unsatisfactory_count': r.unsatisfactory_count or 0,
+            'satisfactory_count': r.satisfactory_count or 0,
+            'very_satisfactory_count': r.very_satisfactory_count or 0,
+            'outstanding_count': r.outstanding_count or 0
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'data': data
+        })
+    except EvaluationHistory.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'History record not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error fetching evaluation history detail: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_evaluation_history_by_period(request, period_id):
+    """Return aggregate dataset for a period: overall (student), peer, and per assigned section.
+    Includes sections even with no data, marked accordingly.
+    """
+    try:
+        user = request.user
+        from django.utils import timezone as dj_tz
+        from main.models import EvaluationPeriod, SectionAssignment, Section
+
+        # Find the student evaluation period by id
+        try:
+            period = EvaluationPeriod.objects.get(id=period_id)
+        except EvaluationPeriod.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Period not found'}, status=404)
+
+        # Build overall (student) from history if available, else compute
+        overall_data = None
+        try:
+            # Prefer archived overall (section is null)
+            hist_overall = EvaluationHistory.objects.filter(
+                user=user,
+                evaluation_period=period,
+                evaluation_type='student',
+                section__isnull=True
+            ).first()
+            if hist_overall:
+                overall_data = {
+                    'has_data': (hist_overall.total_responses or 0) > 0 or (hist_overall.total_percentage or 0) > 0,
+                    'category_scores': [
+                        float(hist_overall.category_a_score or 0),
+                        float(hist_overall.category_b_score or 0),
+                        float(hist_overall.category_c_score or 0),
+                        float(hist_overall.category_d_score or 0),
+                    ],
+                    'total_percentage': float(hist_overall.total_percentage or 0),
+                    'total_responses': int(hist_overall.total_responses or 0),
+                    'average_rating': float(hist_overall.average_rating or 0)
+                }
+        except Exception:
+            overall_data = None
+
+        if overall_data is None:
+            # Compute on-demand within period range
+            a,b,c,d,total, *_ = compute_category_scores(user, evaluation_period=period)
+            # Count responses in period
+            resp_count = EvaluationResponse.objects.filter(
+                evaluatee=user,
+                submitted_at__gte=period.start_date,
+                submitted_at__lte=period.end_date
+            ).count()
+            overall_data = {
+                'has_data': resp_count > 0 and total > 0,
+                'category_scores': [a,b,c,d],
+                'total_percentage': total,
+                'total_responses': resp_count,
+                'average_rating': round(total/20, 2) if resp_count > 0 else 0.0
+            }
+
+        # Peer overall: try matching peer history record for same month/year
+        peer_data = None
+        try:
+            peer_hist = EvaluationHistory.objects.filter(
+                user=user,
+                evaluation_type='peer',
+                section__isnull=True,
+                period_start_date__month=period.start_date.month,
+                period_start_date__year=period.start_date.year
+            ).order_by('-period_start_date').first()
+            if peer_hist:
+                peer_data = {
+                    'has_data': (peer_hist.total_responses or 0) > 0 or (peer_hist.total_percentage or 0) > 0,
+                    'category_scores': [
+                        float(peer_hist.category_a_score or 0),
+                        float(peer_hist.category_b_score or 0),
+                        float(peer_hist.category_c_score or 0),
+                        float(peer_hist.category_d_score or 0),
+                    ],
+                    'total_percentage': float(peer_hist.total_percentage or 0),
+                    'total_responses': int(peer_hist.total_responses or 0),
+                    'average_rating': float(peer_hist.average_rating or 0)
+                }
+        except Exception:
+            peer_data = None
+
+        # Sections: include assigned sections even if no data
+        assigned_sections = SectionAssignment.objects.filter(user=user).select_related('section')
+        sections_payload = []
+        for assign in assigned_sections:
+            sec = assign.section
+            # Prefer archived per-section history
+            hist_section = EvaluationHistory.objects.filter(
+                user=user,
+                evaluation_period=period,
+                evaluation_type='student',
+                section=sec
+            ).first()
+            if hist_section:
+                has_data = (hist_section.total_responses or 0) > 0 or (hist_section.total_percentage or 0) > 0
+                sections_payload.append({
+                    'section_id': sec.id,
+                    'section_code': sec.code,
+                    'section_name': str(sec),
+                    'has_data': has_data,
+                    'category_scores': [
+                        float(hist_section.category_a_score or 0),
+                        float(hist_section.category_b_score or 0),
+                        float(hist_section.category_c_score or 0),
+                        float(hist_section.category_d_score or 0),
+                    ],
+                    'total_percentage': float(hist_section.total_percentage or 0),
+                    'evaluation_count': int(hist_section.total_responses or 0)
+                })
+            else:
+                # Compute on-demand for this section within period
+                a,b,c,d,total, *_ = compute_category_scores(user, section_code=sec.code, evaluation_period=period)
+                resp_count = EvaluationResponse.objects.filter(
+                    evaluatee=user,
+                    student_section=sec.code,
+                    submitted_at__gte=period.start_date,
+                    submitted_at__lte=period.end_date
+                ).count()
+                sections_payload.append({
+                    'section_id': sec.id,
+                    'section_code': sec.code,
+                    'section_name': str(sec),
+                    'has_data': resp_count > 0 and total > 0,
+                    'category_scores': [a,b,c,d],
+                    'total_percentage': total,
+                    'evaluation_count': resp_count
+                })
+
+        return JsonResponse({
+            'success': True,
+            'period': {
+                'id': period.id,
+                'name': period.name,
+                'start_date': period.start_date.isoformat(),
+                'end_date': period.end_date.isoformat()
+            },
+            'overall': overall_data,
+            'peer': peer_data,
+            'sections': sections_payload
+        })
+    except Exception as e:
+        logger.error(f"Error building history dataset: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
