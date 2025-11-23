@@ -377,6 +377,13 @@
     </div>
 
     <div class="form-content">
+            {% if messages %}
+            <div class="mb-3">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} mb-2">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
         <!-- Staff Information Card -->
         <div class="info-card">
             <small style="color: var(--text-light); font-style: italic;">
