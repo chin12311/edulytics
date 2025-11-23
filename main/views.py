@@ -1689,28 +1689,39 @@ def submit_evaluation(request):
             return redirect('main:login')
 
         try:
-            # ✅ ADDED: Check if evaluation period is active
-            if not Evaluation.is_evaluation_period_active():
+            evaluator_profile = request.user.userprofile
+
+            # Determine evaluation type based on role
+            if evaluator_profile.role == Role.STUDENT:
+                evaluation_type = 'student'
+                form_redirect = 'main:evaluationform'
+            elif evaluator_profile.role in [Role.FACULTY, Role.COORDINATOR, Role.DEAN]:
+                evaluation_type = 'peer'
+                form_redirect = 'main:evaluationform_staffs'
+            else:
+                messages.error(request, 'You do not have permission to submit evaluations.')
+                return redirect('main:evaluation')
+
+            # Check if correct evaluation period (release status) is active for this evaluation type
+            if not Evaluation.is_evaluation_period_active(evaluation_type):
                 messages.error(request, 'Evaluation period has ended. You cannot submit evaluations at this time.')
-                return redirect('main:evaluationform')
+                return redirect(form_redirect)
 
             # Retrieve the evaluatee
             evaluatee_id = request.POST.get('evaluatee')
             
             if not evaluatee_id:
-                messages.error(request, 'No instructor selected.')
-                return redirect('main:evaluationform')
+                messages.error(request, 'No evaluatee selected.')
+                return redirect(form_redirect)
             
             try:
                 evaluatee = User.objects.get(id=evaluatee_id)
                 evaluatee_profile = evaluatee.userprofile
             except User.DoesNotExist:
-                messages.error(request, 'Selected instructor does not exist.')
-                return redirect('main:evaluationform')
+                messages.error(request, 'Selected user does not exist.')
+                return redirect(form_redirect)
 
             # ✅ UPDATED VALIDATION: Check if user can evaluate this staff member
-            evaluator_profile = request.user.userprofile
-            
             # Student evaluating staff (Faculty, Coordinator, Dean)
             if evaluator_profile.role == Role.STUDENT and evaluatee_profile.role in [Role.FACULTY, Role.COORDINATOR, Role.DEAN]:
                 # Check if student's section is assigned to this staff member
@@ -1722,36 +1733,36 @@ def submit_evaluation(request):
                     
                     if not is_assigned:
                         messages.error(request, f'You cannot evaluate {evaluatee.username} as you are not in their assigned section.')
-                        return redirect('main:evaluationform')
+                        return redirect(form_redirect)
                 else:
-                    messages.error(request, 'You cannot evaluate instructors as you are not assigned to any section.')
-                    return redirect('main:evaluationform')
+                    messages.error(request, 'You cannot evaluate staff as you are not assigned to any section.')
+                    return redirect(form_redirect)
 
             # ✅ ADDED: Staff peer evaluation (Faculty, Coordinator, Dean evaluating each other)
             elif evaluator_profile.role in [Role.FACULTY, Role.COORDINATOR, Role.DEAN] and evaluatee_profile.role in [Role.FACULTY, Role.COORDINATOR, Role.DEAN]:
                 # Check if they are from the same institute
                 if evaluator_profile.institute != evaluatee_profile.institute:
                     messages.error(request, f'You cannot evaluate {evaluatee.username} as they are from a different institute.')
-                    return redirect('main:evaluationform')
+                    return redirect(form_redirect)
                 
                 # Check if it's a self-evaluation
                 if request.user.id == evaluatee.id:
                     messages.error(request, 'You cannot evaluate yourself.')
-                    return redirect('main:evaluationform')
+                    return redirect(form_redirect)
 
             else:
                 messages.error(request, 'You do not have permission to evaluate this user.')
-                return redirect('main:evaluationform')
+                return redirect(form_redirect)
 
             # Get the current active evaluation period
             try:
                 current_period = EvaluationPeriod.objects.get(
-                    evaluation_type='student',
+                    evaluation_type=evaluation_type,
                     is_active=True
                 )
             except EvaluationPeriod.DoesNotExist:
                 messages.error(request, 'No active evaluation period found.')
-                return redirect('main:evaluationform')
+                return redirect(form_redirect)
 
             # Prevent duplicate evaluation IN THE SAME PERIOD
             # Allow re-evaluation in different periods
@@ -1760,8 +1771,8 @@ def submit_evaluation(request):
                 evaluatee=evaluatee,
                 evaluation_period=current_period
             ).exists():
-                messages.error(request, 'You have already evaluated this instructor in this evaluation period.')
-                return redirect('main:evaluationform')
+                messages.error(request, 'You have already evaluated this user in this evaluation period.')
+                return redirect(form_redirect)
 
             # Convert numeric values to text ratings
             rating_map = {
@@ -1780,11 +1791,11 @@ def submit_evaluation(request):
                 
                 if not question_value:
                     messages.error(request, 'All questions must be answered.')
-                    return redirect('main:evaluationform')
+                    return redirect(form_redirect)
                 
                 if question_value not in rating_map:
                     messages.error(request, f'Invalid rating for question {i}.')
-                    return redirect('main:evaluationform')
+                    return redirect(form_redirect)
                     
                 questions[question_key] = rating_map[question_value]
 
@@ -1793,8 +1804,6 @@ def submit_evaluation(request):
             student_section = request.POST.get('student_section', '')
 
             # ✅ FIXED: Properly set student_section based on user role
-            evaluator_profile = request.user.userprofile
-            
             if evaluator_profile.role == Role.STUDENT:
                 # Use the student's actual section from their profile
                 if evaluator_profile.section:
@@ -1838,7 +1847,7 @@ def submit_evaluation(request):
             traceback.print_exc()
             
             messages.error(request, f'An error occurred: {str(e)}')
-            return redirect('main:evaluationform')
+            return redirect(form_redirect)
 
     return redirect('main:evaluationform')
     
