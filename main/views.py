@@ -1682,25 +1682,35 @@ def custom_logout(request):
     return response
 
 def submit_evaluation(request):
+    print("=" * 80)
+    print(f"SUBMIT EVALUATION CALLED - Method: {request.method}")
+    print("=" * 80)
+    
     if request.method == 'POST':
         # Check if user is authenticated
         if not request.user.is_authenticated:
+            print("ERROR: User not authenticated")
             messages.error(request, 'You must be logged in to submit an evaluation.')
             return redirect('main:login')
 
         try:
             # ✅ ADDED: Check if evaluation period is active
+            print(f"User: {request.user.username}")
+            print(f"POST keys: {list(request.POST.keys())}")
             logger.info(f"🔍 Submit evaluation called by {request.user.username}")
             logger.info(f"🔍 POST data keys: {list(request.POST.keys())}")
             is_active = Evaluation.is_evaluation_period_active()
+            print(f"Evaluation period active: {is_active}")
             logger.info(f"🔍 Evaluation period active: {is_active}")
             if not is_active:
+                print("ERROR: Evaluation period not active")
                 messages.error(request, 'Evaluation period has ended. You cannot submit evaluations at this time.')
                 logger.warning(f"⚠️ Evaluation period not active for {request.user.username}")
                 return redirect('main:evaluationform')
 
             # Retrieve the evaluatee
             evaluatee_id = request.POST.get('evaluatee')
+            print(f"Evaluatee ID: {evaluatee_id}")
             logger.info(f"🔍 Evaluatee ID: {evaluatee_id}")
             
             if not evaluatee_id:
@@ -1842,13 +1852,16 @@ def submit_evaluation(request):
             return redirect(evaluation_url)
 
         except Exception as e:
-            
+            print("=" * 80)
+            print(f"EXCEPTION OCCURRED: {str(e)}")
+            print("=" * 80)
             import traceback
             traceback.print_exc()
             
             messages.error(request, f'An error occurred: {str(e)}')
             return redirect('main:evaluationform')
 
+    print("Method was not POST, redirecting")
     return redirect('main:evaluationform')
     
 def release_student_evaluation(request):
