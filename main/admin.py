@@ -82,28 +82,34 @@ class EvaluationAdmin(admin.ModelAdmin):
             2 - Unsatisfactory
             1 - Poor
 
-            #### Section 1: Subject Mastery
-            question1. How well did the instructor demonstrate knowledge of the subject?
-            question2. Was the instructor able to explain complex concepts clearly?
-            question3. Did the instructor display expertise in answering questions from students?
-            question4. Did the instructor keep up-to-date with the latest developments in the field?
+            #### Category A: Mastery of the Subject (5 questions)
+            question1. Demonstrates mastery of the subject and the ability to translate competencies into meaningful lessons.
+            question2. Shows ability to stimulate independent and critical thinking
+            question3. Is focused and explains the lesson clearly
+            question4. Knowledgable and uses a variety of teaching strategies.
+            question5. Demonstrates enthusiasm for the subject matter
 
-            #### Section 2: Class Interaction
-            question5. Was the instructor approachable and open to student participation?
-            question6. Did the instructor encourage group discussions or teamwork?
-            question7. Did the instructor provide opportunities for students to ask questions and engage in discussions?
-            question8. Was the instructor receptive to feedback and suggestions from students?
+            #### Category B: Classroom Management (5 questions)
+            question6. Establishes and communicates clearly parameters for student classroom behaviour based on student handbook and OVPAA Guidelines for the conduct of Flexible Learning Modalities.
+            question7. Promote self-discipline, respect and treats all students in fair and equitable manner.
+            question8. Keeps accurate accounting of student's attendance and records
+            question9. Demonstrates fairness and consistency in handling student's problems.
+            question10. Maintains harmonious relations with students characterized by mutual respect and understanding.
 
-            #### Section 3: Use of Standard Materials
-            question9. Were the teaching materials (e.g., slides, notes, handouts) clear and helpful?
-            question10. Were the course materials aligned with the objectives of the course?
-            question11. Did the instructor effectively use multimedia (videos, demonstrations, etc.) in their teaching?
-            question12. Were the materials accessible to all students (e.g., online resources, print-outs)?
+            #### Category C: Compliance to Policies (5 questions)
+            question11. Reports to class regularly.
+            question12. Demonstrates exceptional punctuality in observing work hours and college official functions.
+            question13. Returns quizzes, examination results, assignments and other activities on time.
+            question14. Informs the students on their academic performances and grades.
+            question15. Uses Google Meet and Classroom as the official platform for online classes.
 
-            #### Section 4: Additional Questions
-            question13. How well did the instructor engage students in class activities?
-            question14. Did the instructor maintain a good pace throughout the course?
-            question15. Was the material provided in the course sufficient to understand the topics?
+            #### Category D: Personality (4 questions)
+            question16. Commands respect by example in appearance, manners and behaviour and language.
+            question17. Maintains a good disposition.
+            question18. Relates well with students in a pleasing manner.
+            question19. Possesses a sense of balance that combines good humor, sincerity and fairness when confronted with difficulties in the classroom.
+
+            TOTAL: 19 questions
             """
         elif obj.evaluation_type == 'peer':
             return """
@@ -116,26 +122,28 @@ class EvaluationAdmin(admin.ModelAdmin):
             2 - Unsatisfactory
             1 - Poor
 
-            #### Section 1: Communication and Collaboration
-            question1. Effectively communicates with others.
-            question2. Listens actively and values others' opinions.
-            question3. Shows respect in professional interactions.
-            question4. Contributes actively to discussions and teamwork.
+            #### Category 1: Communication and Collaboration (4 questions)
+            question1. Effectively communicates with others in the workplace
+            question2. Listens actively and values others' opinions and perspectives
+            question3. Shows respect in all professional interactions
+            question4. Contributes actively to team discussions and collaborative efforts
 
-            #### Section 2: Responsibility and Professionalism
-            question5. Completes assigned duties on time.
-            question6. Demonstrates reliability and accountability.
-            question7. Takes initiative when appropriate.
-            question8, Makes valuable contributions to institutional goals.
+            #### Category 2: Responsibility and Professionalism (4 questions)
+            question5. Completes assigned duties and responsibilities on time
+            question6. Demonstrates reliability and accountability in work
+            question7. Takes initiative when appropriate and needed
+            question8. Makes valuable contributions to institutional goals and objectives
 
-            #### Section 3: Leadership and Work Ethic
-            question9. Shows leadership when needed.
-            question10. Helps resolve conflicts constructively.
-            question11. Accepts and applies feedback for improvement.
-            question12. Maintains focus and engagement in duties.
-            question13. Is prepared and organized in responsibilities.
-            question14. Demonstrates strong work ethic and integrity.
-            question15. Would you want to work with this colleague again?
+            #### Category 3: Leadership and Work Ethic (7 questions)
+            question9. Shows leadership qualities when needed or appropriate
+            question10. Helps resolve conflicts constructively when they arise
+            question11. Accepts and applies feedback for personal and professional improvement
+            question12. Maintains focus and engagement in professional duties
+            question13. Is prepared and organized in carrying out responsibilities
+            question14. Demonstrates strong work ethic and professional integrity
+            question15. Would you want to work with this colleague again in future projects?
+
+            TOTAL: 15 questions
             """
         else:
             return "Unknown evaluation type."
@@ -153,11 +161,11 @@ class EvaluationResponseAdmin(admin.ModelAdmin):
     search_fields = ['evaluator__username', 'evaluator__first_name', 'evaluator__last_name', 'comments', 'evaluatee__username']
     list_filter = ['evaluator', 'evaluatee']
     
-    # Include comments in the fields
-    fields = ['evaluator', 'evaluatee', 'comments'] + [f'question{i}' for i in range(1, 16)]
+    # Include comments in the fields - supports up to 19 questions for student evaluations
+    fields = ['evaluator', 'evaluatee', 'comments'] + [f'question{i}' for i in range(1, 20)]
     
     # Make fields read-only as needed
-    readonly_fields = ['evaluator', 'evaluatee'] + [f'question{i}' for i in range(1, 16)]
+    readonly_fields = ['evaluator', 'evaluatee'] + [f'question{i}' for i in range(1, 20)]
 
     def comments_preview(self, obj):
         if obj.comments:
