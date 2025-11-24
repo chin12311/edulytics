@@ -1690,8 +1690,12 @@ def submit_evaluation(request):
 
         try:
             # ✅ ADDED: Check if evaluation period is active
-            if not Evaluation.is_evaluation_period_active():
+            logger.info(f"🔍 Submit evaluation called by {request.user.username}")
+            is_active = Evaluation.is_evaluation_period_active()
+            logger.info(f"🔍 Evaluation period active: {is_active}")
+            if not is_active:
                 messages.error(request, 'Evaluation period has ended. You cannot submit evaluations at this time.')
+                logger.warning(f"⚠️ Evaluation period not active for {request.user.username}")
                 return redirect('main:evaluationform')
 
             # Retrieve the evaluatee
