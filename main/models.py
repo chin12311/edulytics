@@ -240,6 +240,10 @@ class EvaluationResponse(models.Model):
     question13 = models.CharField(max_length=50, default='Poor')
     question14 = models.CharField(max_length=50, default='Poor')
     question15 = models.CharField(max_length=50, default='Poor')
+    question16 = models.CharField(max_length=50, default='Poor')
+    question17 = models.CharField(max_length=50, default='Poor')
+    question18 = models.CharField(max_length=50, default='Poor')
+    question19 = models.CharField(max_length=50, default='Poor')
 
     # ADD COMMENTS FIELD
     comments = models.TextField(blank=True, null=True, verbose_name="Additional Comments/Suggestions")
