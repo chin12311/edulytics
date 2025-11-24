@@ -1691,6 +1691,7 @@ def submit_evaluation(request):
         try:
             # ✅ ADDED: Check if evaluation period is active
             logger.info(f"🔍 Submit evaluation called by {request.user.username}")
+            logger.info(f"🔍 POST data keys: {list(request.POST.keys())}")
             is_active = Evaluation.is_evaluation_period_active()
             logger.info(f"🔍 Evaluation period active: {is_active}")
             if not is_active:
@@ -1700,6 +1701,7 @@ def submit_evaluation(request):
 
             # Retrieve the evaluatee
             evaluatee_id = request.POST.get('evaluatee')
+            logger.info(f"🔍 Evaluatee ID: {evaluatee_id}")
             
             if not evaluatee_id:
                 messages.error(request, 'No instructor selected.')
@@ -1818,6 +1820,8 @@ def submit_evaluation(request):
             
 
             # Create and save the evaluation response
+            logger.info(f"🔍 Creating EvaluationResponse with {len(questions)} questions")
+            logger.info(f"🔍 Questions dict: {questions}")
             evaluation_response = EvaluationResponse(
                 evaluator=request.user,
                 evaluatee=evaluatee,
@@ -1828,6 +1832,7 @@ def submit_evaluation(request):
                 **questions
             )
             evaluation_response.save()
+            logger.info(f"✅ Evaluation saved successfully! ID: {evaluation_response.id}")
 
             
 
