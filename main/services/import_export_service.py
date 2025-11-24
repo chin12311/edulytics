@@ -14,8 +14,11 @@ from main.validation_utils import AccountValidator
 class AccountImportExportService:
     """Handle import and export of accounts to Excel files."""
     
+    # Default password for imported accounts
+    DEFAULT_PASSWORD = 'Edulytics@cca'
+    
     # Define which fields we need from the Excel file
-    REQUIRED_FIELDS = ['username', 'email', 'password', 'display_name', 'role']
+    REQUIRED_FIELDS = ['username', 'email', 'display_name', 'role']
     STUDENT_FIELDS = ['student_number', 'course', 'section']
     STAFF_FIELDS = ['institute']
     
@@ -164,7 +167,7 @@ class AccountImportExportService:
                     headers.append(header)
             
             # Validate headers
-            required = {'username', 'email', 'password', 'display_name', 'role'}
+            required = {'username', 'email', 'display_name', 'role'}
             if not required.issubset(set(headers)):
                 missing = required - set(headers)
                 result['errors'].append(f"Missing required columns: {', '.join(missing)}")
@@ -194,8 +197,12 @@ class AccountImportExportService:
                         display_name = str(row_data.get('display_name', '')).strip()
                         role = str(row_data.get('role', '')).strip()
                         
-                        # Validate required fields
-                        if not all([username, email, password, display_name, role]):
+                        # If no password provided, use default password
+                        if not password:
+                            password = AccountImportExportService.DEFAULT_PASSWORD
+                        
+                        # Validate required fields (password now optional)
+                        if not all([username, email, display_name, role]):
                             result['errors'].append(f"Row {row_idx}: Missing required fields")
                             result['skipped'] += 1
                             continue
