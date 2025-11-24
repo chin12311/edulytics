@@ -1389,6 +1389,41 @@ Your comments will be anonymous and used constructively to improve teaching qual
         }
     });
 
+    // Form submission validation and logging
+    document.querySelector('form').addEventListener('submit', function(e) {
+        console.log('Form submit event triggered');
+        
+        // Check if instructor is selected
+        const selectedInstructor = evaluateeSelect.value;
+        if (!selectedInstructor) {
+            e.preventDefault();
+            alert('Please select an instructor to evaluate.');
+            evaluateeSelect.focus();
+            return false;
+        }
+
+        // Check if already evaluated
+        if (evaluatedIds.includes(parseInt(selectedInstructor))) {
+            e.preventDefault();
+            alert('You have already evaluated this instructor. Please select a different instructor.');
+            return false;
+        }
+
+        // Check if all questions are answered
+        const totalQuestions = 19;
+        for (let i = 1; i <= totalQuestions; i++) {
+            const answered = document.querySelector(`input[name="question${i}"]:checked`);
+            if (!answered) {
+                e.preventDefault();
+                alert(`Please answer Question ${i} before submitting.`);
+                document.getElementById(`q${i}_5`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+        }
+
+        console.log('All validations passed, submitting form...');
+    });
+
     // Add smooth scrolling to form sections
     document.querySelectorAll('.rating-label').forEach(label => {
         label.addEventListener('click', function() {
