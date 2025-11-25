@@ -1787,9 +1787,17 @@ def submit_evaluation(request):
                 return redirect('main:evaluationform')
 
             # Get the current active evaluation period
+            # Determine evaluation type based on user roles
+            if evaluator_profile.role == Role.STUDENT:
+                evaluation_type = 'student'
+                total_questions = 19  # Student evaluation has 19 questions
+            else:
+                evaluation_type = 'peer'
+                total_questions = 15  # Peer evaluation has 15 questions
+            
             try:
                 current_period = EvaluationPeriod.objects.get(
-                    evaluation_type='student',
+                    evaluation_type=evaluation_type,
                     is_active=True
                 )
             except EvaluationPeriod.DoesNotExist:
@@ -1817,7 +1825,7 @@ def submit_evaluation(request):
             
             # Validate all questions and convert to text
             questions = {}
-            for i in range(1, 20):  # Changed to 20 to include questions 1-19
+            for i in range(1, total_questions + 1):  # Use dynamic question count based on evaluation type
                 question_key = f'question{i}'
                 question_value = request.POST.get(question_key)
                 
