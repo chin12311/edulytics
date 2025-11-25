@@ -1005,6 +1005,14 @@ def unrelease_student_evaluation(request):
         updated_count = evaluations.update(is_released=False)
 
         if updated_count > 0:
+            # Deactivate the current evaluation period
+            active_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='student',
+                is_active=True
+            )
+            active_periods.update(is_active=False, end_date=timezone.now())
+            logger.info(f"Deactivated {active_periods.count()} evaluation period(s)")
+            
             # Log admin activity
             log_admin_activity(
                 request=request,
@@ -1180,6 +1188,14 @@ def unrelease_peer_evaluation(request):
         updated_count = evaluations.update(is_released=False)
 
         if updated_count > 0:
+            # Deactivate the current evaluation period
+            active_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='peer',
+                is_active=True
+            )
+            active_periods.update(is_active=False, end_date=timezone.now())
+            logger.info(f"Deactivated {active_periods.count()} peer evaluation period(s)")
+            
             # Process peer evaluation results
             processing_results = process_peer_evaluation_results()
             
