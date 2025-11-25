@@ -833,17 +833,30 @@
 
     // Form validation
     document.querySelector('form').addEventListener('submit', function(e) {
+        // Remove any existing error messages
+        const existingError = document.querySelector('.validation-error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        // Remove highlighting from all questions
+        document.querySelectorAll('.question-group').forEach(q => {
+            q.style.border = '';
+            q.style.backgroundColor = '';
+        });
+        
         const selectedColleague = evaluateeSelect.value;
         if (!selectedColleague) {
             e.preventDefault();
-            alert('Please select a colleague to evaluate.');
+            showErrorMessage('⚠️ Please select a colleague to evaluate before submitting.');
             evaluateeSelect.focus();
+            evaluateeSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
 
         if (evaluatedIds.includes(parseInt(selectedColleague))) {
             e.preventDefault();
-            alert('You have already evaluated this colleague. Please select a different colleague.');
+            showErrorMessage('⚠️ You have already evaluated this colleague. Please select a different colleague.');
             return;
         }
 
@@ -859,7 +872,59 @@
 
         if (unansweredQuestions.length > 0) {
             e.preventDefault();
-            alert(`Please answer all questions before submitting. Missing questions: ${unansweredQuestions.join(', ')}`);
+            
+            // Highlight unanswered questions
+            unansweredQuestions.forEach(qNum => {
+                const questionGroup = document.getElementById(`q${qNum}_5`).closest('.question-group');
+                if (questionGroup) {
+                    questionGroup.style.border = '2px solid #ea4335';
+                    questionGroup.style.backgroundColor = '#fff3f3';
+                }
+            });
+            
+            // Show error message
+            const questionText = unansweredQuestions.length === 1 
+                ? `Question ${unansweredQuestions[0]}` 
+                : `${unansweredQuestions.length} questions (${unansweredQuestions.slice(0, 5).join(', ')}${unansweredQuestions.length > 5 ? '...' : ''})`;
+            
+            showErrorMessage(`⚠️ Please answer all questions before submitting. You missed: ${questionText}`);
+            
+            // Scroll to first unanswered question
+            const firstQuestion = document.getElementById(`q${unansweredQuestions[0]}_5`);
+            if (firstQuestion) {
+                firstQuestion.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
     });
+    
+    // Function to show styled error message
+    function showErrorMessage(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'validation-error-message';
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ea4335;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-size: 16px;
+            font-weight: 500;
+            max-width: 90%;
+            text-align: center;
+            animation: slideDown 0.3s ease;
+        `;
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            errorDiv.style.animation = 'slideUp 0.3s ease';
+            setTimeout(() => errorDiv.remove(), 300);
+        }, 5000);
+    }
 </script>
