@@ -392,7 +392,8 @@
                                     
                                 </div>
 
-                                <!-- Category Scores -->
+                                <!-- Category Scores (Only for Student Evaluations) -->
+                                {% if period.evaluation_type != 'peer' %}
                                 <div class="category-scores">
                                     <h6 style="color: #34495e; font-weight: 600; margin-bottom: 12px;">Category Breakdown</h6>
                                     
@@ -432,6 +433,12 @@
                                         <span class="category-score" data-category-score="3">{{ period.category_scores.3|floatformat:1 }}%</span>
                                     </div>
                                 </div>
+                                {% else %}
+                                <!-- Peer Evaluation Note -->
+                                <div class="alert alert-info" role="alert">
+                                    <i class="fas fa-info-circle"></i> <strong>Peer Evaluation:</strong> Simple average of 15 questions (no category breakdown)
+                                </div>
+                                {% endif %}
 
                                 <!-- AI Recommendations -->
                                 {% if period.recommendations %}
