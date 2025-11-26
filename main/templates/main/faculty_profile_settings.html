@@ -978,7 +978,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     </div>
                 </div>
 
-                <!-- Max Score Information -->
+                ${!isPeer ? `
+                <!-- Max Score Information (Student Evaluations Only) -->
                 <div class="max-score-info">
                     <h5>📝 Scoring Information</h5>
                     <p style="margin: 0; font-size: 14px;">
@@ -990,13 +991,25 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                         Total Maximum Possible Score: <strong>100%</strong>
                     </p>
                 </div>
+                ` : `
+                <!-- Peer Evaluation Information -->
+                <div class="max-score-info">
+                    <h5>📝 Scoring Information</h5>
+                    <p style="margin: 0; font-size: 14px;">
+                        <strong>Peer Evaluation:</strong><br>
+                        Simple average of 15 questions<br>
+                        Maximum Possible Score: <strong>100%</strong>
+                    </p>
+                </div>
+                `}
 
                 <!-- Chart -->
                 <div class="chart-container">
                     <canvas id="evaluationChart"></canvas>
                 </div>
 
-                <!-- Score Breakdown -->
+                ${!isPeer ? `
+                <!-- Score Breakdown (Student Evaluations Only) -->
                 <div class="score-breakdown">
                     <div class="score-item">
                         <div>
@@ -1047,6 +1060,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                         </div>
                     </div>
                 </div>
+                ` : ''}
             </div>
         `;
         
