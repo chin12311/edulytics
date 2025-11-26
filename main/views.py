@@ -2808,6 +2808,9 @@ class DeanProfileSettingsView(View):
         """Calculate scores for each assigned section"""
         section_scores = {}
         
+        # Get current active evaluation period for filtering comments
+        active_period = EvaluationPeriod.objects.filter(is_active=True, evaluation_type='student').first()
+        
         for section_assignment in assigned_sections:
             section = section_assignment.section
             section_code = section.code
@@ -2823,10 +2826,19 @@ class DeanProfileSettingsView(View):
             ).count()
             
             # Fetch student comments for this section
+            # Fetch student comments for this section, filtered by active evaluation period
+            comments_filter = {
+                'evaluatee': user,
+                'student_section': section_code,
+                'comments__isnull': False
+            }
+            
+            # Filter by evaluation period if there's an active one
+            if active_period:
+                comments_filter['evaluation_period'] = active_period
+            
             comments_queryset = EvaluationResponse.objects.filter(
-                evaluatee=user,
-                student_section=section_code,
-                comments__isnull=False
+                **comments_filter
             ).exclude(comments='').values_list('comments', flat=True)
             
             # Categorize comments using sentiment analysis
@@ -3352,6 +3364,9 @@ class CoordinatorProfileSettingsView(View):
         """Calculate scores for each assigned section"""
         section_scores = {}
         
+        # Get current active evaluation period for filtering comments
+        active_period = EvaluationPeriod.objects.filter(is_active=True, evaluation_type='student').first()
+        
         for section_assignment in assigned_sections:
             section = section_assignment.section
             section_code = section.code
@@ -3367,10 +3382,19 @@ class CoordinatorProfileSettingsView(View):
             ).count()
             
             # Fetch student comments for this section
+            # Fetch student comments for this section, filtered by active evaluation period
+            comments_filter = {
+                'evaluatee': user,
+                'student_section': section_code,
+                'comments__isnull': False
+            }
+            
+            # Filter by evaluation period if there's an active one
+            if active_period:
+                comments_filter['evaluation_period'] = active_period
+            
             comments_queryset = EvaluationResponse.objects.filter(
-                evaluatee=user,
-                student_section=section_code,
-                comments__isnull=False
+                **comments_filter
             ).exclude(comments='').values_list('comments', flat=True)
             
             # Categorize comments using sentiment analysis
@@ -3809,6 +3833,9 @@ class FacultyProfileSettingsView(View):
     def get_section_scores(self, user, assigned_sections):
         """Calculate scores for each assigned section"""
         section_scores = {}
+        
+        # Get current active evaluation period for filtering comments
+        active_period = EvaluationPeriod.objects.filter(is_active=True, evaluation_type='student').first()
         
         for section_assignment in assigned_sections:
             section = section_assignment.section
