@@ -2885,6 +2885,12 @@ class DeanProfileSettingsView(View):
         total_count_a = total_count_b = total_count_c = total_count_d = 0
         total_responses = 0
         
+        # Get active student evaluation period (NOT peer evaluation)
+        active_student_period = EvaluationPeriod.objects.filter(
+            is_active=True,
+            evaluation_type='student'
+        ).first()
+        
         for section_assignment in assigned_sections:
             section = section_assignment.section
             section_code = section.code
@@ -2900,6 +2906,10 @@ class DeanProfileSettingsView(View):
                     evaluatee=user,
                     student_section=section_code
                 )
+                
+                # Filter by active student period to exclude peer evaluations
+                if active_student_period:
+                    section_responses = section_responses.filter(evaluation_period=active_student_period)
                 
                 if section_responses.exists():
                     total_responses += section_responses.count()
@@ -2964,10 +2974,17 @@ class DeanProfileSettingsView(View):
         total_percentage = a_avg + b_avg + c_avg + d_avg
         
         # FETCH COMMENTS FROM ALL SECTIONS FOR OVERALL VIEW
-        all_comments = EvaluationResponse.objects.filter(
+        # IMPORTANT: Only student evaluation comments, NOT peer evaluation comments
+        comments_query = EvaluationResponse.objects.filter(
             evaluatee=user,
             comments__isnull=False
-        ).exclude(comments='').values_list('comments', flat=True)
+        ).exclude(comments='')
+        
+        # Filter by active student period to exclude peer evaluations
+        if active_student_period:
+            comments_query = comments_query.filter(evaluation_period=active_student_period)
+        
+        all_comments = comments_query.values_list('comments', flat=True)
         
         # Categorize all comments using sentiment analysis
         positive_comments = []
@@ -3441,6 +3458,12 @@ class CoordinatorProfileSettingsView(View):
         total_count_a = total_count_b = total_count_c = total_count_d = 0
         total_responses = 0
         
+        # Get active student evaluation period (NOT peer evaluation)
+        active_student_period = EvaluationPeriod.objects.filter(
+            is_active=True,
+            evaluation_type='student'
+        ).first()
+        
         for section_assignment in assigned_sections:
             section = section_assignment.section
             section_code = section.code
@@ -3456,6 +3479,10 @@ class CoordinatorProfileSettingsView(View):
                     evaluatee=user,
                     student_section=section_code
                 )
+                
+                # Filter by active student period to exclude peer evaluations
+                if active_student_period:
+                    section_responses = section_responses.filter(evaluation_period=active_student_period)
                 
                 if section_responses.exists():
                     total_responses += section_responses.count()
@@ -3520,10 +3547,17 @@ class CoordinatorProfileSettingsView(View):
         total_percentage = a_avg + b_avg + c_avg + d_avg
         
         # FETCH COMMENTS FROM ALL SECTIONS FOR OVERALL VIEW
-        all_comments = EvaluationResponse.objects.filter(
+        # IMPORTANT: Only student evaluation comments, NOT peer evaluation comments
+        comments_query = EvaluationResponse.objects.filter(
             evaluatee=user,
             comments__isnull=False
-        ).exclude(comments='').values_list('comments', flat=True)
+        ).exclude(comments='')
+        
+        # Filter by active student period to exclude peer evaluations
+        if active_student_period:
+            comments_query = comments_query.filter(evaluation_period=active_student_period)
+        
+        all_comments = comments_query.values_list('comments', flat=True)
         
         # Categorize all comments using sentiment analysis
         positive_comments = []
@@ -3932,6 +3966,12 @@ class FacultyProfileSettingsView(View):
         total_count_a = total_count_b = total_count_c = total_count_d = 0
         total_responses = 0
         
+        # Get active student evaluation period (NOT peer evaluation)
+        active_student_period = EvaluationPeriod.objects.filter(
+            is_active=True,
+            evaluation_type='student'
+        ).first()
+        
         # Initialize overall rating distribution
         overall_rating_distribution = [0, 0, 0, 0, 0]
         
@@ -3952,6 +3992,10 @@ class FacultyProfileSettingsView(View):
                     evaluatee=user,
                     student_section=section_code
                 )
+                
+                # Filter by active student period to exclude peer evaluations
+                if active_student_period:
+                    section_responses = section_responses.filter(evaluation_period=active_student_period)
                 
                 if section_responses.exists():
                     total_responses += section_responses.count()
