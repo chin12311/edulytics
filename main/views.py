@@ -2369,6 +2369,68 @@ def compute_category_scores(evaluatee, section_code=None, evaluation_period=None
     
     return final_result
 
+def compute_peer_scores(evaluatee, evaluation_period=None):
+    """
+    Calculate peer evaluation scores - simple average of 15 questions (100% total)
+    Peer evaluations don't have categories, just overall percentage
+    """
+    # Filter responses by evaluatee
+    responses = EvaluationResponse.objects.filter(evaluatee=evaluatee)
+    
+    # Filter by evaluation period if provided
+    if evaluation_period:
+        responses = responses.filter(
+            submitted_at__gte=evaluation_period.start_date,
+            submitted_at__lte=evaluation_period.end_date
+        )
+    
+    # Only get peer evaluations (staff evaluating staff)
+    responses = responses.filter(student_section__icontains="Staff")
+    
+    if not responses.exists():
+        return [0, 0, 0, 0, 0, 0, 0, 0, 0]  # Return zeros matching the format
+    
+    # Rating to numeric value mapping
+    rating_to_numeric = {
+        'Poor': 1,
+        'Unsatisfactory': 2,
+        'Satisfactory': 3,
+        'Very Satisfactory': 4,
+        'Outstanding': 5
+    }
+    
+    total_score = 0
+    total_questions = 0
+    
+    for response in responses:
+        # Peer evaluation has 15 questions
+        for i in range(1, 16):
+            question_key = f'question{i}'
+            rating_text = getattr(response, question_key, 'Poor')
+            score = rating_to_numeric.get(rating_text, 1)
+            total_score += score
+            total_questions += 1
+    
+    # Calculate simple average as percentage
+    if total_questions == 0:
+        total_percentage = 0
+    else:
+        average_score = total_score / total_questions  # Average out of 5
+        total_percentage = (average_score / 5) * 100  # Convert to percentage
+    
+    # Return format compatible with existing code (no categories for peer)
+    return [
+        0,  # No category A
+        0,  # No category B
+        0,  # No category C
+        0,  # No category D
+        round(total_percentage, 2),  # Total percentage
+        0,  # No category A total
+        0,  # No category B total
+        0,  # No category C total
+        0   # No category D total
+    ]
+
 def evaluation_form_staffs(request):
     """
     Display the staff peer evaluation form.
@@ -4754,6 +4816,7 @@ def process_evaluation_results_for_user(user, evaluation_period=None):
     """
     Process evaluation responses and create/update EvaluationResult records for a specific user
     CRITICAL: Only processes responses within the specified period's date range
+    Handles both student evaluations (with categories) and peer evaluations (simple average)
     """
     from django.utils import timezone
     
@@ -4785,8 +4848,16 @@ def process_evaluation_results_for_user(user, evaluation_period=None):
     if not responses.exists():
         return None
     
-    # Calculate overall scores using responses from THIS period only
-    category_scores = compute_category_scores(user, evaluation_period=evaluation_period)
+    # Determine if this is a peer evaluation or student evaluation
+    is_peer_evaluation = evaluation_period.evaluation_type == 'peer'
+    
+    if is_peer_evaluation:
+        # Use peer scoring (simple average of 15 questions, no categories)
+        category_scores = compute_peer_scores(user, evaluation_period=evaluation_period)
+    else:
+        # Use student scoring (4 categories with weights)
+        category_scores = compute_category_scores(user, evaluation_period=evaluation_period)
+    
     a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
     
     # Calculate rating distribution for THIS period
