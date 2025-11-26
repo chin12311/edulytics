@@ -4937,7 +4937,8 @@ def process_evaluation_results_for_user(user, evaluation_period=None):
 def archive_period_results_to_history(evaluation_period):
     """
     Archive all EvaluationResult records for a period to EvaluationHistory
-    This is called when a period is being archived/deactivated
+    This is called when a NEW period is being released (to archive the OLD period)
+    After archiving, deletes the old results from EvaluationResult table
     """
     try:
         # Get all results for this evaluation period
@@ -4949,6 +4950,12 @@ def archive_period_results_to_history(evaluation_period):
             history = EvaluationHistory.create_from_result(result)
             archived_count += 1
             logger.info(f"Archived result for {result.user.username} to history: {result.total_percentage}%")
+        
+        # DELETE the old results from EvaluationResult after archiving to history
+        # This ensures only current period results remain in EvaluationResult table
+        if archived_count > 0:
+            deleted_count = results.delete()[0]
+            logger.info(f"Deleted {deleted_count} old evaluation results from EvaluationResult table after archiving")
         
         logger.info(f"Successfully archived {archived_count} evaluation results to history for period: {evaluation_period.name}")
         return archived_count
