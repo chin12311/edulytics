@@ -2374,18 +2374,12 @@ def compute_peer_scores(evaluatee, evaluation_period=None):
     Calculate peer evaluation scores - simple average of 15 questions (100% total)
     Peer evaluations don't have categories, just overall percentage
     """
-    # Filter responses by evaluatee
+    # Filter responses by evaluatee and evaluation period
     responses = EvaluationResponse.objects.filter(evaluatee=evaluatee)
     
-    # Filter by evaluation period if provided
+    # MUST filter by evaluation_period to get only peer evaluation responses
     if evaluation_period:
-        responses = responses.filter(
-            submitted_at__gte=evaluation_period.start_date,
-            submitted_at__lte=evaluation_period.end_date
-        )
-    
-    # Only get peer evaluations (staff evaluating staff)
-    responses = responses.filter(student_section__icontains="Staff")
+        responses = responses.filter(evaluation_period=evaluation_period)
     
     if not responses.exists():
         return [0, 0, 0, 0, 0, 0, 0, 0, 0]  # Return zeros matching the format
