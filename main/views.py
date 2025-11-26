@@ -4744,8 +4744,61 @@ class EvaluationHistoryView(View):
         
         evaluation_history = []
         
-        # Get processed evaluation results from EvaluationResult model for COMPLETED periods ONLY
-        # Only show results from periods that are marked as inactive (completed)
+        # Get historical evaluation results from EvaluationHistory model (archived results)
+        # These are results that have been archived when new evaluation periods were released
+        history_records = EvaluationHistory.objects.filter(
+            user=user
+        ).select_related('evaluation_period', 'section').order_by('-period_start_date')
+        
+        # Add archived history records to evaluation_history
+        for history in history_records:
+            # Get student comments for this period
+            comments = []
+            responses = EvaluationResponse.objects.filter(
+                evaluatee=user,
+                evaluation_period=history.evaluation_period
+            ).exclude(comments__isnull=True).exclude(comments='')
+            
+            for response in responses:
+                if response.comments:
+                    comments.append(response.comments)
+            
+            # Gather saved AI recommendations for this period
+            rec_qs = AiRecommendation.objects.filter(user=user, evaluation_period=history.evaluation_period).order_by('-created_at')
+            rec_list = []
+            for r in rec_qs:
+                rec_list.append({
+                    'title': r.title or 'Recommendation',
+                    'description': r.description or r.recommendation or '',
+                    'priority': r.priority or '',
+                    'reason': r.reason or ''
+                })
+
+            evaluation_history.append({
+                'period_name': history.evaluation_period.name,
+                'evaluation_period_id': history.evaluation_period.id,
+                'evaluation_type': history.evaluation_type,  # Add evaluation type
+                'period_start_date': history.period_start_date,
+                'period_end_date': history.period_end_date,
+                'date': history.archived_at,
+                'section': history.section.code if history.section else 'All Sections',
+                'overall_percentage': history.total_percentage,
+                'average_rating': history.average_rating,
+                'category_scores': [
+                    history.category_a_score,
+                    history.category_b_score, 
+                    history.category_c_score,
+                    history.category_d_score
+                ],
+                'total_responses': history.total_responses,
+                'is_processed': True,
+                'source': 'Archived Period',
+                'recommendations': rec_list,
+                'comments': comments
+            })
+        
+        # ALSO get evaluation results from EvaluationResult model for COMPLETED periods that haven't been archived yet
+        # (This handles backward compatibility for old periods that were completed before archiving was implemented)
         evaluation_results = EvaluationResult.objects.filter(
             user=user,
             evaluation_period__is_active=False  # Only show completed periods, not current
@@ -4780,6 +4833,7 @@ class EvaluationHistoryView(View):
             evaluation_history.append({
                 'period_name': result.evaluation_period.name,
                 'evaluation_period_id': result.evaluation_period.id,
+                'evaluation_type': result.evaluation_period.evaluation_type,  # Add evaluation type
                 'period_start_date': result.evaluation_period.start_date,
                 'period_end_date': result.evaluation_period.end_date,
                 'date': result.calculated_at,
