@@ -12,6 +12,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
 {% endblock %}
 
 {% block content %}
+<!-- Font Awesome for eye icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 <style>
     .custom-input-width {
         width: 100%;
@@ -561,13 +564,13 @@ function initializePasswordValidation() {
             const pass = password.value;
             const confirmPass = confirmPassword.value;
             
-            // Only show error if confirm password field has content
-            if (confirmPass) {
+            // Only show error if BOTH fields have been touched and confirm password has content
+            if (confirmPass && pass) {
                 if (pass !== confirmPass) {
                     passwordError.textContent = 'Passwords do not match!';
                     passwordError.style.display = 'block';
                     confirmPassword.style.borderColor = '#dc3545';
-                } else if (pass.length > 0 && pass.length < 8) {
+                } else if (pass.length < 8) {
                     passwordError.textContent = 'Password must be at least 8 characters long!';
                     passwordError.style.display = 'block';
                     password.style.borderColor = '#dc3545';
@@ -577,6 +580,7 @@ function initializePasswordValidation() {
                     password.style.borderColor = '#47682c';
                 }
             } else {
+                // Hide error when either field is empty
                 passwordError.style.display = 'none';
                 confirmPassword.style.borderColor = '';
                 password.style.borderColor = '';
