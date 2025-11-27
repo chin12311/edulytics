@@ -292,16 +292,34 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             <!-- Passwords -->
             <div class="form-group">
                 <label for="id_password1">Password:</label>
-                <input type="password" name="password1" id="id_password1" 
-                       class="form-control mb-3 custom-input-width text-center" 
-                       placeholder="Enter password" required>
+                <div style="position: relative;">
+                    <input type="password" name="password1" id="id_password1" 
+                           class="form-control mb-1 custom-input-width text-center" 
+                           placeholder="Enter password" required>
+                </div>
+                <div class="form-check mt-2 text-center">
+                    <input class="form-check-input" type="checkbox" id="showPassword1" 
+                           style="cursor: pointer;">
+                    <label class="form-check-label" for="showPassword1" style="cursor: pointer; font-size: 0.9rem;">
+                        Show Password
+                    </label>
+                </div>
             </div>
             
             <div class="form-group">
                 <label for="id_password2">Confirm Password:</label>
-                <input type="password" name="password2" id="id_password2" 
-                       class="form-control mb-3 custom-input-width text-center" 
-                       placeholder="Confirm password" required>
+                <div style="position: relative;">
+                    <input type="password" name="password2" id="id_password2" 
+                           class="form-control mb-1 custom-input-width text-center" 
+                           placeholder="Confirm password" required>
+                </div>
+                <div class="form-check mt-2 text-center">
+                    <input class="form-check-input" type="checkbox" id="showPassword2" 
+                           style="cursor: pointer;">
+                    <label class="form-check-label" for="showPassword2" style="cursor: pointer; font-size: 0.9rem;">
+                        Show Password
+                    </label>
+                </div>
             </div>
             
             <button type="submit" class="btn btn-success w-100 fw-bold">Create Account</button>
@@ -400,6 +418,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const roleField = document.getElementById('id_role');
     const studentFields = document.getElementById('student-fields');
     const staffFields = document.getElementById('staff-fields');
+    
+    // Password visibility toggles
+    const showPassword1 = document.getElementById('showPassword1');
+    const showPassword2 = document.getElementById('showPassword2');
+    const password1Field = document.getElementById('id_password1');
+    const password2Field = document.getElementById('id_password2');
+    
+    if (showPassword1 && password1Field) {
+        showPassword1.addEventListener('change', function() {
+            password1Field.type = this.checked ? 'text' : 'password';
+        });
+    }
+    
+    if (showPassword2 && password2Field) {
+        showPassword2.addEventListener('change', function() {
+            password2Field.type = this.checked ? 'text' : 'password';
+        });
+    }
     
     function toggleFields() {
         const role = roleField.value;
