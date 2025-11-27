@@ -1,4 +1,4 @@
-{% extends 'main/base.html' %}
+{% extends 'registration/login_base.html' %}
 
 {% block title %} Login {% endblock %}
 {% load crispy_forms_tags %}
@@ -146,17 +146,8 @@
 </style>
 
 <script>
-    // Immediately redirect if user is authenticated (for back button handling)
+    // Add shake effect when page loads with errors
     document.addEventListener('DOMContentLoaded', function() {
-        // Check if dropdown exists (indicates user is authenticated)
-        const dropdown = document.querySelector('.admin-dropdown');
-        if (dropdown && dropdown.offsetParent !== null) {
-            // User is authenticated, redirect to main page
-            window.location.href = "{% url 'main:index' %}";
-            return;
-        }
-        
-        // Optional: Add shake effect when page loads with errors
         const errorInputs = document.querySelectorAll('.error-border');
         errorInputs.forEach(input => {
             input.addEventListener('focus', function() {
@@ -166,14 +157,6 @@
                 }, 10);
             });
         });
-    });
-    
-    // Also handle pageshow event (fired when navigating via back button)
-    window.addEventListener('pageshow', function(event) {
-        const dropdown = document.querySelector('.admin-dropdown');
-        if (dropdown && dropdown.offsetParent !== null) {
-            window.location.href = "{% url 'main:index' %}";
-        }
     });
 </script>
 
