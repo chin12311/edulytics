@@ -81,10 +81,6 @@ class RegisterView(View):
 
 @rate_limit(max_attempts=5, window_seconds=300)  # 5 login attempts per 5 minutes
 def login_view(request):
-    # Redirect authenticated users to prevent cached login page visibility
-    if request.user.is_authenticated:
-        return redirect('main:index')
-    
     # Get client IP for debugging
     client_ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', 'UNKNOWN'))
     if ',' in client_ip:
