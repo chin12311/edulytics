@@ -576,7 +576,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             <!-- Section Assignment Card -->
             <div class="form-card">
                 <h4>Assign Sections to Yourself</h4>
-                <form method="POST" action="{% url 'dean_profile_settings' %}">
+                <form method="POST" action="{% url 'main:dean_profile_settings' %}">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="assign_sections">
                     
