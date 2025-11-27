@@ -448,31 +448,32 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 <h4 class="text-center">Faculty Profile Settings</h4>
 
                 {% if error %}
-                    <div class="alert alert-danger" role="alert">{{ error }}</div>
+                    <div class="alert alert-danger" role="alert" id="profileError">{{ error }}</div>
                 {% endif %}
 
-                <form method="POST" action="{% url 'main:faculty_profile_settings' %}">
+                <form method="POST" action="{% url 'main:faculty_profile_settings' %}" id="profileForm">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ next_url|default:'/' }}">
 
                     <div class="form-group">
                         <label for="username">Username:</label>
-                        <input type="text" name="username" value="{{ user.username }}" required class="form-control custom-input-width text-center">
+                        <input type="text" name="username" id="username" value="{{ user.username }}" required class="form-control custom-input-width text-center">
                     </div>
 
                     <div class="form-group">
                         <label for="email">Email:</label>
-                        <input type="email" name="email" value="{{ user.email }}" required class="form-control custom-input-width text-center">
+                        <input type="email" name="email" id="email" value="{{ user.email }}" required class="form-control custom-input-width text-center">
                     </div>
 
                     <div class="form-group">
-                        <label for="new_password1">New Password:</label>
-                        <input type="password" name="new_password1" class="form-control custom-input-width text-center" placeholder="Enter new password">
+                        <label for="new_password1">New Password (8-16 characters):</label>
+                        <input type="password" name="new_password1" id="new_password1" class="form-control custom-input-width text-center" placeholder="Enter new password" minlength="8" maxlength="16">
                     </div>
 
                     <div class="form-group">
                         <label for="new_password2">Confirm New Password:</label>
-                        <input type="password" name="new_password2" class="form-control custom-input-width text-center" placeholder="Confirm new password">
+                        <input type="password" name="new_password2" id="new_password2" class="form-control custom-input-width text-center" placeholder="Confirm new password" minlength="8" maxlength="16">
+                        <small id="passwordMatchError" class="text-danger" style="display: none;">Passwords do not match!</small>
                     </div>
 
                     <button type="submit" class="btn btn-success">Update Profile</button>
@@ -1778,6 +1779,62 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     item.style.display = 'none';
                 }
             });
+        });
+    }
+
+    // Password validation and error clearing
+    const password1 = document.getElementById('new_password1');
+    const password2 = document.getElementById('new_password2');
+    const passwordMatchError = document.getElementById('passwordMatchError');
+    const profileError = document.getElementById('profileError');
+    const profileForm = document.getElementById('profileForm');
+
+    // Clear error when user starts typing
+    if (password1) {
+        password1.addEventListener('input', function() {
+            if (profileError) profileError.style.display = 'none';
+            checkPasswordMatch();
+        });
+    }
+
+    if (password2) {
+        password2.addEventListener('input', function() {
+            if (profileError) profileError.style.display = 'none';
+            checkPasswordMatch();
+        });
+    }
+
+    // Clear error when any field changes
+    const formInputs = document.querySelectorAll('#profileForm input');
+    formInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            if (profileError) profileError.style.display = 'none';
+        });
+    });
+
+    function checkPasswordMatch() {
+        if (password1 && password2 && passwordMatchError) {
+            if (password2.value && password1.value !== password2.value) {
+                passwordMatchError.style.display = 'block';
+                return false;
+            } else {
+                passwordMatchError.style.display = 'none';
+                return true;
+            }
+        }
+        return true;
+    }
+
+    // Validate on form submit
+    if (profileForm) {
+        profileForm.addEventListener('submit', function(e) {
+            if (password1 && password2 && password1.value && password2.value) {
+                if (password1.value !== password2.value) {
+                    e.preventDefault();
+                    passwordMatchError.style.display = 'block';
+                    password2.focus();
+                }
+            }
         });
     }
 </script>
