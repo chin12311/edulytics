@@ -169,26 +169,22 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
 
             <div class="form-group">
                 <label for="password">New Password (optional, minimum 8 characters):</label>
-                <input type="password" name="password" id="password" class="form-control mb-1 custom-input-width text-center" minlength="8">
-                <div class="form-check mt-2 text-center">
-                    <input class="form-check-input" type="checkbox" id="showPassword" 
-                           style="cursor: pointer;">
-                    <label class="form-check-label" for="showPassword" style="cursor: pointer; font-size: 0.9rem;">
-                        Show Password
-                    </label>
+                <div style="position: relative;">
+                    <input type="password" name="password" id="password" class="form-control mb-1 custom-input-width text-center" minlength="8"
+                           style="padding-right: 40px;">
+                    <i class="fas fa-eye" id="togglePassword" 
+                       style="position: absolute; right: 15%; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
                 </div>
                 <small class="text-muted d-block mt-2">Leave blank to keep current password</small>
             </div>
 
             <div class="form-group">
                 <label for="confirm_password">Confirm New Password:</label>
-                <input type="password" name="confirm_password" id="confirm_password" class="form-control mb-1 custom-input-width text-center" minlength="8">
-                <div class="form-check mt-2 text-center">
-                    <input class="form-check-input" type="checkbox" id="showConfirmPassword" 
-                           style="cursor: pointer;">
-                    <label class="form-check-label" for="showConfirmPassword" style="cursor: pointer; font-size: 0.9rem;">
-                        Show Password
-                    </label>
+                <div style="position: relative;">
+                    <input type="password" name="confirm_password" id="confirm_password" class="form-control mb-1 custom-input-width text-center" minlength="8"
+                           style="padding-right: 40px;">
+                    <i class="fas fa-eye" id="toggleConfirmPassword" 
+                       style="position: absolute; right: 15%; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
                 </div>
                 <small id="passwordError" class="text-danger d-block mt-2" style="display: none;">Passwords do not match!</small>
             </div>
@@ -379,20 +375,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Password visibility toggles
-    const showPassword = document.getElementById('showPassword');
-    const showConfirmPassword = document.getElementById('showConfirmPassword');
+    const togglePassword = document.getElementById('togglePassword');
+    const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
     const passwordField = document.getElementById('password');
     const confirmPasswordField = document.getElementById('confirm_password');
     
-    if (showPassword && passwordField) {
-        showPassword.addEventListener('change', function() {
-            passwordField.type = this.checked ? 'text' : 'password';
+    if (togglePassword && passwordField) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordField.type === 'password' ? 'text' : 'password';
+            passwordField.type = type;
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
         });
     }
     
-    if (showConfirmPassword && confirmPasswordField) {
-        showConfirmPassword.addEventListener('change', function() {
-            confirmPasswordField.type = this.checked ? 'text' : 'password';
+    if (toggleConfirmPassword && confirmPasswordField) {
+        toggleConfirmPassword.addEventListener('click', function() {
+            const type = confirmPasswordField.type === 'password' ? 'text' : 'password';
+            confirmPasswordField.type = type;
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
         });
     }
 
