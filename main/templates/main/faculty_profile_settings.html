@@ -412,6 +412,30 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         float: right;
         margin-top: 8px;
     }
+
+    /* Section Assignment Styles */
+    .selected-sections {
+        margin-top: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .selected-section-item {
+        display: inline-block;
+        background: #47682c;
+        color: white;
+        padding: 5px 12px;
+        margin: 5px;
+        border-radius: 15px;
+        font-size: 14px;
+    }
+    
+    .section-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
 </style>
 
 <div class="container" style="min-height: 100vh; padding-top: 30px;">
@@ -452,6 +476,75 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     </div>
 
                     <button type="submit" class="btn btn-success">Update Profile</button>
+                </form>
+            </div>
+
+            <!-- Section Assignment Card -->
+            <div class="form-card">
+                <h4 class="text-center">Manage Section Assignments</h4>
+                
+                <form method="POST" action="{% url 'main:faculty_profile_settings' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="assign_sections">
+                    
+                    <!-- Simple instructions -->
+                    <div class="alert alert-info">
+                        <strong>📋 How to manage sections:</strong><br>
+                        • <strong>Check</strong> = Assign section to yourself<br>
+                        • <strong>Uncheck</strong> = Remove section from yourself<br>
+                        • To remove <strong>ALL</strong> sections: Uncheck EVERY box below
+                    </div>
+
+                    <!-- Current assignments summary -->
+                    <div class="selected-sections mb-4">
+                        <h5>📊 Currently Assigned ({{ assigned_sections|length }} sections):</h5>
+                        {% if assigned_sections %}
+                            {% for assignment in assigned_sections %}
+                            <div class="selected-section-item">
+                                {{ assignment.section.code }} ({{ assignment.section.get_year_level_display }} Year)
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div style="color: #666; font-style: italic;">No sections currently assigned</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Year filter -->
+                    <div class="form-group">
+                        <label for="year_filter">🔍 Filter by Year Level:</label>
+                        <select name="year" id="year_filter" class="form-control mb-3 custom-input-width text-center">
+                            <option value="">-- Show All Years --</option>
+                            {% for year in years %}
+                                <option value="{{ year }}">{{ year }} Year</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Section selection -->
+                    <div class="form-group">
+                        <label>✅ Section Selection:</label>
+                        <div class="section-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9f9f9;">
+                            {% for section in sections %}
+                            <div class="form-check mb-2" data-year="{{ section.year_level }}">
+                                <input class="form-check-input" type="checkbox" name="sections" 
+                                       value="{{ section.id }}" 
+                                       id="section_{{ section.id }}"
+                                       {% if section.id in currently_assigned_ids %}checked{% endif %}>
+                                <label class="form-check-label" for="section_{{ section.id }}">
+                                    <strong>{{ section.code }}</strong> - {{ section.get_year_level_display }} Year
+                                    {% if section.id in currently_assigned_ids %}
+                                    <span style="color: #47682c; font-weight: bold;">✓ (Currently Assigned)</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted">
+                            <strong>Tip:</strong> Use the year filter above to find sections faster
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 fw-bold mt-3">Save Section Assignments</button>
                 </form>
             </div>
 
@@ -1669,6 +1762,24 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             setTimeout(() => flash.remove(), 1000);
         });
     }, 3000);
+
+    // Year filter functionality for section assignment
+    const yearFilter = document.getElementById('year_filter');
+    if (yearFilter) {
+        yearFilter.addEventListener('change', function() {
+            const selectedYear = this.value;
+            const sectionItems = document.querySelectorAll('.section-list .form-check');
+            
+            sectionItems.forEach(item => {
+                const itemYear = item.getAttribute('data-year');
+                if (!selectedYear || String(itemYear) === String(selectedYear)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
 </script>
 
 <!-- Add Font Awesome for icons -->

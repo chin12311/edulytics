@@ -413,6 +413,30 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         margin-top: 8px;
     }
 
+    /* Section Assignment Styles */
+    .selected-sections {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .selected-section-item {
+        background-color: #28a745;
+        color: white;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.9rem;
+        display: inline-block;
+    }
+
+    .section-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        border-radius: 5px;
+    }
+
     /* History Timeline Styles */
     .history-timeline {
         display: flex;
@@ -545,6 +569,57 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     </div>
 
                     <button type="submit" class="btn btn-success">Update Profile</button>
+                </form>
+            </div>
+
+            <!-- Section Assignment Card -->
+            <div class="form-card">
+                <h4>Assign Sections to Yourself</h4>
+                <form method="POST" action="{% url 'dean_profile_settings' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="assign_sections">
+                    
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle"></i> Select the sections you want to be assigned to. These will be added to your existing section assignments.
+                    </div>
+
+                    <!-- Display currently assigned sections -->
+                    {% if assigned_sections %}
+                        <div class="mb-3">
+                            <strong>Currently Assigned Sections:</strong>
+                            <div class="selected-sections mt-2">
+                                {% for assignment in assigned_sections %}
+                                    <span class="selected-section-item">{{ assignment.section.name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Year level filter -->
+                    <div class="mb-3">
+                        <label for="year_filter" class="form-label">Filter by Year Level:</label>
+                        <select id="year_filter" class="form-select">
+                            <option value="">All Years</option>
+                            {% for year in years %}
+                                <option value="{{ year }}">{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Section checkboxes -->
+                    <div class="section-list">
+                        {% for section in sections %}
+                            <div class="form-check" data-year="{{ section.year_level }}">
+                                <input class="form-check-input" type="checkbox" name="sections" value="{{ section.id }}" id="section{{ section.id }}"
+                                    {% if section.id in currently_assigned_ids %}checked{% endif %}>
+                                <label class="form-check-label" for="section{{ section.id }}">
+                                    {{ section.name }} - Year {{ section.year_level }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3">Assign Selected Sections</button>
                 </form>
             </div>
 
@@ -1789,6 +1864,24 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             setTimeout(() => flash.remove(), 1000);
         });
     }, 3000);
+
+    // Year filter functionality for section assignment
+    const yearFilter = document.getElementById('year_filter');
+    if (yearFilter) {
+        yearFilter.addEventListener('change', function() {
+            const selectedYear = this.value;
+            const sectionItems = document.querySelectorAll('.section-list .form-check');
+            
+            sectionItems.forEach(item => {
+                const itemYear = item.getAttribute('data-year');
+                if (!selectedYear || String(itemYear) === String(selectedYear)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
 
     // ============================================
     // EVALUATION HISTORY FUNCTIONS
