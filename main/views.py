@@ -1526,6 +1526,7 @@ class CoordinatorDetailView(View):
 
             context = {
                 'coordinator': coordinator,
+                'faculty': coordinator,  # Add faculty key for faculty_detail.html compatibility
                 'assigned_sections': assigned_sections,
                 'section_scores': section_scores,
                 'section_scores_json': section_scores_json,  # JSON for JavaScript
@@ -1537,7 +1538,11 @@ class CoordinatorDetailView(View):
                 'evaluation_period_ended': can_view_evaluation_results('student'),
             }
 
-            return render(request, 'main/coordinator_detail.html', context)
+            # Render appropriate template based on role
+            if coordinator.role == 'Faculty':
+                return render(request, 'main/faculty_detail.html', context)
+            else:
+                return render(request, 'main/coordinator_detail.html', context)
 
         except UserProfile.DoesNotExist:
             return redirect('/login')
@@ -2610,6 +2615,11 @@ class DeanProfileSettingsView(View):
             # Identify current active student evaluation period (if any)
             active_student_period = EvaluationPeriod.objects.filter(evaluation_type='student', is_active=True).order_by('-start_date').first()
 
+            # Get all sections and years for section assignment
+            sections = Section.objects.all().order_by('year_level', 'name')
+            years = Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level')
+            currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
+
             return render(request, 'main/dean_profile_settings.html', {
                 'user': user,
                 'next_url': next_url,
@@ -2628,6 +2638,9 @@ class DeanProfileSettingsView(View):
                 'evaluation_period_ended': can_view_evaluation_results('student'),
                 'evaluation_history': evaluation_history,
                 'active_student_period_id': active_student_period.id if active_student_period else None,
+                'sections': sections,
+                'years': years,
+                'currently_assigned_ids': currently_assigned_ids,
             })
         return redirect('login')
     
@@ -2723,6 +2736,26 @@ class DeanProfileSettingsView(View):
             if user.userprofile.role != 'Dean':
                 return redirect(index_url)
 
+            # Check if this is a section assignment request
+            action = request.POST.get('action')
+            if action == 'assign_sections':
+                selected_section_ids = request.POST.getlist('sections')
+                
+                # Delete existing section assignments for this user
+                SectionAssignment.objects.filter(user=user).delete()
+                
+                # Create new section assignments
+                for section_id in selected_section_ids:
+                    try:
+                        section = Section.objects.get(id=section_id)
+                        SectionAssignment.objects.create(user=user, section=section)
+                    except Section.DoesNotExist:
+                        continue
+                
+                messages.success(request, f"Successfully assigned {len(selected_section_ids)} section(s).")
+                return redirect('main:dean_profile_settings')
+
+            # Handle profile update (existing code)
             username = request.POST.get("username")
             email = request.POST.get("email")
             new_password = request.POST.get("new_password1")
@@ -3186,6 +3219,11 @@ class CoordinatorProfileSettingsView(View):
 
             evaluation_history = self.get_evaluation_history(user)
             
+            # Get all sections and years for section assignment
+            sections = Section.objects.all().order_by('year_level', 'name')
+            years = Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level')
+            currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
+            
             return render(request, 'main/coordinator_profile_settings.html', {
                 'user': user,
                 'next_url': next_url,
@@ -3202,7 +3240,10 @@ class CoordinatorProfileSettingsView(View):
                 'sections_with_data': sections_with_data,
                 'total_evaluations': total_evaluations,
                 'evaluation_period_ended': can_view_evaluation_results('student'),
-                'evaluation_history': evaluation_history, 
+                'evaluation_history': evaluation_history,
+                'sections': sections,
+                'years': years,
+                'currently_assigned_ids': currently_assigned_ids,
             })
         return redirect('login')
     
@@ -3298,6 +3339,26 @@ class CoordinatorProfileSettingsView(View):
             if user.userprofile.role != 'Coordinator':
                 return redirect(index_url)
 
+            # Check if this is a section assignment request
+            action = request.POST.get('action')
+            if action == 'assign_sections':
+                selected_section_ids = request.POST.getlist('sections')
+                
+                # Delete existing section assignments for this user
+                SectionAssignment.objects.filter(user=user).delete()
+                
+                # Create new section assignments
+                for section_id in selected_section_ids:
+                    try:
+                        section = Section.objects.get(id=section_id)
+                        SectionAssignment.objects.create(user=user, section=section)
+                    except Section.DoesNotExist:
+                        continue
+                
+                messages.success(request, f"Successfully assigned {len(selected_section_ids)} section(s).")
+                return redirect('main:coordinator_profile_settings')
+
+            # Handle profile update (existing code)
             username = request.POST.get("username")
             email = request.POST.get("email")
             new_password = request.POST.get("new_password1")
@@ -3765,6 +3826,11 @@ class FacultyProfileSettingsView(View):
 
             evaluation_history = self.get_evaluation_history(user)
             
+            # Get all sections and years for section assignment
+            sections = Section.objects.all().order_by('year_level', 'name')
+            years = Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level')
+            currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
+            
             return render(request, 'main/faculty_profile_settings.html', {
                 'user': user,
                 'next_url': next_url,
@@ -3778,6 +3844,9 @@ class FacultyProfileSettingsView(View):
                 'has_sections': has_sections,
                 'evaluation_period_ended': can_view_evaluation_results('student'),
                 'evaluation_history': evaluation_history,
+                'sections': sections,
+                'years': years,
+                'currently_assigned_ids': currently_assigned_ids,
             })
         return redirect('login')
 
@@ -4206,7 +4275,7 @@ class FacultyProfileSettingsView(View):
         }
 
     def post(self, request):
-        """Handle POST requests for profile updates"""
+        """Handle POST requests for profile updates and section assignments"""
         user = request.user
         if not user.is_authenticated:
             return redirect('/login')
@@ -4224,6 +4293,26 @@ class FacultyProfileSettingsView(View):
             
             next_url = request.POST.get('next', request.META.get('HTTP_REFERER', index_url))
 
+            # Check if this is a section assignment request
+            action = request.POST.get('action')
+            if action == 'assign_sections':
+                selected_section_ids = request.POST.getlist('sections')
+                
+                # Delete existing section assignments for this user
+                SectionAssignment.objects.filter(user=user).delete()
+                
+                # Create new section assignments
+                for section_id in selected_section_ids:
+                    try:
+                        section = Section.objects.get(id=section_id)
+                        SectionAssignment.objects.create(user=user, section=section)
+                    except Section.DoesNotExist:
+                        continue
+                
+                messages.success(request, f"Successfully assigned {len(selected_section_ids)} section(s).")
+                return redirect('main:faculty_profile_settings')
+
+            # Handle profile update (existing code)
             username = request.POST.get("username")
             email = request.POST.get("email")
             new_password = request.POST.get("new_password1")
