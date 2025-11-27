@@ -2602,11 +2602,13 @@ class DeanProfileSettingsView(View):
             # Convert to JSON for JavaScript
             import json
             section_scores_json = json.dumps(section_scores)
-            section_map_json = json.dumps({assignment.section.id: assignment.section.code for assignment in assigned_sections})
+            # Convert to list to avoid queryset exhaustion
+            assigned_sections_list = list(assigned_sections)
+            section_map_json = json.dumps({assignment.section.id: assignment.section.code for assignment in assigned_sections_list})
             peer_scores_json = json.dumps(peer_scores)
             
             # Calculate overall statistics for the template
-            total_sections = assigned_sections.count()
+            total_sections = len(assigned_sections_list)
             sections_with_data = sum(1 for scores in section_scores.values() if scores['has_data'])
             total_evaluations = EvaluationResponse.objects.filter(evaluatee=user).count()
 
@@ -2618,14 +2620,14 @@ class DeanProfileSettingsView(View):
             # Get all sections and years for section assignment
             sections = Section.objects.all().order_by('year_level', 'code')
             years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
-            currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
+            currently_assigned_ids = [assignment.section.id for assignment in assigned_sections_list]
 
             return render(request, 'main/dean_profile_settings.html', {
                 'user': user,
                 'next_url': next_url,
                 'evaluation_data': evaluation_data,
                 'ai_recommendations': ai_recommendations,
-                'assigned_sections': assigned_sections,
+                'assigned_sections': assigned_sections_list,
                 'section_scores': section_scores,
                 'section_scores_json': section_scores_json,
                 'section_map_json': section_map_json,
@@ -3209,11 +3211,13 @@ class CoordinatorProfileSettingsView(View):
             # Convert to JSON for JavaScript
             import json
             section_scores_json = json.dumps(section_scores)
-            section_map_json = json.dumps({assignment.section.id: assignment.section.code for assignment in assigned_sections})
+            # Convert to list to avoid queryset exhaustion
+            assigned_sections_list = list(assigned_sections)
+            section_map_json = json.dumps({assignment.section.id: assignment.section.code for assignment in assigned_sections_list})
             peer_scores_json = json.dumps(peer_scores)
             
             # Calculate overall statistics for the template
-            total_sections = assigned_sections.count()
+            total_sections = len(assigned_sections_list)
             sections_with_data = sum(1 for scores in section_scores.values() if scores['has_data'])
             total_evaluations = EvaluationResponse.objects.filter(evaluatee=user).count()
 
@@ -3222,14 +3226,14 @@ class CoordinatorProfileSettingsView(View):
             # Get all sections and years for section assignment
             sections = Section.objects.all().order_by('year_level', 'code')
             years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
-            currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
+            currently_assigned_ids = [assignment.section.id for assignment in assigned_sections_list]
             
             return render(request, 'main/coordinator_profile_settings.html', {
                 'user': user,
                 'next_url': next_url,
                 'evaluation_data': evaluation_data,
                 'ai_recommendations': ai_recommendations,
-                'assigned_sections': assigned_sections,
+                'assigned_sections': assigned_sections_list,
                 'section_scores': section_scores,
                 'section_scores_json': section_scores_json,
                 'section_map_json': section_map_json,
