@@ -2617,7 +2617,7 @@ class DeanProfileSettingsView(View):
 
             # Get all sections and years for section assignment
             sections = Section.objects.all().order_by('year_level', 'name')
-            years = Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level')
+            years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
             currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
 
             return render(request, 'main/dean_profile_settings.html', {
@@ -3221,7 +3221,7 @@ class CoordinatorProfileSettingsView(View):
             
             # Get all sections and years for section assignment
             sections = Section.objects.all().order_by('year_level', 'name')
-            years = Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level')
+            years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
             currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
             
             return render(request, 'main/coordinator_profile_settings.html', {
@@ -3828,7 +3828,7 @@ class FacultyProfileSettingsView(View):
             
             # Get all sections and years for section assignment
             sections = Section.objects.all().order_by('year_level', 'name')
-            years = Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level')
+            years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
             currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
             
             return render(request, 'main/faculty_profile_settings.html', {
