@@ -2616,7 +2616,7 @@ class DeanProfileSettingsView(View):
             active_student_period = EvaluationPeriod.objects.filter(evaluation_type='student', is_active=True).order_by('-start_date').first()
 
             # Get all sections and years for section assignment
-            sections = Section.objects.all().order_by('year_level', 'name')
+            sections = Section.objects.all().order_by('year_level', 'code')
             years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
             currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
 
@@ -3220,7 +3220,7 @@ class CoordinatorProfileSettingsView(View):
             evaluation_history = self.get_evaluation_history(user)
             
             # Get all sections and years for section assignment
-            sections = Section.objects.all().order_by('year_level', 'name')
+            sections = Section.objects.all().order_by('year_level', 'code')
             years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
             currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
             
@@ -3827,7 +3827,7 @@ class FacultyProfileSettingsView(View):
             evaluation_history = self.get_evaluation_history(user)
             
             # Get all sections and years for section assignment
-            sections = Section.objects.all().order_by('year_level', 'name')
+            sections = Section.objects.all().order_by('year_level', 'code')
             years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
             currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
             
