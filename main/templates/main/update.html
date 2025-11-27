@@ -171,9 +171,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             </div>
 
             <div class="form-group">
-                <label for="password">New Password (optional, minimum 8 characters):</label>
+                <label for="password">New Password (optional, 8-16 characters):</label>
                 <div style="position: relative;">
-                    <input type="password" name="password" id="password" class="form-control mb-1 custom-input-width text-center" minlength="8"
+                    <input type="password" name="password" id="password" class="form-control mb-1 custom-input-width text-center" minlength="8" maxlength="16"
                            style="padding-right: 40px;">
                     <i class="fas fa-eye" id="togglePassword" 
                        style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
@@ -184,7 +184,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             <div class="form-group">
                 <label for="confirm_password">Confirm New Password:</label>
                 <div style="position: relative;">
-                    <input type="password" name="confirm_password" id="confirm_password" class="form-control mb-1 custom-input-width text-center" minlength="8"
+                    <input type="password" name="confirm_password" id="confirm_password" class="form-control mb-1 custom-input-width text-center" minlength="8" maxlength="16"
                            style="padding-right: 40px;">
                     <i class="fas fa-eye" id="toggleConfirmPassword" 
                        style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
@@ -480,6 +480,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('password').focus();
                     return false;
                 }
+                
+                // Check maximum length (16 characters)
+                if (password.length > 16) {
+                    e.preventDefault();
+                    passwordError.textContent = 'Password must not exceed 16 characters!';
+                    passwordError.style.display = 'block';
+                    
+                    // Scroll to password field
+                    document.getElementById('password').focus();
+                    return false;
+                }
             }
             
             // Let the form submit normally if validation passes
@@ -572,6 +583,10 @@ function initializePasswordValidation() {
                     confirmPassword.style.borderColor = '#dc3545';
                 } else if (pass.length < 8) {
                     passwordError.textContent = 'Password must be at least 8 characters long!';
+                    passwordError.style.display = 'block';
+                    password.style.borderColor = '#dc3545';
+                } else if (pass.length > 16) {
+                    passwordError.textContent = 'Password must not exceed 16 characters!';
                     passwordError.style.display = 'block';
                     password.style.borderColor = '#dc3545';
                 } else {
