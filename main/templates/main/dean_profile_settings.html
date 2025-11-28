@@ -1913,7 +1913,13 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
     if (password1) {
         password1.addEventListener('input', function() {
             if (profileError) profileError.style.display = 'none';
-            checkPasswordMatch();
+            // Only check if password2 has content (user has typed in confirm field)
+            if (password2 && password2.value) {
+                checkPasswordMatch();
+            } else {
+                // Hide error if confirm password is empty
+                if (passwordMatchError) passwordMatchError.style.display = 'none';
+            }
         });
     }
 
