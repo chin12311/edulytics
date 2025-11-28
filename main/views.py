@@ -1524,6 +1524,18 @@ class CoordinatorDetailView(View):
             sections_with_data = sum(1 for scores in section_scores.values() if scores['has_data'])
             total_evaluations = EvaluationResponse.objects.filter(evaluatee=coordinator.user).count()
 
+            # Get all sections and years for section assignment editing (for Dean/Coordinator viewing others)
+            sections = Section.objects.all().order_by('year_level', 'code')
+            years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
+            currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
+            
+            # Check if current user can edit sections (Dean can edit Coordinator/Faculty, Coordinator can edit Faculty)
+            can_edit_sections = False
+            if user_profile.role == Role.DEAN and coordinator.role in [Role.COORDINATOR, Role.FACULTY]:
+                can_edit_sections = True
+            elif user_profile.role == Role.COORDINATOR and coordinator.role == Role.FACULTY:
+                can_edit_sections = True
+
             context = {
                 'coordinator': coordinator,
                 'faculty': coordinator,  # Add faculty key for faculty_detail.html compatibility
@@ -1536,6 +1548,11 @@ class CoordinatorDetailView(View):
                 'sections_with_data': sections_with_data,
                 'total_evaluations': total_evaluations,
                 'evaluation_period_ended': can_view_evaluation_results('student'),
+                'sections': sections,
+                'years': years,
+                'currently_assigned_ids': currently_assigned_ids,
+                'can_edit_sections': can_edit_sections,
+                'current_user_role': user_profile.role,
             }
 
             # Render appropriate template based on role
@@ -1559,6 +1576,40 @@ class CoordinatorDetailView(View):
             # Permission check for POST as well
             if user_profile.role in [Role.COORDINATOR, Role.DEAN] and coordinator.institute != user_profile.institute:
                 return HttpResponseForbidden("You do not have permission to modify this coordinator's details.")
+
+            # Check what action is being performed
+            action = request.POST.get('action', '')
+            
+            # Handle section assignment separately
+            if action == 'assign_sections':
+                # Check if user has permission to edit sections
+                can_edit = False
+                if user_profile.role == Role.DEAN and coordinator.role in [Role.COORDINATOR, Role.FACULTY]:
+                    can_edit = True
+                elif user_profile.role == Role.COORDINATOR and coordinator.role == Role.FACULTY:
+                    can_edit = True
+                    
+                if not can_edit:
+                    return HttpResponseForbidden("You do not have permission to modify section assignments.")
+                
+                # Get selected sections from form
+                selected_section_ids = request.POST.getlist('sections')
+                
+                # Remove all existing assignments
+                SectionAssignment.objects.filter(user=coordinator.user).delete()
+                
+                # Add new assignments
+                for section_id in selected_section_ids:
+                    section = Section.objects.get(id=section_id)
+                    SectionAssignment.objects.create(user=coordinator.user, section=section)
+                
+                messages.success(request, f"Section assignments updated successfully for {coordinator.user.get_full_name() or coordinator.user.username}.")
+                
+                # Redirect back to detail page
+                if coordinator.role == 'Faculty':
+                    return redirect('main:faculty_detail', id=coordinator.id)
+                else:
+                    return redirect('main:coordinator_detail', id=coordinator.id)
 
             try:
                 index_url = reverse('main:index')
