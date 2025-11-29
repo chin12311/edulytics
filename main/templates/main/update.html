@@ -571,34 +571,53 @@ function initializePasswordValidation() {
     const passwordError = document.getElementById('passwordError');
     
     if (password && confirmPassword && passwordError) {
+        // Track if user has interacted with confirm password field
+        let confirmPasswordTouched = false;
+        
+        confirmPassword.addEventListener('focus', function() {
+            confirmPasswordTouched = true;
+        });
+        
         function validatePasswords() {
             const pass = password.value;
             const confirmPass = confirmPassword.value;
             
-            // Only show error if BOTH fields have been touched and confirm password has content
-            if (confirmPass && pass) {
-                if (pass !== confirmPass) {
-                    passwordError.textContent = 'Passwords do not match!';
-                    passwordError.style.display = 'block';
-                    confirmPassword.style.borderColor = '#dc3545';
-                } else if (pass.length < 8) {
+            // Check password length requirements if password field has content
+            if (pass) {
+                if (pass.length < 8) {
                     passwordError.textContent = 'Password must be at least 8 characters long!';
                     passwordError.style.display = 'block';
                     password.style.borderColor = '#dc3545';
+                    return;
                 } else if (pass.length > 16) {
                     passwordError.textContent = 'Password must not exceed 16 characters!';
                     passwordError.style.display = 'block';
                     password.style.borderColor = '#dc3545';
-                } else {
-                    passwordError.style.display = 'none';
-                    confirmPassword.style.borderColor = '#47682c';
-                    password.style.borderColor = '#47682c';
+                    return;
                 }
-            } else {
-                // Hide error when either field is empty
+            }
+            
+            // Only show mismatch error if user has touched the confirm password field
+            if (confirmPasswordTouched && confirmPass && pass !== confirmPass) {
+                passwordError.textContent = 'Passwords do not match!';
+                passwordError.style.display = 'block';
+                confirmPassword.style.borderColor = '#dc3545';
+            } else if (pass && confirmPass && pass === confirmPass) {
+                // Both fields match
                 passwordError.style.display = 'none';
-                confirmPassword.style.borderColor = '';
-                password.style.borderColor = '';
+                confirmPassword.style.borderColor = '#47682c';
+                password.style.borderColor = '#47682c';
+            } else {
+                // Hide error when fields are empty or user hasn't touched confirm field yet
+                passwordError.style.display = 'none';
+                if (pass && pass.length >= 8 && pass.length <= 16) {
+                    password.style.borderColor = '#47682c';
+                } else if (!pass) {
+                    password.style.borderColor = '';
+                }
+                if (!confirmPasswordTouched || !confirmPass) {
+                    confirmPassword.style.borderColor = '';
+                }
             }
         }
         
