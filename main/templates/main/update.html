@@ -566,6 +566,11 @@ function initializeYearFilter() {
 
 // Real-time password validation
 function initializePasswordValidation() {
+        // Always hide password error on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordError = document.getElementById('passwordError');
+            if (passwordError) passwordError.style.display = 'none';
+        });
     const password = document.getElementById('password');
     const confirmPassword = document.getElementById('confirm_password');
     const passwordError = document.getElementById('passwordError');
