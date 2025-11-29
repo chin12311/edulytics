@@ -571,17 +571,21 @@ function initializePasswordValidation() {
     const passwordError = document.getElementById('passwordError');
     
     if (password && confirmPassword && passwordError) {
-        // Track if user has interacted with confirm password field
-        let confirmPasswordTouched = false;
-        
-        confirmPassword.addEventListener('focus', function() {
-            confirmPasswordTouched = true;
+        // Track if user has typed in confirm password field
+        let confirmPasswordTyped = false;
+
+        confirmPassword.addEventListener('input', function() {
+            if (confirmPassword.value.length > 0) {
+                confirmPasswordTyped = true;
+            } else {
+                confirmPasswordTyped = false;
+            }
         });
-        
+
         function validatePasswords() {
             const pass = password.value;
             const confirmPass = confirmPassword.value;
-            
+
             // Check password length requirements if password field has content
             if (pass) {
                 if (pass.length < 8) {
@@ -596,9 +600,9 @@ function initializePasswordValidation() {
                     return;
                 }
             }
-            
-            // Only show mismatch error if user has touched the confirm password field
-            if (confirmPasswordTouched && confirmPass && pass !== confirmPass) {
+
+            // Only show mismatch error if user has typed in confirm password field
+            if (confirmPasswordTyped && pass && confirmPass && pass !== confirmPass) {
                 passwordError.textContent = 'Passwords do not match!';
                 passwordError.style.display = 'block';
                 confirmPassword.style.borderColor = '#dc3545';
@@ -608,19 +612,19 @@ function initializePasswordValidation() {
                 confirmPassword.style.borderColor = '#47682c';
                 password.style.borderColor = '#47682c';
             } else {
-                // Hide error when fields are empty or user hasn't touched confirm field yet
+                // Hide error when fields are empty or user hasn't typed in confirm field yet
                 passwordError.style.display = 'none';
                 if (pass && pass.length >= 8 && pass.length <= 16) {
                     password.style.borderColor = '#47682c';
                 } else if (!pass) {
                     password.style.borderColor = '';
                 }
-                if (!confirmPasswordTouched || !confirmPass) {
+                if (!confirmPasswordTyped || !confirmPass) {
                     confirmPassword.style.borderColor = '';
                 }
             }
         }
-        
+
         password.addEventListener('input', validatePasswords);
         confirmPassword.addEventListener('input', validatePasswords);
     }
