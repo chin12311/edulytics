@@ -1938,9 +1938,19 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         });
     });
 
+    // Track if user has interacted with confirm password field
+    let confirmPasswordTouched = false;
+    
+    if (password2) {
+        password2.addEventListener('focus', function() {
+            confirmPasswordTouched = true;
+        });
+    }
+
     function checkPasswordMatch() {
         if (password1 && password2 && passwordMatchError) {
-            if (password2.value && password1.value !== password2.value) {
+            // Only show error if user has touched the confirm password field
+            if (confirmPasswordTouched && password2.value && password1.value !== password2.value) {
                 passwordMatchError.style.display = 'block';
                 return false;
             } else {
