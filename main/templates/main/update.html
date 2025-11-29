@@ -574,10 +574,12 @@ function initializePasswordValidation() {
         // Track if user has typed in confirm password field
         let confirmPasswordTyped = false;
 
+
+        // Only set confirmPasswordTyped to true after first input event
         confirmPassword.addEventListener('input', function() {
-            if (confirmPassword.value.length > 0) {
+            if (!confirmPasswordTyped && confirmPassword.value.length > 0) {
                 confirmPasswordTyped = true;
-            } else {
+            } else if (confirmPassword.value.length === 0) {
                 confirmPasswordTyped = false;
             }
         });
@@ -601,26 +603,26 @@ function initializePasswordValidation() {
                 }
             }
 
-            // Only show mismatch error if user has typed in confirm password field
+            // Only show mismatch error if user has typed in confirm password field (not on page load)
             if (confirmPasswordTyped && pass && confirmPass && pass !== confirmPass) {
                 passwordError.textContent = 'Passwords do not match!';
                 passwordError.style.display = 'block';
                 confirmPassword.style.borderColor = '#dc3545';
-            } else if (pass && confirmPass && pass === confirmPass) {
-                // Both fields match
-                passwordError.style.display = 'none';
-                confirmPassword.style.borderColor = '#47682c';
-                password.style.borderColor = '#47682c';
             } else {
-                // Hide error when fields are empty or user hasn't typed in confirm field yet
+                // Hide error in all other cases, including page load
                 passwordError.style.display = 'none';
-                if (pass && pass.length >= 8 && pass.length <= 16) {
+                if (pass && confirmPass && pass === confirmPass) {
+                    confirmPassword.style.borderColor = '#47682c';
                     password.style.borderColor = '#47682c';
-                } else if (!pass) {
-                    password.style.borderColor = '';
-                }
-                if (!confirmPasswordTyped || !confirmPass) {
-                    confirmPassword.style.borderColor = '';
+                } else {
+                    if (pass && pass.length >= 8 && pass.length <= 16) {
+                        password.style.borderColor = '#47682c';
+                    } else if (!pass) {
+                        password.style.borderColor = '';
+                    }
+                    if (!confirmPasswordTyped || !confirmPass) {
+                        confirmPassword.style.borderColor = '';
+                    }
                 }
             }
         }
