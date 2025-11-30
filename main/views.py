@@ -1333,19 +1333,30 @@ def release_all_evaluations(request):
             
             from django.utils import timezone
             
-            # Archive previous student evaluation periods
-            student_archived_periods = EvaluationPeriod.objects.filter(
+            # Archive results from previous active periods to history BEFORE deactivating
+            # This moves old evaluation results to history table
+            previous_student_periods = EvaluationPeriod.objects.filter(
                 evaluation_type='student',
                 is_active=True
-            ).update(is_active=False, end_date=timezone.now())
-            print(f"🔍 DEBUG: Archived {student_archived_periods} previous student periods")
+            )
+            for period in previous_student_periods:
+                archived_count = archive_period_results_to_history(period)
+                print(f"🔍 DEBUG: Archived {archived_count} results from student period: {period.name}")
             
-            # Archive previous peer evaluation periods
-            peer_archived_periods = EvaluationPeriod.objects.filter(
+            previous_peer_periods = EvaluationPeriod.objects.filter(
                 evaluation_type='peer',
                 is_active=True
-            ).update(is_active=False, end_date=timezone.now())
-            print(f"🔍 DEBUG: Archived {peer_archived_periods} previous peer periods")
+            )
+            for period in previous_peer_periods:
+                archived_count = archive_period_results_to_history(period)
+                print(f"🔍 DEBUG: Archived {archived_count} results from peer period: {period.name}")
+            
+            # Now deactivate the previous periods
+            student_archived_periods = previous_student_periods.update(is_active=False, end_date=timezone.now())
+            print(f"🔍 DEBUG: Deactivated {student_archived_periods} previous student periods")
+            
+            peer_archived_periods = previous_peer_periods.update(is_active=False, end_date=timezone.now())
+            print(f"🔍 DEBUG: Deactivated {peer_archived_periods} previous peer periods")
             
             # Create new student evaluation period
             student_period, student_created = EvaluationPeriod.objects.get_or_create(
@@ -1379,17 +1390,43 @@ def release_all_evaluations(request):
                 peer_period.save()
             print(f"🔍 DEBUG: Peer period: {peer_period.name}, created: {peer_created}")
             
-            # Release student evaluations and associate with period
-            student_evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='student')
-            student_count = student_evaluations.count()
-            student_updated = student_evaluations.update(is_released=True, evaluation_period=student_period)
-            print(f"🔍 DEBUG: Released {student_updated}/{student_count} student evaluations")
+            # Check if student evaluations exist, if not create them
+            student_evaluations = Evaluation.objects.filter(evaluation_type='student')
+            if not student_evaluations.exists():
+                print("🔍 DEBUG: No student evaluations found, creating new ones...")
+                # Create student evaluation form
+                Evaluation.objects.create(
+                    evaluation_type='student',
+                    is_released=True,
+                    evaluation_period=student_period
+                )
+                student_updated = 1
+                print(f"🔍 DEBUG: Created 1 new student evaluation")
+            else:
+                # Release existing student evaluations
+                student_evaluations = student_evaluations.filter(is_released=False)
+                student_count = student_evaluations.count()
+                student_updated = student_evaluations.update(is_released=True, evaluation_period=student_period)
+                print(f"🔍 DEBUG: Released {student_updated}/{student_count} student evaluations")
             
-            # Release peer evaluations and associate with period
-            peer_evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='peer')
-            peer_count = peer_evaluations.count()
-            peer_updated = peer_evaluations.update(is_released=True, evaluation_period=peer_period)
-            print(f"🔍 DEBUG: Released {peer_updated}/{peer_count} peer evaluations")
+            # Check if peer evaluations exist, if not create them
+            peer_evaluations = Evaluation.objects.filter(evaluation_type='peer')
+            if not peer_evaluations.exists():
+                print("🔍 DEBUG: No peer evaluations found, creating new ones...")
+                # Create peer evaluation form
+                Evaluation.objects.create(
+                    evaluation_type='peer',
+                    is_released=True,
+                    evaluation_period=peer_period
+                )
+                peer_updated = 1
+                print(f"🔍 DEBUG: Created 1 new peer evaluation")
+            else:
+                # Release existing peer evaluations
+                peer_evaluations = peer_evaluations.filter(is_released=False)
+                peer_count = peer_evaluations.count()
+                peer_updated = peer_evaluations.update(is_released=True, evaluation_period=peer_period)
+                print(f"🔍 DEBUG: Released {peer_updated}/{peer_count} peer evaluations")
             
             if student_updated > 0 or peer_updated > 0:
                 # Log admin activity
