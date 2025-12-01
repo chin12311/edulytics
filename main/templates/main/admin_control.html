@@ -182,24 +182,168 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         padding: 15px;
     }
 
+    /* Mobile Responsive Styles */
     @media (max-width: 768px) {
+        .container {
+            padding: 10px !important;
+        }
+        
+        .form-card {
+            padding: 15px;
+            margin: 10px;
+            margin-top: 20px;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        h5 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+        
         .control-buttons {
             flex-direction: column;
-            align-items: center;
+            align-items: stretch;
+            gap: 8px;
         }
         
         .btn {
             width: 100%;
-            max-width: 300px;
+            max-width: 100%;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            margin: 0;
         }
         
         .stats-grid {
             grid-template-columns: 1fr;
+            gap: 10px;
         }
         
+        .stat-card {
+            padding: 15px;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+        }
+        
+        /* Table responsive improvements */
+        .table-responsive {
+            margin: 0 -15px;
+        }
+        
+        .table {
+            font-size: 0.85rem;
+        }
+        
+        .table th,
+        .table td {
+            padding: 8px 5px;
+            white-space: nowrap;
+        }
+        
+        .table thead th {
+            font-size: 0.8rem;
+        }
+        
+        /* Hide some columns on mobile */
+        .table th:nth-child(3),
+        .table td:nth-child(3) {
+            display: none;
+        }
+        
+        .badge {
+            font-size: 0.7rem;
+            padding: 4px 8px;
+        }
+        
+        /* Mobile header adjustments */
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 10px;
+        }
+        
+        .d-flex.align-items-center {
+            flex-direction: column;
+            align-items: flex-start !important;
+            width: 100%;
+            gap: 10px;
+        }
+        
+        #resetSelectedForm {
+            width: 100%;
+        }
+        
+        #resetSelectedBtn {
+            width: 100%;
+            font-size: 0.9rem;
+        }
+        
+        .form-check.ms-3 {
+            margin-left: 0 !important;
+            margin-top: 5px;
+        }
+        
+        .selected-count {
+            padding: 3px 10px;
+            font-size: 0.8rem;
+        }
+        
+        .user-checkbox {
+            transform: scale(1);
+            margin-right: 5px;
+        }
+    }
+    
+    @media (max-width: 576px) {
         .form-card {
-            padding: 20px;
-            margin: 15px;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 8px;
+        }
+        
+        h2 {
+            font-size: 1.3rem;
+        }
+        
+        h5 {
+            font-size: 1rem;
+        }
+        
+        .btn {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+        
+        .stat-number {
+            font-size: 1.3rem;
+        }
+        
+        .table {
+            font-size: 0.75rem;
+        }
+        
+        .table th,
+        .table td {
+            padding: 6px 3px;
+        }
+        
+        .badge {
+            font-size: 0.65rem;
+            padding: 3px 6px;
         }
     }
 </style>
@@ -379,17 +523,22 @@ const csrftoken = getCookie('csrftoken');
 function showToast(message, type = 'success') {
     // Create a simple toast notification
     const toast = document.createElement('div');
+    const isMobile = window.innerWidth <= 768;
     toast.style.cssText = `
         position: fixed;
-        top: 20px;
-        right: 20px;
+        top: ${isMobile ? '10px' : '20px'};
+        right: ${isMobile ? '10px' : '20px'};
+        left: ${isMobile ? '10px' : 'auto'};
         background: ${type === 'error' ? '#dc3545' : '#47682c'};
         color: white;
-        padding: 15px 25px;
+        padding: ${isMobile ? '12px 15px' : '15px 25px'};
         border-radius: 10px;
         box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         z-index: 1001;
         animation: slideInRight 0.3s ease-out;
+        font-size: ${isMobile ? '0.9rem' : '1rem'};
+        max-width: ${isMobile ? 'calc(100% - 20px)' : '400px'};
+        word-wrap: break-word;
     `;
     toast.textContent = message;
     
