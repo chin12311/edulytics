@@ -208,13 +208,12 @@ class RegisterForm(forms.Form):
                 elif '-' in student_number and len(student_number) != 7:
                     self.add_error('studentNumber', "Invalid format. Use format: XX-XXXX (e.g., 21-1766).")
             
-            # Only require course and section if NOT irregular
+            # Student must have course (required for all students)
+            if not course:
+                self.add_error('course', "Course is required for students.")
+            
+            # Only require section if NOT irregular
             if not is_irregular:
-                # Student must have course
-                if not course:
-                    self.add_error('course', "Course is required for students.")
-                
-                # Student must have section
                 if not section:
                     self.add_error('section', "Section is required for students.")
         else:
