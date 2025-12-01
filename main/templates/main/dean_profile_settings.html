@@ -1165,14 +1165,14 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             
             // Hide overall stats for peer evaluations
             document.getElementById('overallStats').style.display = 'none';
-        }
         } else if (sectionId === 'irregular') {
             // Load irregular student evaluation data
             sectionData = irregularScoresData;
             console.log("Irregular student evaluation data:", sectionData);
             
             // Hide overall stats for irregular evaluations
-            document.getElementById('overallStats').style.display = 'none'; else if (sectionId === 'overall') {
+            document.getElementById('overallStats').style.display = 'none';
+        } else if (sectionId === 'overall') {
             // Calculate overall results
             sectionData = calculateOverallResults();
             console.log("Overall data:", sectionData);
