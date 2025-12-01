@@ -503,7 +503,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
     </div>
 </div>
 
-<script>
+<style>
+.question-list {
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -603,8 +604,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
 .btn-delete {
     background-color: #dc3545;
 }
+</style>
 
-
+<script>
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
