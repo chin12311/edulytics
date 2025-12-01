@@ -12,7 +12,7 @@ from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
-from .models import Evaluation, EvaluationResponse, Section, SectionAssignment, EvaluationFailureLog, AdminActivityLog
+from .models import Evaluation, EvaluationResponse, IrregularEvaluation, Section, SectionAssignment, EvaluationFailureLog, AdminActivityLog
 from django.urls import reverse
 import re
 from django.contrib.auth import logout, update_session_auth_hash
@@ -1969,15 +1969,8 @@ def submit_evaluation(request):
                 messages.error(request, 'No active evaluation period found.')
                 return redirect('main:evaluationform')
 
-            # Prevent duplicate evaluation IN THE SAME PERIOD
+            # Prevent duplicate evaluation IN THE SAME PERIOD (checked later based on irregular status)
             # Allow re-evaluation in different periods
-            if EvaluationResponse.objects.filter(
-                evaluator=request.user, 
-                evaluatee=evaluatee,
-                evaluation_period=current_period
-            ).exists():
-                messages.error(request, 'You have already evaluated this instructor in this evaluation period.')
-                return redirect('main:evaluationform')
 
             # Convert numeric values to text ratings
             rating_map = {
@@ -2030,19 +2023,47 @@ def submit_evaluation(request):
             
 
             # Create and save the evaluation response
-            logger.info(f"🔍 Creating EvaluationResponse with {len(questions)} questions")
+            logger.info(f"🔍 Creating evaluation with {len(questions)} questions")
             logger.info(f"🔍 Questions dict: {questions}")
-            evaluation_response = EvaluationResponse(
-                evaluator=request.user,
-                evaluatee=evaluatee,
-                evaluation_period=current_period,
-                student_number=student_number,
-                student_section=student_section,
-                comments=comments,
-                **questions
-            )
-            evaluation_response.save()
-            logger.info(f"✅ Evaluation saved successfully! ID: {evaluation_response.id}")
+            
+            # Check if evaluator is an irregular student
+            if evaluator_profile.role == Role.STUDENT and evaluator_profile.is_irregular:
+                # Save to IrregularEvaluation table
+                logger.info(f"🔍 Irregular student detected - saving to IrregularEvaluation")
+                
+                # Check for duplicate irregular evaluation
+                if IrregularEvaluation.objects.filter(
+                    evaluator=request.user,
+                    evaluatee=evaluatee,
+                    evaluation_period=current_period
+                ).exists():
+                    messages.error(request, 'You have already evaluated this instructor in this evaluation period.')
+                    return redirect('main:evaluationform')
+                
+                evaluation_response = IrregularEvaluation(
+                    evaluator=request.user,
+                    evaluatee=evaluatee,
+                    evaluation_period=current_period,
+                    student_number=student_number,
+                    comments=comments,
+                    **questions
+                )
+                evaluation_response.save()
+                logger.info(f"✅ Irregular evaluation saved successfully! ID: {evaluation_response.id}")
+            else:
+                # Save to regular EvaluationResponse table
+                logger.info(f"🔍 Regular student/staff evaluation - saving to EvaluationResponse")
+                evaluation_response = EvaluationResponse(
+                    evaluator=request.user,
+                    evaluatee=evaluatee,
+                    evaluation_period=current_period,
+                    student_number=student_number,
+                    student_section=student_section,
+                    comments=comments,
+                    **questions
+                )
+                evaluation_response.save()
+                logger.info(f"✅ Evaluation saved successfully! ID: {evaluation_response.id}")
 
             
 
