@@ -288,7 +288,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <small class="text-muted">Enable this for students without a fixed section. Irregular students can evaluate all available instructors.</small>
                 </div>
                 
-                <div class="form-group">
+                <div class="form-group" id="section-field-group">
                     <label for="id_section">Section:</label>
                     <select name="section" id="id_section" class="form-control mb-3 custom-input-width text-center">
                         <option value="">Select Section</option>
@@ -463,8 +463,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle section field based on irregular status
     function toggleSectionField() {
         const isIrregular = document.getElementById('id_is_irregular').checked;
+        const sectionGroup = document.getElementById('section-field-group');
         const sectionField = document.getElementById('id_section');
-        const sectionGroup = sectionField ? sectionField.closest('.form-group') : null;
         const irregularLabel = document.getElementById('irregularLabel');
         
         console.log('toggleSectionField called:', { isIrregular, sectionField, sectionGroup });
@@ -482,7 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
             irregularLabel.textContent = 'ON';
             irregularLabel.style.color = '#47682c';
             irregularLabel.style.fontWeight = 'bold';
-            console.log('Section hidden');
+            console.log('Section hidden - display:', sectionGroup.style.display);
         } else {
             sectionGroup.style.display = 'block';
             sectionField.disabled = false;
@@ -490,7 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
             irregularLabel.textContent = 'OFF';
             irregularLabel.style.color = '#6c757d';
             irregularLabel.style.fontWeight = 'normal';
-            console.log('Section shown');
+            console.log('Section shown - display:', sectionGroup.style.display);
         }
     }
     
