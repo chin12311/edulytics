@@ -903,7 +903,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         loadTabContent(tabName);
     }
 
-    // Section selection functionality
+    // Section selection functionality v2.0 - Cache buster
+    console.log('SCRIPT VERSION: 2.0 - LOADED AT:', new Date().toISOString());
     document.addEventListener('DOMContentLoaded', function() {
         const sectionItems = document.querySelectorAll('.section-item, .overall-option, .peer-option, .irregular-option');
         console.log('Found section items:', sectionItems.length);
