@@ -3439,7 +3439,8 @@ class DeanProfileSettingsView(View):
 
             for i in range(17, 20):
                 question_key = f'question{i}'
-                rating_text = getattr(response, question_key, 'Poor')\n                score = rating_to_numeric.get(rating_text, 1)
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
                 total_category_d += score
                 total_count_d += 1
         
