@@ -171,6 +171,18 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         color: white !important;
     }
 
+    .irregular-option {
+        background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        border-top: 2px solid #2196f3;
+        font-weight: 600;
+        color: #0d47a1 !important;
+    }
+
+    .irregular-option:hover {
+        background: linear-gradient(135deg, #2196f3, #1976d2) !important;
+        color: white !important;
+    }
+
     .overall-badge {
         background: linear-gradient(135deg, #47682c, #5a8537);
         color: white;
@@ -718,6 +730,12 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                                     <span class="overall-badge" style="background: linear-gradient(135deg, #ff9800, #f57c00);">Staff Reviews</span>
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
+                                <!-- Irregular Student Evaluation Option -->
+                                <li><a class="dropdown-item irregular-option" href="javascript:void(0);" data-section="irregular" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); border-top: 2px solid #2196f3; font-weight: 600;">
+                                    🎓 Irregular Student Evaluations 
+                                    <span class="overall-badge" style="background: linear-gradient(135deg, #2196f3, #1976d2);">Irregular</span>
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
                                 <!-- Individual Sections -->
                                 {% for assignment in assigned_sections %}
                                     <li>
@@ -756,6 +774,12 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                                 <li><a class="dropdown-item peer-option" href="javascript:void(0);" data-section="peer" style="background: linear-gradient(135deg, #fff3e0, #ffe0b2); border-top: 2px solid #ff9800; font-weight: 600;">
                                     👥 Peer Evaluation Results 
                                     <span class="overall-badge" style="background: linear-gradient(135deg, #ff9800, #f57c00);">Staff Reviews</span>
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <!-- Irregular Student Evaluation Option -->
+                                <li><a class="dropdown-item irregular-option" href="javascript:void(0);" data-section="irregular" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); border-top: 2px solid #2196f3; font-weight: 600;">
+                                    🎓 Irregular Student Evaluations 
+                                    <span class="overall-badge" style="background: linear-gradient(135deg, #2196f3, #1976d2);">Irregular</span>
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <!-- Individual Sections -->
@@ -891,6 +915,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
     let sectionScoresData = {{ section_scores_json|safe }};
     let sectionMapData = {{ section_map_json|safe }};
     let peerScoresData = {{ peer_scores_json|safe }};
+    let irregularScoresData = {{ irregular_scores_json|safe }};
     let selectedSectionId = null;
     let selectedSectionCode = null;
     let selectedSectionDisplay = null;
@@ -900,6 +925,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
     console.log('Section Scores Data:', sectionScoresData);
     console.log('Section Map Data:', sectionMapData);
     console.log('Peer Scores Data:', peerScoresData);
+    console.log('Irregular Scores Data:', irregularScoresData);
 
     // Helper function to format numbers to 2 decimal places
     function formatToTwoDecimals(number) {
@@ -1043,7 +1069,10 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     } else if (selectedSectionId === 'peer') {
                         document.getElementById('sectionDropdown').innerHTML = 
                             `👥 Peer Evaluation Results <i class="fas fa-chevron-down"></i>`;
-                    } else {
+                    }
+                    } else if (selectedSectionId === 'irregular') {
+                        document.getElementById('sectionDropdown').innerHTML = 
+                            `🎓 Irregular Student Evaluations <i class="fas fa-chevron-down"></i>`; else {
                         document.getElementById('sectionDropdown').innerHTML = 
                             `📊 ${selectedSectionDisplay} <i class="fas fa-chevron-down"></i>`;
                     }
@@ -1109,7 +1138,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         console.log('Available section scores:', sectionScoresData);
         
         // Check if sectionScoresData is empty (no sections)
-        if (Object.keys(sectionScoresData).length === 0 && sectionId !== 'peer') {
+        if (Object.keys(sectionScoresData).length === 0 && sectionId !== 'peer' && sectionId !== 'irregular') {
             console.log('No section data available');
             loadNoDataContent();
             return;
@@ -1124,7 +1153,14 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             
             // Hide overall stats for peer evaluations
             document.getElementById('overallStats').style.display = 'none';
-        } else if (sectionId === 'overall') {
+        }
+        } else if (sectionId === 'irregular') {
+            // Load irregular student evaluation data
+            sectionData = irregularScoresData;
+            console.log("Irregular student evaluation data:", sectionData);
+            
+            // Hide overall stats for irregular evaluations
+            document.getElementById('overallStats').style.display = 'none'; else if (sectionId === 'overall') {
             // Calculate overall results
             sectionData = calculateOverallResults();
             console.log("Overall data:", sectionData);
@@ -1148,6 +1184,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             console.log('Section has data, loading content...');
             const sectionName = sectionId === 'overall' ? 'Overall' : 
                                sectionId === 'peer' ? 'Peer Evaluation' :
+                               sectionId === 'irregular' ? 'Irregular Student Evaluations' :
                                sectionMapData[sectionId];
             loadEvaluationContent(sectionData, sectionName);
             loadRecommendationsContent(sectionData, sectionName);
@@ -1171,7 +1208,10 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         
         const isOverall = sectionCode === 'Overall';
         const isPeer = sectionCode === 'Peer Evaluation';
+        const isIrregular = sectionCode === 'Irregular Student Evaluations';
+        const isIrregular = sectionCode === 'Irregular Student Evaluations';
         const sectionInfo = isPeer ? 'Peer Evaluations from Staff' :
+                           isIrregular ? 'Irregular Student Evaluations' :
                            isOverall ? 'All Sections' : 
                            `Section: ${sectionCode}`;
         
@@ -1200,7 +1240,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     </div>
                 </div>
 
-                ${!isPeer ? `
+                ${!isPeer && !isIrregular ? `
                 <!-- Max Score Information (Student Evaluations Only) -->
                 <div class="max-score-info">
                     <h5>📝 Scoring Information</h5>
@@ -1230,7 +1270,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <canvas id="evaluationChart"></canvas>
                 </div>
 
-                ${!isPeer ? `
+                ${!isPeer && !isIrregular ? `
                 <!-- Score Breakdown (Student Evaluations Only) -->
                 <div class="score-breakdown">
                     <div class="score-item">
@@ -1290,7 +1330,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         
         // Initialize chart
         setTimeout(() => {
-            initializeEvaluationChart(sectionData, isOverall, isPeer);
+            initializeEvaluationChart(sectionData, isOverall, isPeer, isIrregular);
         }, 100);
     }
 
@@ -1776,7 +1816,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         let sectionData;
         
         if (selectedSectionId === 'peer') {
-            sectionData = peerScoresData;
+            sectionData = peerScoresData;} else if (selectedSectionId === 'irregular') {
+            sectionData = irregularScoresData;
         } else if (selectedSectionId === 'overall') {
             sectionData = calculateOverallResults();
         } else {
@@ -1790,7 +1831,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             return;
         }
         
-        const sectionName = selectedSectionId === 'peer' ? 'Peer Evaluation' :
+        const sectionName = selectedSectionId === 'irregular' ? 'Irregular Student Evaluations' :
+                           selectedSectionId === 'peer' ? 'Peer Evaluation' :
                            selectedSectionId === 'overall' ? 'Overall' :
                            selectedSectionCode;
         
@@ -1808,7 +1850,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
     }
 
     // Initialize evaluation chart
-    function initializeEvaluationChart(sectionData, isOverall = false, isPeer = false) {
+    function initializeEvaluationChart(sectionData, isOverall = false, isPeer = false, isIrregular = false) {
         const ctx = document.getElementById('evaluationChart');
         if (!ctx) {
             console.error('Evaluation chart canvas not found');
@@ -1825,7 +1867,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         const formattedCategoryScores = sectionData.category_scores.map(score => parseFloat(formatToTwoDecimals(score)));
         
         // Chart labels based on whether it's overall, peer, or individual
-        const labels = isPeer 
+        const labels = isIrregular
+            ? ['Irregular: Subject Mastery', 'Irregular: Classroom Mgmt', 'Irregular: Compliance', 'Irregular: Personality']
+            const labels = isPeer 
             ? ['Peer: Subject Mastery', 'Peer: Classroom Mgmt', 'Peer: Compliance', 'Peer: Personality']
             : isOverall 
             ? ['Overall Subject Mastery', 'Overall Classroom Management', 'Overall Compliance', 'Overall Personality']
