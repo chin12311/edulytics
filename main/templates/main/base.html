@@ -403,7 +403,7 @@
 
     {% if request.user.userprofile.role == 'Admin' %}
 
-    {% if "/update/" not in request.path and request.path != '/admin-control/' and request.path != '/activity-logs/' and request.path != '/manage-evaluation-questions/' %} 
+    {% if "/update/" not in request.path and request.path != '/admin-control/' and request.path != '/activity-logs/' and request.path != '/manage-evaluation-questions/' and request.path != '/manage-institutes-courses/' %} 
 
 <div class="container mt-5">
     <h2 class="text-center mb-5">Account Management</h2>
