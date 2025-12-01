@@ -1225,8 +1225,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         const isOverall = sectionCode === 'Overall';
         const isPeer = sectionCode === 'Peer Evaluation';
         const isIrregular = sectionCode === 'Irregular Student Evaluations';
-        const isIrregular = sectionCode === 'Irregular Student Evaluations';
-        const sectionRef = isOverall ? 'all your sections' : isPeer ? 'peer evaluation' : 'section ' + sectionCode;
+        const sectionRef = isOverall ? 'all your sections' : isPeer ? 'peer evaluation' : isIrregular ? 'irregular student evaluations' : 'section ' + sectionCode;
         
         // Different loading messages based on evaluation type
         const loadingMessage = isPeer 
