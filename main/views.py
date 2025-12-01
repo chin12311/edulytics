@@ -1693,11 +1693,17 @@ class CoordinatorDetailView(View):
                 SectionAssignment.objects.filter(user=coordinator.user).delete()
                 
                 # Add new assignments
+                sections_assigned = []
                 for section_id in selected_section_ids:
                     section = Section.objects.get(id=section_id)
                     SectionAssignment.objects.create(user=coordinator.user, section=section)
+                    sections_assigned.append(section.code)
                 
-                messages.success(request, f"Section assignments updated successfully for {coordinator.user.get_full_name() or coordinator.user.username}.")
+                if len(sections_assigned) > 0:
+                    sections_list = ", ".join(sections_assigned)
+                    messages.success(request, f"✅ Successfully assigned {len(sections_assigned)} section(s) to {coordinator.user.get_full_name() or coordinator.user.username}: {sections_list}")
+                else:
+                    messages.success(request, f"✅ All section assignments have been removed for {coordinator.user.get_full_name() or coordinator.user.username}.")
                 
                 # Redirect back to detail page
                 if coordinator.role == 'Faculty':
@@ -2892,14 +2898,20 @@ class DeanProfileSettingsView(View):
                 SectionAssignment.objects.filter(user=user).delete()
                 
                 # Create new section assignments
+                sections_assigned = []
                 for section_id in selected_section_ids:
                     try:
                         section = Section.objects.get(id=section_id)
                         SectionAssignment.objects.create(user=user, section=section)
+                        sections_assigned.append(section.code)
                     except Section.DoesNotExist:
                         continue
                 
-                messages.success(request, f"Successfully assigned {len(selected_section_ids)} section(s).")
+                if len(sections_assigned) > 0:
+                    sections_list = ", ".join(sections_assigned)
+                    messages.success(request, f"✅ Successfully assigned {len(sections_assigned)} section(s): {sections_list}")
+                else:
+                    messages.success(request, f"✅ All section assignments have been removed.")
                 return redirect('main:dean_profile_settings')
 
             # Handle profile update (existing code)
@@ -3497,14 +3509,20 @@ class CoordinatorProfileSettingsView(View):
                 SectionAssignment.objects.filter(user=user).delete()
                 
                 # Create new section assignments
+                sections_assigned = []
                 for section_id in selected_section_ids:
                     try:
                         section = Section.objects.get(id=section_id)
                         SectionAssignment.objects.create(user=user, section=section)
+                        sections_assigned.append(section.code)
                     except Section.DoesNotExist:
                         continue
                 
-                messages.success(request, f"Successfully assigned {len(selected_section_ids)} section(s).")
+                if len(sections_assigned) > 0:
+                    sections_list = ", ".join(sections_assigned)
+                    messages.success(request, f"✅ Successfully assigned {len(sections_assigned)} section(s): {sections_list}")
+                else:
+                    messages.success(request, f"✅ All section assignments have been removed.")
                 return redirect('main:coordinator_profile_settings')
 
             # Handle profile update (existing code)
@@ -4451,14 +4469,20 @@ class FacultyProfileSettingsView(View):
                 SectionAssignment.objects.filter(user=user).delete()
                 
                 # Create new section assignments
+                sections_assigned = []
                 for section_id in selected_section_ids:
                     try:
                         section = Section.objects.get(id=section_id)
                         SectionAssignment.objects.create(user=user, section=section)
+                        sections_assigned.append(section.code)
                     except Section.DoesNotExist:
                         continue
                 
-                messages.success(request, f"Successfully assigned {len(selected_section_ids)} section(s).")
+                if len(sections_assigned) > 0:
+                    sections_list = ", ".join(sections_assigned)
+                    messages.success(request, f"✅ Successfully assigned {len(sections_assigned)} section(s): {sections_list}")
+                else:
+                    messages.success(request, f"✅ All section assignments have been removed.")
                 return redirect('main:faculty_profile_settings')
 
             # Handle profile update (existing code)
