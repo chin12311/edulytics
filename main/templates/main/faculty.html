@@ -213,7 +213,7 @@
                 <tr class="account-row" data-user-id="{{ faculty.user.id }}" data-user-name="{{ faculty.user.username }}" data-user-email="{{ faculty.user.email }}">
                     <td>{{ faculty.display_name|default:faculty.user.username }}</td>
                     <td>{{ faculty.user.email }}</td>
-                    <td>{{ faculty.institute }}</td>
+                    <td>{{ faculty.get_institute_code }}</td>
                     
                 </tr>
                 {% empty %}

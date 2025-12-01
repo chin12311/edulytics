@@ -135,6 +135,22 @@ class UserProfile(models.Model):
         
         # Fallback to the full course name if no code found
         return self.course
+    
+    def get_institute_code(self):
+        """Get the institute code/acronym from the full institute name"""
+        if not self.institute:
+            return ""
+        
+        # Try to find the institute in the database
+        try:
+            institute_obj = Institute.objects.filter(name=self.institute).first()
+            if institute_obj and institute_obj.code:
+                return institute_obj.code
+        except:
+            pass
+        
+        # Fallback to the full institute name if no code found
+        return self.institute
 
     def __str__(self):
         name = self.display_name if self.display_name else self.user.username

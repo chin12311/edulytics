@@ -562,8 +562,18 @@ class DeanOnlyView(View):
                 page_number = request.GET.get('page', 1)
                 deans = paginator.get_page(page_number)
                 
-                # ✅ Get distinct institutes from dean list
-                institutes = deans_list.values_list('institute', flat=True).distinct()
+                # ✅ Get distinct institutes from dean list - convert to codes
+                institute_names = deans_list.values_list('institute', flat=True).distinct()
+                from main.models import Institute
+                institute_codes = set()
+                for institute_name in institute_names:
+                    if institute_name:
+                        institute_obj = Institute.objects.filter(name=institute_name).first()
+                        if institute_obj and institute_obj.code:
+                            institute_codes.add(institute_obj.code)
+                        else:
+                            institute_codes.add(institute_name)
+                institutes = sorted(institute_codes)
 
                 context = {
                     'user_profile': user_profile,
@@ -609,7 +619,18 @@ class FacultyOnlyView(View):
             faculties = faculties_paginator.get_page(page_number)
             coordinators = coordinators_paginator.get_page(page_number)
             
-            institutes = coordinators_list.values_list('institute', flat=True).distinct()
+            # Get distinct institutes - convert to codes
+            institute_names = coordinators_list.values_list('institute', flat=True).distinct()
+            from main.models import Institute
+            institute_codes = set()
+            for institute_name in institute_names:
+                if institute_name:
+                    institute_obj = Institute.objects.filter(name=institute_name).first()
+                    if institute_obj and institute_obj.code:
+                        institute_codes.add(institute_obj.code)
+                    else:
+                        institute_codes.add(institute_name)
+            institutes = sorted(institute_codes)
 
             context = {
                 'user_profile': user_profile,
@@ -661,7 +682,18 @@ class CoordinatorOnlyView(View):
             page_number = request.GET.get('page', 1)
             coordinators = paginator.get_page(page_number)
 
-            institutes = coordinators_list.values_list('institute', flat=True).distinct()
+            # Get distinct institutes - convert to codes
+            institute_names = coordinators_list.values_list('institute', flat=True).distinct()
+            from main.models import Institute
+            institute_codes = set()
+            for institute_name in institute_names:
+                if institute_name:
+                    institute_obj = Institute.objects.filter(name=institute_name).first()
+                    if institute_obj and institute_obj.code:
+                        institute_codes.add(institute_obj.code)
+                    else:
+                        institute_codes.add(institute_name)
+            institutes = sorted(institute_codes)
 
             # Pass filtered coordinators to the template
             context = {

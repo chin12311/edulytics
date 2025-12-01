@@ -217,7 +217,7 @@
                 <tr class="account-row" data-user-id="{{ coordinator.user.id }}" data-user-name="{{ coordinator.user.username }}" data-user-email="{{ coordinator.user.email }}">
                     <td>{{ coordinator.display_name|default:coordinator.user.username }}</td>
                     <td>{{ coordinator.user.email }}</td>
-                    <td>{{ coordinator.institute }}</td>
+                    <td>{{ coordinator.get_institute_code }}</td>
                     
                 </tr>
                 {% empty %}
