@@ -279,7 +279,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <label for="id_is_irregular" class="mb-0">Irregular Student:</label>
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" id="id_is_irregular" name="is_irregular" onchange="toggleSectionField()">
+                            <input class="form-check-input" type="checkbox" role="switch" id="id_is_irregular" name="is_irregular">
                             <label class="form-check-label ms-2" for="id_is_irregular" id="irregularLabel">
                                 OFF
                             </label>
@@ -531,7 +531,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     roleField.addEventListener('change', toggleFields);
     toggleFields(); // Initialize on page load
-    toggleSectionField(); // Initialize irregular toggle state on page load
+    
+    // Add event listener for irregular toggle
+    const irregularToggle = document.getElementById('id_is_irregular');
+    if (irregularToggle) {
+        irregularToggle.addEventListener('change', toggleSectionField);
+        toggleSectionField(); // Initialize irregular toggle state on page load
+    }
     
     // Handle institute selection to load courses dynamically
     const instituteField = document.getElementById('id_institute');
