@@ -1964,19 +1964,21 @@ def submit_evaluation(request):
             
             # Student evaluating staff (Faculty, Coordinator, Dean)
             if evaluator_profile.role == Role.STUDENT and evaluatee_profile.role in [Role.FACULTY, Role.COORDINATOR, Role.DEAN]:
-                # Check if student's section is assigned to this staff member
-                if evaluator_profile.section:
-                    is_assigned = SectionAssignment.objects.filter(
-                        user=evaluatee,
-                        section=evaluator_profile.section
-                    ).exists()
-                    
-                    if not is_assigned:
-                        messages.error(request, f'You cannot evaluate {evaluatee.username} as you are not in their assigned section.')
+                # Irregular students can evaluate any instructor - skip section check
+                if not evaluator_profile.is_irregular:
+                    # Regular students: Check if student's section is assigned to this staff member
+                    if evaluator_profile.section:
+                        is_assigned = SectionAssignment.objects.filter(
+                            user=evaluatee,
+                            section=evaluator_profile.section
+                        ).exists()
+                        
+                        if not is_assigned:
+                            messages.error(request, f'You cannot evaluate {evaluatee.username} as you are not in their assigned section.')
+                            return redirect('main:evaluationform')
+                    else:
+                        messages.error(request, 'You cannot evaluate instructors as you are not assigned to any section.')
                         return redirect('main:evaluationform')
-                else:
-                    messages.error(request, 'You cannot evaluate instructors as you are not assigned to any section.')
-                    return redirect('main:evaluationform')
 
             # ✅ ADDED: Staff peer evaluation (Faculty, Coordinator, Dean evaluating each other)
             elif evaluator_profile.role in [Role.FACULTY, Role.COORDINATOR, Role.DEAN] and evaluatee_profile.role in [Role.FACULTY, Role.COORDINATOR, Role.DEAN]:
