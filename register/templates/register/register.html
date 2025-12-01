@@ -521,6 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     roleField.addEventListener('change', toggleFields);
     toggleFields(); // Initialize on page load
+    toggleSectionField(); // Initialize irregular toggle state on page load
     
     // Handle institute selection to load courses dynamically
     const instituteField = document.getElementById('id_institute');
