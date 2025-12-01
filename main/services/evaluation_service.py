@@ -191,9 +191,13 @@ class EvaluationService:
     def calculate_overall_score(user, evaluation_type="student"):
         """
         Calculate overall average score for an instructor across all evaluations
+        
+        IMPORTANT: This function ONLY uses EvaluationResponse, NOT IrregularEvaluation.
+        Irregular student evaluations are excluded from overall score calculations.
         """
         try:
             # Check if user has any evaluations
+            # NOTE: Using EvaluationResponse only - irregular evaluations excluded by design
             has_evaluations = EvaluationResponse.objects.filter(evaluatee=user).exists()
             if not has_evaluations:
                 return 0.0  # No evaluations yet

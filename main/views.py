@@ -2455,9 +2455,14 @@ def compute_category_scores(evaluatee, section_code=None, evaluation_period=None
     """
     Calculate evaluation scores for a specific evaluatee and optional section
     CRITICAL: Now accepts evaluation_period to filter responses by date range
+    
+    IMPORTANT: This function ONLY uses EvaluationResponse, NOT IrregularEvaluation.
+    Irregular student evaluations are excluded from overall results calculations.
+    They are displayed separately in profile views but do not affect final scores.
     """
     
     # Filter responses by evaluatee
+    # NOTE: Using EvaluationResponse only - irregular evaluations excluded by design
     responses = EvaluationResponse.objects.filter(evaluatee=evaluatee)
     
     # CRITICAL FIX: If evaluation period provided, filter responses by its date range
@@ -2567,8 +2572,12 @@ def compute_peer_scores(evaluatee, evaluation_period=None):
     """
     Calculate peer evaluation scores - simple average of 15 questions (100% total)
     Peer evaluations don't have categories, just overall percentage
+    
+    IMPORTANT: This function ONLY uses EvaluationResponse, NOT IrregularEvaluation.
+    Irregular student evaluations are excluded from overall results calculations.
     """
     # Filter responses by evaluatee and evaluation period
+    # NOTE: Using EvaluationResponse only - irregular evaluations excluded by design
     responses = EvaluationResponse.objects.filter(evaluatee=evaluatee)
     
     # MUST filter by evaluation_period to get only peer evaluation responses
