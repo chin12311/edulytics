@@ -54,7 +54,11 @@ class RegisterForm(forms.Form):
             ('BSCS', 'Bachelor of Science in Computer Science'),
             ('BSIS', 'Bachelor of Science in Information Systems'),
             ('ACT', 'Associate in Computer Technology'),
-            ('BLIS', 'Bachelor of Library and Information Science')
+            ('BLIS', 'Bachelor of Library and Information Science'),
+            ('BSA', 'Bachelor of Science in Accountancy'),
+            ('BSBA', 'Bachelor of Science in Business Administration'),
+            ('BSED', 'Bachelor of Secondary Education'),
+            ('BEED', 'Bachelor of Elementary Education')
         ],
         required=False
     )
@@ -174,6 +178,7 @@ class RegisterForm(forms.Form):
         institute = cleaned_data.get('institute', '').strip() if cleaned_data.get('institute') else None
         section = cleaned_data.get('section')
         display_name = cleaned_data.get('display_name', '').strip() if cleaned_data.get('display_name') else None
+        is_irregular = cleaned_data.get('is_irregular', False)
 
         # Validate display name
         if not display_name:
@@ -203,13 +208,15 @@ class RegisterForm(forms.Form):
                 elif '-' in student_number and len(student_number) != 7:
                     self.add_error('studentNumber', "Invalid format. Use format: XX-XXXX (e.g., 21-1766).")
             
-            # Student must have course
-            if not course:
-                self.add_error('course', "Course is required for students.")
-            
-            # Student must have section
-            if not section:
-                self.add_error('section', "Section is required for students.")
+            # Only require course and section if NOT irregular
+            if not is_irregular:
+                # Student must have course
+                if not course:
+                    self.add_error('course', "Course is required for students.")
+                
+                # Student must have section
+                if not section:
+                    self.add_error('section', "Section is required for students.")
         else:
             # Non-students must have institute
             if not institute:
