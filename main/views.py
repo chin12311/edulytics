@@ -905,19 +905,12 @@ def release_student_evaluation(request):
                     except Exception as e:
                         logger.error(f"Error processing {staff_user.username}: {str(e)}")
             
-            # CRITICAL: Archive the previous active evaluation period AFTER processing results
-            logger.info("Archiving previous evaluation periods...")
-            previous_periods = EvaluationPeriod.objects.filter(
-                evaluation_type='student',
-                is_active=True
-            )
+            # ✅ FIXED: Only archive OLD INACTIVE periods that haven't been archived yet
+            # The currently active period should NOT be archived - its results stay as "current"
+            # until the NEXT cycle replaces them
+            logger.info("Archiving old evaluation periods...")
             
-            # Archive results to history for each period before deactivating
-            for period in previous_periods:
-                archive_period_results_to_history(period)
-            
-            # ALSO handle case where there are old inactive periods (for backward compatibility)
-            # Find the oldest inactive periods that haven't been archived yet
+            # Find inactive periods that haven't been archived to history yet
             inactive_periods_without_history = []
             for period in EvaluationPeriod.objects.filter(evaluation_type='student', is_active=False).order_by('start_date'):
                 # Check if this period's results are already in history
@@ -930,9 +923,13 @@ def release_student_evaluation(request):
                 logger.info(f"Archiving old inactive period: {period.name}")
                 archive_period_results_to_history(period)
             
-            # Now deactivate the active periods
+            # Now deactivate the CURRENTLY ACTIVE periods (but DON'T archive them yet)
+            previous_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='student',
+                is_active=True
+            )
             archived_periods = previous_periods.update(is_active=False, end_date=timezone.now())
-            logger.info(f"Archived {archived_periods} previous evaluation period(s)")
+            logger.info(f"Deactivated {archived_periods} active period(s) - results remain as current (not archived yet)")
 
             # Create a new active evaluation period for this release
             new_period, created = EvaluationPeriod.objects.get_or_create(
@@ -1105,19 +1102,12 @@ def release_peer_evaluation(request):
                     except Exception as e:
                         logger.error(f"Error processing peer {staff_user.username}: {str(e)}")
             
-            # CRITICAL: Archive the previous active evaluation period AFTER processing results
-            logger.info("Archiving previous peer evaluation periods...")
-            previous_periods = EvaluationPeriod.objects.filter(
-                evaluation_type='peer',
-                is_active=True
-            )
+            # ✅ FIXED: Only archive OLD INACTIVE periods that haven't been archived yet
+            # The currently active period should NOT be archived - its results stay as "current"
+            # until the NEXT cycle replaces them
+            logger.info("Archiving old peer evaluation periods...")
             
-            # Archive results to history for each period before deactivating
-            for period in previous_periods:
-                archive_period_results_to_history(period)
-            
-            # ALSO handle case where there are old inactive periods (for backward compatibility)
-            # Find the oldest inactive periods that haven't been archived yet
+            # Find inactive periods that haven't been archived to history yet
             inactive_periods_without_history = []
             for period in EvaluationPeriod.objects.filter(evaluation_type='peer', is_active=False).order_by('start_date'):
                 # Check if this period's results are already in history
@@ -1127,12 +1117,16 @@ def release_peer_evaluation(request):
             
             # Archive any old results that haven't been archived yet
             for period in inactive_periods_without_history:
-                logger.info(f"Archiving old inactive period: {period.name}")
+                logger.info(f"Archiving old inactive peer period: {period.name}")
                 archive_period_results_to_history(period)
             
-            # Now deactivate the active periods
+            # Now deactivate the CURRENTLY ACTIVE periods (but DON'T archive them yet)
+            previous_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='peer',
+                is_active=True
+            )
             archived_periods = previous_periods.update(is_active=False, end_date=timezone.now())
-            logger.info(f"Archived {archived_periods} previous peer evaluation period(s)")
+            logger.info(f"Deactivated {archived_periods} active peer period(s) - results remain as current (not archived yet)")
 
             # Create a new active evaluation period for peer evaluation
             evaluation_period, created = EvaluationPeriod.objects.get_or_create(
@@ -1333,30 +1327,45 @@ def release_all_evaluations(request):
             
             from django.utils import timezone
             
-            # Archive results from previous active periods to history BEFORE deactivating
-            # This moves old evaluation results to history table
+            # ✅ FIXED: Only archive results that have already been completed (ended periods)
+            # Don't archive the current period's results - they should remain as "current"
+            # until a NEW set of results replaces them in the next cycle
+            
+            # Archive results from INACTIVE periods that haven't been archived yet
             previous_student_periods = EvaluationPeriod.objects.filter(
                 evaluation_type='student',
-                is_active=True
+                is_active=False  # Only archive ENDED periods
+            ).exclude(
+                id__in=EvaluationHistory.objects.values_list('evaluation_period_id', flat=True)
             )
             for period in previous_student_periods:
                 archived_count = archive_period_results_to_history(period)
-                print(f"🔍 DEBUG: Archived {archived_count} results from student period: {period.name}")
+                print(f"🔍 DEBUG: Archived {archived_count} results from previous student period: {period.name}")
             
             previous_peer_periods = EvaluationPeriod.objects.filter(
                 evaluation_type='peer',
-                is_active=True
+                is_active=False  # Only archive ENDED periods
+            ).exclude(
+                id__in=EvaluationHistory.objects.values_list('evaluation_period_id', flat=True)
             )
             for period in previous_peer_periods:
                 archived_count = archive_period_results_to_history(period)
-                print(f"🔍 DEBUG: Archived {archived_count} results from peer period: {period.name}")
+                print(f"🔍 DEBUG: Archived {archived_count} results from previous peer period: {period.name}")
             
-            # Now deactivate the previous periods
-            student_archived_periods = previous_student_periods.update(is_active=False, end_date=timezone.now())
-            print(f"🔍 DEBUG: Deactivated {student_archived_periods} previous student periods")
+            # Now deactivate currently active periods (these will NOT be archived yet)
+            active_student_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='student',
+                is_active=True
+            )
+            student_deactivated_count = active_student_periods.update(is_active=False, end_date=timezone.now())
+            print(f"🔍 DEBUG: Deactivated {student_deactivated_count} active student periods (NOT archived yet)")
             
-            peer_archived_periods = previous_peer_periods.update(is_active=False, end_date=timezone.now())
-            print(f"🔍 DEBUG: Deactivated {peer_archived_periods} previous peer periods")
+            active_peer_periods = EvaluationPeriod.objects.filter(
+                evaluation_type='peer',
+                is_active=True
+            )
+            peer_deactivated_count = active_peer_periods.update(is_active=False, end_date=timezone.now())
+            print(f"🔍 DEBUG: Deactivated {peer_deactivated_count} active peer periods (NOT archived yet)")
             
             # Create new student evaluation period
             student_period, student_created = EvaluationPeriod.objects.get_or_create(
