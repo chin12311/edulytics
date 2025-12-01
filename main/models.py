@@ -119,6 +119,22 @@ class UserProfile(models.Model):
         if not kwargs.pop('skip_validation', False):
             self.full_clean()
         super().save(*args, **kwargs)
+    
+    def get_course_code(self):
+        """Get the course code/acronym from the full course name"""
+        if not self.course:
+            return ""
+        
+        # Try to find the course in the database
+        try:
+            course_obj = Course.objects.filter(name=self.course).first()
+            if course_obj and course_obj.code:
+                return course_obj.code
+        except:
+            pass
+        
+        # Fallback to the full course name if no code found
+        return self.course
 
     def __str__(self):
         name = self.display_name if self.display_name else self.user.username
