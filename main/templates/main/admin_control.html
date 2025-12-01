@@ -465,6 +465,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <a href="{% url 'main:manage_evaluation_questions' %}" class="btn btn-info">
                         📋 Manage Questions
                     </a>
+                    <button class="btn btn-info" onclick="scrollToInstitutesCourses()">
+                        🎓 Edit Institutes & Courses
+                    </button>
                 </div>
             </div>
         </div>
@@ -1020,6 +1023,20 @@ function deleteCourse(id) {
 
 function getCsrfToken() {
     return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function scrollToInstitutesCourses() {
+    const section = document.querySelector('.card .card-body h5:contains("📚 Institute & Course Management")');
+    if (!section) {
+        // Fallback: find by text content
+        const allH5 = document.querySelectorAll('.card .card-body h5');
+        for (let h5 of allH5) {
+            if (h5.textContent.includes('Institute & Course Management')) {
+                h5.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+        }
+    }
 }
 </script>
 {% endblock %}
