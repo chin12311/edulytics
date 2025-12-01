@@ -2856,6 +2856,7 @@ class DeanProfileSettingsView(View):
             assigned_sections_list = list(assigned_sections)
             section_map_json = json.dumps({assignment.section.id: assignment.section.code for assignment in assigned_sections_list})
             peer_scores_json = json.dumps(peer_scores)
+            irregular_scores_json = json.dumps(irregular_scores)
             
             # Calculate overall statistics for the template
             total_sections = len(assigned_sections_list)
