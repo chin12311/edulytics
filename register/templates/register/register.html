@@ -463,21 +463,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle section field based on irregular status
     function toggleSectionField() {
         const isIrregular = document.getElementById('id_is_irregular').checked;
+        const sectionGroup = document.getElementById('id_section').closest('.form-group');
         const sectionField = document.getElementById('id_section');
         const irregularLabel = document.getElementById('irregularLabel');
         
         if (isIrregular) {
+            sectionGroup.style.display = 'none';
             sectionField.disabled = true;
             sectionField.required = false;
             sectionField.value = ''; // Clear selection
-            sectionField.style.opacity = '0.5';
             irregularLabel.textContent = 'ON';
             irregularLabel.style.color = '#47682c';
             irregularLabel.style.fontWeight = 'bold';
         } else {
+            sectionGroup.style.display = 'block';
             sectionField.disabled = false;
             sectionField.required = document.getElementById('id_role').value === 'Student';
-            sectionField.style.opacity = '1';
             irregularLabel.textContent = 'OFF';
             irregularLabel.style.color = '#6c757d';
             irregularLabel.style.fontWeight = 'normal';
