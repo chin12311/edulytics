@@ -3595,6 +3595,10 @@ class CoordinatorProfileSettingsView(View):
             years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
             currently_assigned_ids = [assignment.section.id for assignment in assigned_sections_list]
             
+            # Add timestamp for cache busting
+            import time
+            timestamp = int(time.time())
+
             return render(request, 'main/coordinator_profile_settings.html', {
                 'user': user,
                 'next_url': next_url,
@@ -3617,6 +3621,7 @@ class CoordinatorProfileSettingsView(View):
                 'sections': sections,
                 'years': years,
                 'currently_assigned_ids': currently_assigned_ids,
+                'timestamp': timestamp,
             })
         return redirect('login')
     
@@ -4313,6 +4318,10 @@ class FacultyProfileSettingsView(View):
             years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
             currently_assigned_ids = [assignment.section.id for assignment in assigned_sections]
             
+            # Add timestamp for cache busting
+            import time
+            timestamp = int(time.time())
+
             return render(request, 'main/faculty_profile_settings.html', {
                 'user': user,
                 'next_url': next_url,
@@ -4331,6 +4340,7 @@ class FacultyProfileSettingsView(View):
                 'sections': sections,
                 'years': years,
                 'currently_assigned_ids': currently_assigned_ids,
+                'timestamp': timestamp,
             })
         return redirect('login')
 

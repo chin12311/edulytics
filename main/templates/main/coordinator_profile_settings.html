@@ -7,6 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- Force page reload with timestamp: {{ timestamp }} -->
 {% endblock %}
 
 {% block body_style %}
@@ -811,6 +812,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+    console.log('🔥 COORDINATOR PROFILE JS LOADED - TIMESTAMP: {{ timestamp }} - VERSION: 3.0');
+    
     // Global variables to store section data
     let sectionScoresData = {{ section_scores_json|safe }};
     let sectionMapData = {{ section_map_json|safe }};
