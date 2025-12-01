@@ -1748,10 +1748,10 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         // Format category scores to 2 decimal places for display in tooltips
         const formattedCategoryScores = sectionData.category_scores.map(score => parseFloat(formatToTwoDecimals(score)));
         
-        // Chart labels based on whether it's overall, peer, or individual
+        // Chart labels based on whether it's overall, peer, irregular, or individual
         const labels = isIrregular
             ? ['Irregular: Subject Mastery', 'Irregular: Classroom Mgmt', 'Irregular: Compliance', 'Irregular: Personality']
-            const labels = isPeer 
+            : isPeer 
             ? ['Peer: Subject Mastery', 'Peer: Classroom Mgmt', 'Peer: Compliance', 'Peer: Personality']
             : isOverall 
             ? ['Overall Subject Mastery', 'Overall Classroom Management', 'Overall Compliance', 'Overall Personality']
