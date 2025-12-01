@@ -1,0 +1,442 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Manage Institutes & Courses{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>🎓 Manage Institutes & Courses</h2>
+                <a href="{% url 'main:admin_control' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Admin Control
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Institutes Management -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-building"></i> Institutes</h4>
+                <button class="btn btn-light btn-sm" onclick="showAddInstituteModal()">
+                    <i class="fas fa-plus"></i> Add Institute
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="50px">#</th>
+                            <th>Institute Name</th>
+                            <th width="150px">Code</th>
+                            <th width="150px">Courses</th>
+                            <th width="150px">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="institutesTableBody">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Courses Management -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-book"></i> Courses</h4>
+                <button class="btn btn-light btn-sm" onclick="showAddCourseModal()">
+                    <i class="fas fa-plus"></i> Add Course
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="50px">#</th>
+                            <th>Course Name</th>
+                            <th width="200px">Institute</th>
+                            <th width="150px">Code</th>
+                            <th width="150px">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coursesTableBody">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="toast-notification" style="display: none;"></div>
+
+<style>
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    background: #28a745;
+    color: white;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    z-index: 9999;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toast-notification.error {
+    background: #dc3545;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-action {
+    margin: 0 2px;
+}
+</style>
+
+<script>
+{% csrf_token %}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadInstitutes();
+    loadCourses();
+});
+
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast-notification ' + type;
+    toast.style.display = 'block';
+    
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3000);
+}
+
+function loadInstitutes() {
+    fetch('/api/institutes/')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('institutesTableBody');
+            tbody.innerHTML = '';
+            
+            if (data.institutes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No institutes found</td></tr>';
+                return;
+            }
+            
+            data.institutes.forEach((institute, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><strong>${institute.name}</strong></td>
+                        <td><span class="badge bg-info">${institute.code}</span></td>
+                        <td><span class="badge bg-secondary" id="course-count-${institute.id}">-</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-warning btn-action" onclick="editInstitute(${institute.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-action" onclick="deleteInstitute(${institute.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            // Count courses for each institute
+            fetch('/api/courses/')
+                .then(response => response.json())
+                .then(courseData => {
+                    const courseCounts = {};
+                    courseData.courses.forEach(course => {
+                        courseCounts[course.institute_id] = (courseCounts[course.institute_id] || 0) + 1;
+                    });
+                    
+                    data.institutes.forEach(institute => {
+                        const countElement = document.getElementById(`course-count-${institute.id}`);
+                        if (countElement) {
+                            countElement.textContent = courseCounts[institute.id] || 0;
+                        }
+                    });
+                });
+        })
+        .catch(error => {
+            console.error('Error loading institutes:', error);
+            showToast('Failed to load institutes', 'error');
+        });
+}
+
+function loadCourses() {
+    fetch('/api/courses/')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('coursesTableBody');
+            tbody.innerHTML = '';
+            
+            if (data.courses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No courses found</td></tr>';
+                return;
+            }
+            
+            data.courses.forEach((course, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><strong>${course.name}</strong></td>
+                        <td><span class="badge bg-primary">${course.institute_name}</span></td>
+                        <td>${course.code || '<span class="text-muted">N/A</span>'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning btn-action" onclick="editCourse(${course.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-action" onclick="deleteCourse(${course.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        })
+        .catch(error => {
+            console.error('Error loading courses:', error);
+            showToast('Failed to load courses', 'error');
+        });
+}
+
+function showAddInstituteModal() {
+    const name = prompt('Enter Institute Name:');
+    if (!name) return;
+    
+    const code = prompt('Enter Institute Code (e.g., IBM, ICSLIS, IEAS):');
+    if (!code) return;
+    
+    fetch('/api/institutes/add/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ name, code })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Institute added successfully!');
+            loadInstitutes();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to add institute', 'error');
+    });
+}
+
+function editInstitute(id) {
+    fetch(`/api/institutes/${id}/`)
+        .then(response => response.json())
+        .then(data => {
+            const name = prompt('Edit Institute Name:', data.institute.name);
+            if (name === null) return;
+            
+            const code = prompt('Edit Institute Code:', data.institute.code);
+            if (code === null) return;
+            
+            return fetch(`/api/institutes/${id}/update/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ name, code })
+            });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ Institute updated successfully!');
+                loadInstitutes();
+                loadCourses();
+            } else {
+                showToast('❌ ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Failed to update institute', 'error');
+        });
+}
+
+function deleteInstitute(id) {
+    if (!confirm('⚠️ Delete this institute?\n\nAll associated courses will also be deleted!\n\nThis action cannot be undone.')) return;
+    
+    fetch(`/api/institutes/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Institute deleted successfully!');
+            loadInstitutes();
+            loadCourses();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to delete institute', 'error');
+    });
+}
+
+function showAddCourseModal() {
+    fetch('/api/institutes/')
+        .then(response => response.json())
+        .then(data => {
+            const institutes = data.institutes;
+            
+            if (institutes.length === 0) {
+                showToast('❌ Please add an institute first', 'error');
+                return;
+            }
+            
+            let options = 'Select Institute:\n\n';
+            institutes.forEach((inst, index) => {
+                options += `${index + 1}. ${inst.name} (${inst.code})\n`;
+            });
+            
+            const selection = prompt(options + '\nEnter number:');
+            if (!selection) return;
+            
+            const selectedIndex = parseInt(selection) - 1;
+            if (selectedIndex < 0 || selectedIndex >= institutes.length) {
+                showToast('❌ Invalid selection', 'error');
+                return;
+            }
+            
+            const instituteId = institutes[selectedIndex].id;
+            
+            const name = prompt('Enter Course Name:');
+            if (!name) return;
+            
+            const code = prompt('Enter Course Code (optional):') || '';
+            
+            return fetch('/api/courses/add/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ name, code, institute_id: instituteId })
+            });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ Course added successfully!');
+                loadCourses();
+                loadInstitutes();
+            } else {
+                showToast('❌ ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Failed to add course', 'error');
+        });
+}
+
+function editCourse(id) {
+    fetch(`/api/courses/${id}/`)
+        .then(response => response.json())
+        .then(data => {
+            const name = prompt('Edit Course Name:', data.course.name);
+            if (name === null) return;
+            
+            const code = prompt('Edit Course Code (optional):', data.course.code || '') || '';
+            
+            return fetch(`/api/courses/${id}/update/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ name, code })
+            });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ Course updated successfully!');
+                loadCourses();
+            } else {
+                showToast('❌ ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Failed to update course', 'error');
+        });
+}
+
+function deleteCourse(id) {
+    if (!confirm('⚠️ Delete this course?\n\nThis action cannot be undone.')) return;
+    
+    fetch(`/api/courses/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Course deleted successfully!');
+            loadCourses();
+            loadInstitutes();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to delete course', 'error');
+    });
+}
+
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+</script>
+
+{% endblock %}

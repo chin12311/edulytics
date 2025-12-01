@@ -61,6 +61,7 @@ urlpatterns = [
     path('update-evaluation-question/<str:question_type>/<int:question_id>/', views.update_evaluation_question, name='update_evaluation_question'),
     path('bulk-update-evaluation-questions/', views.bulk_update_evaluation_questions, name='bulk_update_evaluation_questions'),
     path('reset-evaluation-questions/', views.reset_evaluation_questions, name='reset_evaluation_questions'),
+    path('manage-institutes-courses/', views.manage_institutes_courses, name='manage_institutes_courses'),
     
     # Institute & Course Management API
     path('api/institutes/', views.api_list_institutes, name='api_list_institutes'),

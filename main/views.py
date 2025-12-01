@@ -4999,6 +4999,12 @@ def admin_activity_logs(request):
     }
     return render(request, 'main/activity_logs.html', context)
 
+def manage_institutes_courses(request):
+    """View for managing institutes and courses"""
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        return redirect('main:index')
+    return render(request, 'main/manage_institutes_courses.html')
+
 def reset_failures(request):
     if request.method == 'POST':
         success = EvaluationService.reset_failures()
