@@ -2788,6 +2788,9 @@ class DeanProfileSettingsView(View):
             # Get peer evaluation scores
             peer_scores = self.get_peer_evaluation_scores(user)
             
+            # Get irregular student evaluation scores
+            irregular_scores = self.get_irregular_evaluation_scores(user)
+            
             # Convert to JSON for JavaScript
             import json
             section_scores_json = json.dumps(section_scores)
@@ -2822,6 +2825,8 @@ class DeanProfileSettingsView(View):
                 'section_map_json': section_map_json,
                 'peer_scores': peer_scores,
                 'peer_scores_json': peer_scores_json,
+                'irregular_scores': irregular_scores,
+                'irregular_scores_json': irregular_scores_json,
                 'has_any_data': any(scores['has_data'] for scores in section_scores.values()),
                 'total_sections': total_sections,
                 'sections_with_data': sections_with_data,
@@ -3378,6 +3383,104 @@ class DeanProfileSettingsView(View):
             'positive_comments': positive_comments,
             'negative_comments': negative_comments
         }
+    
+    def get_irregular_evaluation_scores(self, user):
+        """Calculate irregular student evaluation scores"""
+        irregular_evaluations = IrregularEvaluation.objects.filter(evaluatee=user)
+        
+        evaluation_count = irregular_evaluations.count()
+        
+        if evaluation_count == 0:
+            return {
+                'has_data': False,
+                'category_scores': [0, 0, 0, 0],
+                'total_percentage': 0,
+                'evaluation_count': 0
+            }
+        
+        rating_to_numeric = {
+            'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 
+            'Very Satisfactory': 4, 'Outstanding': 5
+        }
+        
+        total_category_a = total_category_b = total_category_c = total_category_d = 0
+        total_count_a = total_count_b = total_count_c = total_count_d = 0
+        
+        for response in irregular_evaluations:
+            for i in range(1, 7):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_a += score
+                total_count_a += 1
+
+            for i in range(7, 13):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_b += score
+                total_count_b += 1
+
+            for i in range(13, 17):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_c += score
+                total_count_c += 1
+
+            for i in range(17, 20):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')\n                score = rating_to_numeric.get(rating_text, 1)
+                total_category_d += score
+                total_count_d += 1
+        
+        max_score_per_question = 5
+        a_weight = 0.30
+        b_weight = 0.30
+        c_weight = 0.20
+        d_weight = 0.20
+        
+        def scaled_avg(total, count, weight):
+            if count == 0:
+                return 0.00
+            average_score = total / count
+            return (average_score / max_score_per_question) * weight * 100
+        
+        a_avg = scaled_avg(total_category_a, total_count_a, a_weight)
+        b_avg = scaled_avg(total_category_b, total_count_b, b_weight)
+        c_avg = scaled_avg(total_category_c, total_count_c, c_weight)
+        d_avg = scaled_avg(total_category_d, total_count_d, d_weight)
+        
+        total_percentage = a_avg + b_avg + c_avg + d_avg
+        
+        irregular_comments = irregular_evaluations.filter(
+            comments__isnull=False
+        ).exclude(comments='').values_list('comments', flat=True)
+        
+        positive_comments = []
+        negative_comments = []
+        
+        for comment in irregular_comments:
+            sentiment = TeachingAIRecommendationService.analyze_comment_sentiment(comment)
+            if sentiment == 'positive':
+                positive_comments.append(comment)
+            elif sentiment == 'negative':
+                negative_comments.append(comment)
+        
+        return {
+            'has_data': True,
+            'category_scores': [
+                round(a_avg, 2),
+                round(b_avg, 2),
+                round(c_avg, 2),
+                round(d_avg, 2)
+            ],
+            'total_percentage': round(total_percentage, 2),
+            'evaluation_count': evaluation_count,
+            'total_evaluations': evaluation_count,
+            'positive_comments': positive_comments,
+            'negative_comments': negative_comments
+        }
 
 @method_decorator(profile_settings_allowed, name='dispatch')    
 class CoordinatorProfileSettingsView(View):
@@ -3403,6 +3506,9 @@ class CoordinatorProfileSettingsView(View):
             # Get peer evaluation scores
             peer_scores = self.get_peer_evaluation_scores(user)
             
+            # Get irregular student evaluation scores
+            irregular_scores = self.get_irregular_evaluation_scores(user)
+            
             # Convert to JSON for JavaScript
             import json
             section_scores_json = json.dumps(section_scores)
@@ -3410,6 +3516,7 @@ class CoordinatorProfileSettingsView(View):
             assigned_sections_list = list(assigned_sections)
             section_map_json = json.dumps({assignment.section.id: assignment.section.code for assignment in assigned_sections_list})
             peer_scores_json = json.dumps(peer_scores)
+            irregular_scores_json = json.dumps(irregular_scores)
             
             # Calculate overall statistics for the template
             total_sections = len(assigned_sections_list)
@@ -3434,6 +3541,8 @@ class CoordinatorProfileSettingsView(View):
                 'section_map_json': section_map_json,
                 'peer_scores': peer_scores,
                 'peer_scores_json': peer_scores_json,
+                'irregular_scores': irregular_scores,
+                'irregular_scores_json': irregular_scores_json,
                 'has_any_data': any(scores['has_data'] for scores in section_scores.values()),
                 'total_sections': total_sections,
                 'sections_with_data': sections_with_data,
@@ -3987,6 +4096,105 @@ class CoordinatorProfileSettingsView(View):
             'positive_comments': positive_comments,
             'negative_comments': negative_comments
         }
+    
+    def get_irregular_evaluation_scores(self, user):
+        """Calculate irregular student evaluation scores"""
+        irregular_evaluations = IrregularEvaluation.objects.filter(evaluatee=user)
+        
+        evaluation_count = irregular_evaluations.count()
+        
+        if evaluation_count == 0:
+            return {
+                'has_data': False,
+                'category_scores': [0, 0, 0, 0],
+                'total_percentage': 0,
+                'evaluation_count': 0
+            }
+        
+        rating_to_numeric = {
+            'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 
+            'Very Satisfactory': 4, 'Outstanding': 5
+        }
+        
+        total_category_a = total_category_b = total_category_c = total_category_d = 0
+        total_count_a = total_count_b = total_count_c = total_count_d = 0
+        
+        for response in irregular_evaluations:
+            for i in range(1, 7):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_a += score
+                total_count_a += 1
+
+            for i in range(7, 13):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_b += score
+                total_count_b += 1
+
+            for i in range(13, 17):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_c += score
+                total_count_c += 1
+
+            for i in range(17, 20):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_d += score
+                total_count_d += 1
+        
+        max_score_per_question = 5
+        a_weight = 0.30
+        b_weight = 0.30
+        c_weight = 0.20
+        d_weight = 0.20
+        
+        def scaled_avg(total, count, weight):
+            if count == 0:
+                return 0.00
+            average_score = total / count
+            return (average_score / max_score_per_question) * weight * 100
+        
+        a_avg = scaled_avg(total_category_a, total_count_a, a_weight)
+        b_avg = scaled_avg(total_category_b, total_count_b, b_weight)
+        c_avg = scaled_avg(total_category_c, total_count_c, c_weight)
+        d_avg = scaled_avg(total_category_d, total_count_d, d_weight)
+        
+        total_percentage = a_avg + b_avg + c_avg + d_avg
+        
+        irregular_comments = irregular_evaluations.filter(
+            comments__isnull=False
+        ).exclude(comments='').values_list('comments', flat=True)
+        
+        positive_comments = []
+        negative_comments = []
+        
+        for comment in irregular_comments:
+            sentiment = TeachingAIRecommendationService.analyze_comment_sentiment(comment)
+            if sentiment == 'positive':
+                positive_comments.append(comment)
+            elif sentiment == 'negative':
+                negative_comments.append(comment)
+        
+        return {
+            'has_data': True,
+            'category_scores': [
+                round(a_avg, 2),
+                round(b_avg, 2),
+                round(c_avg, 2),
+                round(d_avg, 2)
+            ],
+            'total_percentage': round(total_percentage, 2),
+            'evaluation_count': evaluation_count,
+            'total_evaluations': evaluation_count,
+            'positive_comments': positive_comments,
+            'negative_comments': negative_comments
+        }
 
 @method_decorator(profile_settings_allowed, name='dispatch')        
 class FacultyProfileSettingsView(View):
@@ -4020,6 +4228,10 @@ class FacultyProfileSettingsView(View):
             peer_scores = self.get_peer_evaluation_scores(user)
             peer_scores_json = json.dumps(peer_scores)
             
+            # Get irregular student evaluation scores
+            irregular_scores = self.get_irregular_evaluation_scores(user)
+            irregular_scores_json = json.dumps(irregular_scores)
+            
             # Create section map for JavaScript
             section_map = {}
             if has_sections:
@@ -4045,6 +4257,8 @@ class FacultyProfileSettingsView(View):
                 'section_map_json': section_map_json,
                 'peer_scores': peer_scores,
                 'peer_scores_json': peer_scores_json,
+                'irregular_scores': irregular_scores,
+                'irregular_scores_json': irregular_scores_json,
                 'has_any_data': has_any_data,
                 'has_sections': has_sections,
                 'evaluation_period_ended': can_view_evaluation_results('student'),
@@ -4475,6 +4689,113 @@ class FacultyProfileSettingsView(View):
             'total_percentage': round(total_percentage, 2),
             'evaluation_count': evaluation_count,
             'total_evaluations': evaluation_count,  # For template compatibility
+            'positive_comments': positive_comments,
+            'negative_comments': negative_comments
+        }
+    
+    def get_irregular_evaluation_scores(self, user):
+        """Calculate irregular student evaluation scores"""
+        # Query irregular evaluations for this user
+        irregular_evaluations = IrregularEvaluation.objects.filter(evaluatee=user)
+        
+        evaluation_count = irregular_evaluations.count()
+        
+        if evaluation_count == 0:
+            return {
+                'has_data': False,
+                'category_scores': [0, 0, 0, 0],
+                'total_percentage': 0,
+                'evaluation_count': 0
+            }
+        
+        # Calculate scores (using same structure as student evaluations - 19 questions)
+        rating_to_numeric = {
+            'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 
+            'Very Satisfactory': 4, 'Outstanding': 5
+        }
+        
+        total_category_a = total_category_b = total_category_c = total_category_d = 0
+        total_count_a = total_count_b = total_count_c = total_count_d = 0
+        
+        for response in irregular_evaluations:
+            # Category A: Questions 1-6 (Mastery of Subject Matter - 30%)
+            for i in range(1, 7):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_a += score
+                total_count_a += 1
+
+            # Category B: Questions 7-12 (Classroom Management - 30%)
+            for i in range(7, 13):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_b += score
+                total_count_b += 1
+
+            # Category C: Questions 13-16 (Compliance to Policies - 20%)
+            for i in range(13, 17):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_c += score
+                total_count_c += 1
+
+            # Category D: Questions 17-19 (Personality - 20%)
+            for i in range(17, 20):
+                question_key = f'question{i}'
+                rating_text = getattr(response, question_key, 'Poor')
+                score = rating_to_numeric.get(rating_text, 1)
+                total_category_d += score
+                total_count_d += 1
+        
+        # Calculate weighted averages
+        max_score_per_question = 5
+        a_weight = 0.30  # Mastery of Subject Matter
+        b_weight = 0.30  # Classroom Management
+        c_weight = 0.20  # Compliance to Policies
+        d_weight = 0.20  # Personality
+        
+        def scaled_avg(total, count, weight):
+            if count == 0:
+                return 0.00
+            average_score = total / count
+            return (average_score / max_score_per_question) * weight * 100
+        
+        a_avg = scaled_avg(total_category_a, total_count_a, a_weight)
+        b_avg = scaled_avg(total_category_b, total_count_b, b_weight)
+        c_avg = scaled_avg(total_category_c, total_count_c, c_weight)
+        d_avg = scaled_avg(total_category_d, total_count_d, d_weight)
+        
+        total_percentage = a_avg + b_avg + c_avg + d_avg
+        
+        # Fetch irregular comments and categorize them
+        irregular_comments = irregular_evaluations.filter(
+            comments__isnull=False
+        ).exclude(comments='').values_list('comments', flat=True)
+        
+        positive_comments = []
+        negative_comments = []
+        
+        for comment in irregular_comments:
+            sentiment = TeachingAIRecommendationService.analyze_comment_sentiment(comment)
+            if sentiment == 'positive':
+                positive_comments.append(comment)
+            elif sentiment == 'negative':
+                negative_comments.append(comment)
+        
+        return {
+            'has_data': True,
+            'category_scores': [
+                round(a_avg, 2),
+                round(b_avg, 2),
+                round(c_avg, 2),
+                round(d_avg, 2)
+            ],
+            'total_percentage': round(total_percentage, 2),
+            'evaluation_count': evaluation_count,
+            'total_evaluations': evaluation_count,
             'positive_comments': positive_comments,
             'negative_comments': negative_comments
         }
