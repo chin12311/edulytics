@@ -62,8 +62,19 @@ class IndexView(View):
                 page_number = request.GET.get('page', 1)
                 students = paginator.get_page(page_number)
 
-                # Distinct list of student courses
-                course = students_list.values_list('course', flat=True).distinct()
+                # Distinct list of student courses - get course codes
+                course_names = students_list.values_list('course', flat=True).distinct()
+                # Get course codes from Course model
+                from main.models import Course
+                course_codes = set()
+                for course_name in course_names:
+                    if course_name:
+                        course_obj = Course.objects.filter(name=course_name).first()
+                        if course_obj and course_obj.code:
+                            course_codes.add(course_obj.code)
+                        else:
+                            course_codes.add(course_name)
+                course = sorted(course_codes)
 
                 # Retrieve the selected user from the session (if any)
                 selected_user_id = request.session.get('selected_user')
