@@ -952,10 +952,10 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     } else if (selectedSectionId === 'peer') {
                         document.getElementById('sectionDropdown').innerHTML = 
                             `👥 Peer Evaluation Results <i class="fas fa-chevron-down"></i>`;
-                    }
                     } else if (selectedSectionId === 'irregular') {
                         document.getElementById('sectionDropdown').innerHTML = 
-                            `🎓 Irregular Student Evaluations <i class="fas fa-chevron-down"></i>`; else {
+                            `🎓 Irregular Student Evaluations <i class="fas fa-chevron-down"></i>`;
+                    } else {
                         document.getElementById('sectionDropdown').innerHTML = 
                             `📊 ${selectedSectionDisplay} <i class="fas fa-chevron-down"></i>`;
                     }
