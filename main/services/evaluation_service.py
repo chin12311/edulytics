@@ -227,9 +227,13 @@ class EvaluationService:
                 is_released=True
             ).exists()
             
+            # Results are visible when evaluation period has ended (not active)
+            can_view_results = not is_active
+            
             return {
                 'is_active': is_active,
                 'is_released': is_released,
+                'can_view_results': can_view_results,
                 'evaluation_type': evaluation_type,
             }
             
@@ -238,6 +242,7 @@ class EvaluationService:
             return {
                 'is_active': False,
                 'is_released': False,
+                'can_view_results': False,
                 'evaluation_type': evaluation_type,
                 'error': str(e)
             }
