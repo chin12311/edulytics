@@ -745,21 +745,33 @@ function updateSelectedCount() {
     const selectedUsersInput = document.getElementById('selectedUsersInput');
     
     // Debug log
+    console.log('updateSelectedCount called');
+    console.log('Checked checkboxes:', checkboxes.length);
     console.log('Selected users:', Array.from(selectedUsers));
     console.log('Selected count:', selectedUsers.size);
     
-    selectedCount.textContent = selectedUsers.size;
+    if (selectedCount) {
+        selectedCount.textContent = selectedUsers.size;
+        console.log('Updated count display to:', selectedUsers.size);
+    } else {
+        console.error('selectedCount element not found!');
+    }
     
     // Enable/disable the reset button
     if (resetSelectedBtn) {
-        resetSelectedBtn.disabled = selectedUsers.size === 0;
-        console.log('Reset button disabled:', resetSelectedBtn.disabled);
+        const shouldDisable = selectedUsers.size === 0;
+        resetSelectedBtn.disabled = shouldDisable;
+        console.log('Reset Selected button - disabled:', shouldDisable);
+    } else {
+        console.error('resetSelectedBtn element not found!');
     }
     
     // Update hidden input with selected user IDs as comma-separated string
     if (selectedUsersInput) {
         selectedUsersInput.value = Array.from(selectedUsers).join(',');
         console.log('Hidden input value:', selectedUsersInput.value);
+    } else {
+        console.error('selectedUsersInput element not found!');
     }
 }
 
@@ -788,19 +800,6 @@ document.addEventListener('DOMContentLoaded', function() {
             updateSelectedCount();
         });
     });
-    
-    // Initialize Reset All button
-    const resetAllBtn = document.getElementById('resetAllBtn');
-    if (resetAllBtn) {
-        console.log('Reset All button found');
-        resetAllBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Reset All clicked');
-            resetAllFailures();
-        });
-    } else {
-        console.error('Reset All button not found!');
-    }
     
     // Initialize the selected count on page load
     updateSelectedCount();
