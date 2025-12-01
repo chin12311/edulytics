@@ -912,6 +912,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         if (sectionItems.length > 0) {
             sectionItems.forEach(item => {
                 item.addEventListener('click', function(e) {
+                    console.log('CLICK EVENT TRIGGERED on:', this);
                     e.preventDefault();
                     e.stopPropagation();
                     
