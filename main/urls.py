@@ -61,4 +61,16 @@ urlpatterns = [
     path('update-evaluation-question/<str:question_type>/<int:question_id>/', views.update_evaluation_question, name='update_evaluation_question'),
     path('bulk-update-evaluation-questions/', views.bulk_update_evaluation_questions, name='bulk_update_evaluation_questions'),
     path('reset-evaluation-questions/', views.reset_evaluation_questions, name='reset_evaluation_questions'),
+    
+    # Institute & Course Management API
+    path('api/institutes/', views.api_list_institutes, name='api_list_institutes'),
+    path('api/institutes/add/', views.api_add_institute, name='api_add_institute'),
+    path('api/institutes/<int:institute_id>/', views.api_get_institute, name='api_get_institute'),
+    path('api/institutes/<int:institute_id>/update/', views.api_update_institute, name='api_update_institute'),
+    path('api/institutes/<int:institute_id>/delete/', views.api_delete_institute, name='api_delete_institute'),
+    path('api/courses/', views.api_list_courses, name='api_list_courses'),
+    path('api/courses/add/', views.api_add_course, name='api_add_course'),
+    path('api/courses/<int:course_id>/', views.api_get_course, name='api_get_course'),
+    path('api/courses/<int:course_id>/update/', views.api_update_course, name='api_update_course'),
+    path('api/courses/<int:course_id>/delete/', views.api_delete_course, name='api_delete_course'),
 ]

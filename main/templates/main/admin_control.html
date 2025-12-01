@@ -389,6 +389,62 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             </div>
         </div>
         
+        <!-- Institute and Course Management -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="text-center mb-4">📚 Institute & Course Management</h5>
+                <div class="row">
+                    <!-- Institutes Section -->
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6>Institutes</h6>
+                            <button class="btn btn-sm btn-primary" onclick="showAddInstituteModal()">
+                                <i class="fas fa-plus"></i> Add Institute
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Code</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="institutesTableBody">
+                                    <!-- Will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Courses Section -->
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6>Courses</h6>
+                            <button class="btn btn-sm btn-success" onclick="showAddCourseModal()">
+                                <i class="fas fa-plus"></i> Add Course
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Institute</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="coursesTableBody">
+                                    <!-- Will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Control Buttons -->
         <div class="card">
             <div class="card-body">
@@ -705,6 +761,265 @@ function confirmResetSelected() {
     const confirmation = confirm(`Reset failure counts for ${selectedUsers.size} user(s)?\n\n${userList}\n\nClick OK to confirm.`);
     console.log('User confirmed:', confirmation);
     return confirmation;
+}
+
+// ============= Institute & Course Management =============
+
+// Load institutes and courses on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadInstitutes();
+    loadCourses();
+});
+
+function loadInstitutes() {
+    fetch('/api/institutes/')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('institutesTableBody');
+            tbody.innerHTML = '';
+            
+            data.institutes.forEach(institute => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${institute.name}</td>
+                        <td>${institute.code}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="editInstitute(${institute.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteInstitute(${institute.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        })
+        .catch(error => console.error('Error loading institutes:', error));
+}
+
+function loadCourses() {
+    fetch('/api/courses/')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('coursesTableBody');
+            tbody.innerHTML = '';
+            
+            data.courses.forEach(course => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${course.name}</td>
+                        <td>${course.institute_name}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="editCourse(${course.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteCourse(${course.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        })
+        .catch(error => console.error('Error loading courses:', error));
+}
+
+function showAddInstituteModal() {
+    const name = prompt('Enter Institute Name:');
+    if (!name) return;
+    
+    const code = prompt('Enter Institute Code (e.g., IBM, ICSLIS):');
+    if (!code) return;
+    
+    fetch('/api/institutes/add/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ name, code })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Institute added successfully!', 'success');
+            loadInstitutes();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to add institute', 'error');
+    });
+}
+
+function editInstitute(id) {
+    fetch(`/api/institutes/${id}/`)
+        .then(response => response.json())
+        .then(data => {
+            const name = prompt('Edit Institute Name:', data.institute.name);
+            if (!name) return;
+            
+            const code = prompt('Edit Institute Code:', data.institute.code);
+            if (!code) return;
+            
+            return fetch(`/api/institutes/${id}/update/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ name, code })
+            });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ Institute updated successfully!', 'success');
+                loadInstitutes();
+                loadCourses(); // Reload courses as institute name may have changed
+            } else {
+                showToast('❌ ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Failed to update institute', 'error');
+        });
+}
+
+function deleteInstitute(id) {
+    if (!confirm('Delete this institute? All associated courses will also be deleted!')) return;
+    
+    fetch(`/api/institutes/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Institute deleted successfully!', 'success');
+            loadInstitutes();
+            loadCourses();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to delete institute', 'error');
+    });
+}
+
+function showAddCourseModal() {
+    // First get institutes
+    fetch('/api/institutes/')
+        .then(response => response.json())
+        .then(data => {
+            const institutes = data.institutes;
+            let options = '';
+            institutes.forEach(inst => {
+                options += `${inst.id}. ${inst.name}\n`;
+            });
+            
+            const instituteId = prompt('Select Institute (enter number):\n\n' + options);
+            if (!instituteId || !institutes.find(i => i.id == instituteId)) {
+                showToast('❌ Invalid institute selection', 'error');
+                return;
+            }
+            
+            const name = prompt('Enter Course Name:');
+            if (!name) return;
+            
+            const code = prompt('Enter Course Code (optional):') || '';
+            
+            return fetch('/api/courses/add/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ name, code, institute_id: instituteId })
+            });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ Course added successfully!', 'success');
+                loadCourses();
+            } else {
+                showToast('❌ ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Failed to add course', 'error');
+        });
+}
+
+function editCourse(id) {
+    fetch(`/api/courses/${id}/`)
+        .then(response => response.json())
+        .then(data => {
+            const name = prompt('Edit Course Name:', data.course.name);
+            if (!name) return;
+            
+            const code = prompt('Edit Course Code:', data.course.code || '') || '';
+            
+            return fetch(`/api/courses/${id}/update/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ name, code })
+            });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ Course updated successfully!', 'success');
+                loadCourses();
+            } else {
+                showToast('❌ ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Failed to update course', 'error');
+        });
+}
+
+function deleteCourse(id) {
+    if (!confirm('Delete this course?')) return;
+    
+    fetch(`/api/courses/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Course deleted successfully!', 'success');
+            loadCourses();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to delete course', 'error');
+    });
+}
+
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
 }
 </script>
 {% endblock %}

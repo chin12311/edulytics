@@ -18,6 +18,35 @@ class Role(models.TextChoices):
     FACULTY = 'Faculty', 'Faculty'
     ADMIN = 'Admin', 'Admin'
 
+# ------------------------
+# Institute and Course Models
+# ------------------------
+class Institute(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    code = models.CharField(max_length=20, unique=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+
+class Course(models.Model):
+    name = models.CharField(max_length=200)
+    code = models.CharField(max_length=20, blank=True)
+    institute = models.ForeignKey(Institute, on_delete=models.CASCADE, related_name='courses')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['name']
+        unique_together = [['name', 'institute']]
+    
+    def __str__(self):
+        return f"{self.name} - {self.institute.name}"
+
 class EvaluationFailureLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     evaluation_date = models.DateTimeField(default=timezone.now)

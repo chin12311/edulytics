@@ -5,7 +5,7 @@ from django.views import View
 from django.contrib.auth.models import User
 from django.db import transaction
 import logging
-from main.models import UserProfile
+from main.models import UserProfile, Institute
 from main.security_utils import get_safe_next_url
 from main.decorators import rate_limit
 from .forms import RegisterForm, LoginForm
@@ -23,7 +23,12 @@ class RegisterView(View):
         if '?' in next_url:
             next_url = next_url.split('?')[0]
         form = RegisterForm()
-        return render(request, 'register/register.html', {'form': form, 'next_url': next_url})
+        institutes = Institute.objects.all()
+        return render(request, 'register/register.html', {
+            'form': form, 
+            'next_url': next_url,
+            'institutes': institutes
+        })
 
     def post(self, request):
         # Diagnostic logging / printing for 500 error investigation (prints ensure visibility)
@@ -74,9 +79,19 @@ class RegisterView(View):
                 traceback.print_exc()
                 logger.error(f"[RegisterView.post] Exception during account creation: {str(e)}", exc_info=True)
                 form.add_error(None, f"Error creating account: {e}")
-                return render(request, 'register/register.html', {'form': form, 'next_url': next_url})
+                institutes = Institute.objects.all()
+                return render(request, 'register/register.html', {
+                    'form': form, 
+                    'next_url': next_url,
+                    'institutes': institutes
+                })
 
-        return render(request, 'register/register.html', {'form': form, 'next_url': next_url})
+        institutes = Institute.objects.all()
+        return render(request, 'register/register.html', {
+            'form': form, 
+            'next_url': next_url,
+            'institutes': institutes
+        })
 
 
 @rate_limit(max_attempts=5, window_seconds=300)  # 5 login attempts per 5 minutes
@@ -138,7 +153,24 @@ def login_view(request):
     response['Pragma'] = 'no-cache'
     response['Expires'] = '0'
     return response
-    
+
+
+from django.http import JsonResponse
+from main.models import Course
+
+def get_courses_by_institute(request, institute_id):
+    """AJAX endpoint to get courses for a specific institute"""
+    try:
+        courses = Course.objects.filter(institute_id=institute_id).values('id', 'name', 'code')
+        return JsonResponse({
+            'success': True,
+            'courses': list(courses)
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
     
 
 

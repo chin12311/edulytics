@@ -6039,3 +6039,226 @@ def api_evaluation_history_by_period(request, period_id):
         logger.error(f"Error building history dataset: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+
+# ============= Institute & Course Management API =============
+
+from django.views.decorators.http import require_http_methods
+import json
+
+@require_http_methods(["GET"])
+def api_list_institutes(request):
+    """Get all institutes"""
+    try:
+        from main.models import Institute
+        institutes = Institute.objects.all().values('id', 'name', 'code')
+        return JsonResponse({
+            'success': True,
+            'institutes': list(institutes)
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def api_add_institute(request):
+    """Add a new institute"""
+    try:
+        from main.models import Institute
+        data = json.loads(request.body)
+        institute = Institute.objects.create(
+            name=data['name'],
+            code=data['code']
+        )
+        log_admin_activity(
+            request=request,
+            action='add_institute',
+            description=f"Added institute: {institute.name} ({institute.code})"
+        )
+        return JsonResponse({
+            'success': True,
+            'institute': {
+                'id': institute.id,
+                'name': institute.name,
+                'code': institute.code
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_http_methods(["GET"])
+def api_get_institute(request, institute_id):
+    """Get single institute details"""
+    try:
+        from main.models import Institute
+        institute = Institute.objects.get(id=institute_id)
+        return JsonResponse({
+            'success': True,
+            'institute': {
+                'id': institute.id,
+                'name': institute.name,
+                'code': institute.code
+            }
+        })
+    except Institute.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Institute not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def api_update_institute(request, institute_id):
+    """Update institute"""
+    try:
+        from main.models import Institute
+        institute = Institute.objects.get(id=institute_id)
+        data = json.loads(request.body)
+        institute.name = data['name']
+        institute.code = data['code']
+        institute.save()
+        log_admin_activity(
+            request=request,
+            action='update_institute',
+            description=f"Updated institute: {institute.name} ({institute.code})"
+        )
+        return JsonResponse({'success': True})
+    except Institute.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Institute not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def api_delete_institute(request, institute_id):
+    """Delete institute"""
+    try:
+        from main.models import Institute
+        institute = Institute.objects.get(id=institute_id)
+        institute_name = institute.name
+        institute.delete()
+        log_admin_activity(
+            request=request,
+            action='delete_institute',
+            description=f"Deleted institute: {institute_name}"
+        )
+        return JsonResponse({'success': True})
+    except Institute.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Institute not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_http_methods(["GET"])
+def api_list_courses(request):
+    """Get all courses with institute names"""
+    try:
+        from main.models import Course
+        courses = Course.objects.select_related('institute').all()
+        courses_data = [{
+            'id': c.id,
+            'name': c.name,
+            'code': c.code,
+            'institute_id': c.institute.id,
+            'institute_name': c.institute.name
+        } for c in courses]
+        return JsonResponse({
+            'success': True,
+            'courses': courses_data
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def api_add_course(request):
+    """Add a new course"""
+    try:
+        from main.models import Course, Institute
+        data = json.loads(request.body)
+        institute = Institute.objects.get(id=data['institute_id'])
+        course = Course.objects.create(
+            name=data['name'],
+            code=data.get('code', ''),
+            institute=institute
+        )
+        log_admin_activity(
+            request=request,
+            action='add_course',
+            description=f"Added course: {course.name} to {institute.name}"
+        )
+        return JsonResponse({
+            'success': True,
+            'course': {
+                'id': course.id,
+                'name': course.name,
+                'code': course.code,
+                'institute_name': institute.name
+            }
+        })
+    except Institute.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Institute not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_http_methods(["GET"])
+def api_get_course(request, course_id):
+    """Get single course details"""
+    try:
+        from main.models import Course
+        course = Course.objects.select_related('institute').get(id=course_id)
+        return JsonResponse({
+            'success': True,
+            'course': {
+                'id': course.id,
+                'name': course.name,
+                'code': course.code,
+                'institute_id': course.institute.id,
+                'institute_name': course.institute.name
+            }
+        })
+    except Course.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Course not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def api_update_course(request, course_id):
+    """Update course"""
+    try:
+        from main.models import Course
+        course = Course.objects.get(id=course_id)
+        data = json.loads(request.body)
+        course.name = data['name']
+        course.code = data.get('code', '')
+        course.save()
+        log_admin_activity(
+            request=request,
+            action='update_course',
+            description=f"Updated course: {course.name}"
+        )
+        return JsonResponse({'success': True})
+    except Course.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Course not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def api_delete_course(request, course_id):
+    """Delete course"""
+    try:
+        from main.models import Course
+        course = Course.objects.get(id=course_id)
+        course_name = course.name
+        course.delete()
+        log_admin_activity(
+            request=request,
+            action='delete_course',
+            description=f"Deleted course: {course_name}"
+        )
+        return JsonResponse({'success': True})
+    except Course.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Course not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
