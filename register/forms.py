@@ -47,20 +47,11 @@ class RegisterForm(forms.Form):
         required=True
     )
 
-    # Course (For Students)
-    course = forms.ChoiceField(
-        choices=[
-            ('', 'Select Course'),
-            ('BSCS', 'Bachelor of Science in Computer Science'),
-            ('BSIS', 'Bachelor of Science in Information Systems'),
-            ('ACT', 'Associate in Computer Technology'),
-            ('BLIS', 'Bachelor of Library and Information Science'),
-            ('BSA', 'Bachelor of Science in Accountancy'),
-            ('BSBA', 'Bachelor of Science in Business Administration'),
-            ('BSED', 'Bachelor of Secondary Education'),
-            ('BEED', 'Bachelor of Elementary Education')
-        ],
-        required=False
+    # Course (For Students) - CharField since courses are loaded dynamically from database
+    course = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={'id': 'id_course'})
     )
 
     # Student Number (For Students)
