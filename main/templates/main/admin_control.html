@@ -460,8 +460,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                                     <input type="checkbox" class="user-checkbox" name="user_ids" 
                                            value="{{ staff.user.id }}" 
                                            data-username="{{ staff.user.username }}" 
-                                           data-failures="{{ staff.stats.failure_count }}"
-                                           onchange="updateSelectedCount()">
+                                           data-failures="{{ staff.stats.failure_count }}">
                                 </td>
                                 <td><strong>{{ staff.user.get_full_name|default:staff.user.username }}</strong></td>
                                 <td>
@@ -766,10 +765,13 @@ function updateSelectedCount() {
 
 // Select all functionality
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing checkbox functionality...');
+    
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', function() {
             const checkboxes = document.querySelectorAll('.user-checkbox');
+            console.log('Select all toggled:', this.checked, 'Found checkboxes:', checkboxes.length);
             checkboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
@@ -779,9 +781,26 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize checkboxes event listeners
     const checkboxes = document.querySelectorAll('.user-checkbox');
+    console.log('Found', checkboxes.length, 'user checkboxes');
     checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelectedCount);
+        checkbox.addEventListener('change', function() {
+            console.log('Checkbox changed:', this.value, 'Checked:', this.checked);
+            updateSelectedCount();
+        });
     });
+    
+    // Initialize Reset All button
+    const resetAllBtn = document.getElementById('resetAllBtn');
+    if (resetAllBtn) {
+        console.log('Reset All button found');
+        resetAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Reset All clicked');
+            resetAllFailures();
+        });
+    } else {
+        console.error('Reset All button not found!');
+    }
     
     // Initialize the selected count on page load
     updateSelectedCount();
