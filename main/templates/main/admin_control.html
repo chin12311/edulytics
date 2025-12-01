@@ -409,9 +409,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <a href="{% url 'main:manage_evaluation_questions' %}" class="btn btn-info">
                         📋 Manage Questions
                     </a>
-                    <a href="{% url 'main:manage_institutes_courses' %}" class="btn btn-info">
-                        🎓 Edit Institutes & Courses
-                    </a>
+                    <button class="btn btn-info" onclick="toggleInstitutesCoursesSection()">
+                        🎓 Manage Institutes & Courses
+                    </button>
                 </div>
             </div>
         </div>
@@ -501,8 +501,209 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 </div>
             </div>
         </div>
+        
+        <!-- Institutes & Courses Management Section (Hidden by default) -->
+        <div class="card" id="institutesCoursesSection" style="display: none;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0">🎓 Manage Institutes & Courses</h5>
+                    <button class="btn btn-sm btn-secondary" onclick="toggleInstitutesCoursesSection()">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+                
+                <!-- Institutes Management -->
+                <div class="mb-5">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0"><i class="fas fa-building"></i> Institutes</h6>
+                        <button class="btn btn-sm btn-primary" onclick="showAddInstituteForm()">
+                            <i class="fas fa-plus"></i> Add Institute
+                        </button>
+                    </div>
+                    
+                    <!-- Add Institute Form (Hidden) -->
+                    <div id="addInstituteForm" class="card mb-3" style="display: none; background: #f8f9fa; border-left: 4px solid #007bff;">
+                        <div class="card-body">
+                            <h6 class="mb-3">Add New Institute</h6>
+                            <div class="mb-2">
+                                <label class="form-label">Institute Name:</label>
+                                <input type="text" class="form-control" id="newInstituteName" placeholder="e.g., Institute of Computing">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Institute Code:</label>
+                                <input type="text" class="form-control" id="newInstituteCode" placeholder="e.g., ICS">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary btn-sm" onclick="saveNewInstitute()">
+                                    <i class="fas fa-save"></i> Save
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="cancelAddInstitute()">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Institutes List -->
+                    <div class="question-list" id="institutesList">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Courses Management -->
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-success mb-0"><i class="fas fa-book"></i> Courses</h6>
+                        <button class="btn btn-sm btn-success" onclick="showAddCourseForm()">
+                            <i class="fas fa-plus"></i> Add Course
+                        </button>
+                    </div>
+                    
+                    <!-- Add Course Form (Hidden) -->
+                    <div id="addCourseForm" class="card mb-3" style="display: none; background: #f8f9fa; border-left: 4px solid #28a745;">
+                        <div class="card-body">
+                            <h6 class="mb-3">Add New Course</h6>
+                            <div class="mb-2">
+                                <label class="form-label">Institute:</label>
+                                <select class="form-control" id="newCourseInstitute">
+                                    <option value="">Select Institute</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Course Name:</label>
+                                <input type="text" class="form-control" id="newCourseName" placeholder="e.g., Bachelor of Science in Computer Science">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Course Code (optional):</label>
+                                <input type="text" class="form-control" id="newCourseCode" placeholder="e.g., BSCS">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success btn-sm" onclick="saveNewCourse()">
+                                    <i class="fas fa-save"></i> Save
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="cancelAddCourse()">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Courses List -->
+                    <div class="question-list" id="coursesList">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<style>
+.question-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.question-item {
+    background: #f8f9fa;
+    border-left: 4px solid #47682c;
+    padding: 15px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    transition: all 0.3s ease;
+}
+
+.question-item:hover {
+    background: #e8eef0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.question-content {
+    flex: 1;
+}
+
+.question-number {
+    font-weight: bold;
+    color: #47682c;
+    margin-bottom: 5px;
+}
+
+.question-text {
+    color: #333;
+    word-break: break-word;
+    line-height: 1.5;
+}
+
+.question-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.edit-textarea, .edit-input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #47682c;
+    border-radius: 6px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    resize: vertical;
+}
+
+.btn-edit, .btn-save, .btn-cancel, .btn-delete {
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    color: white;
+}
+
+.btn-edit {
+    background-color: #17a2b8;
+}
+
+.btn-edit:hover {
+    background-color: #138496;
+}
+
+.btn-save {
+    background-color: #47682c;
+}
+
+.btn-save:hover {
+    background-color: #3a5a29;
+}
+
+.btn-cancel {
+    background-color: #6c757d;
+}
+
+.btn-cancel:hover {
+    background-color: #5a6268;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+}
+</style>
 
 <script>
 function getCookie(name) {
@@ -708,6 +909,398 @@ function confirmResetSelected() {
     const confirmation = confirm(`Reset failure counts for ${selectedUsers.size} user(s)?\n\n${userList}\n\nClick OK to confirm.`);
     console.log('User confirmed:', confirmation);
     return confirmation;
+}
+
+// ============= Institutes & Courses Management =============
+
+function toggleInstitutesCoursesSection() {
+    const section = document.getElementById('institutesCoursesSection');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        loadInstitutesAndCourses();
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+function loadInstitutesAndCourses() {
+    loadInstitutes();
+    loadCourses();
+    loadInstitutesForDropdown();
+}
+
+function loadInstitutes() {
+    fetch('/api/institutes/')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('institutesList');
+            container.innerHTML = '';
+            
+            if (data.institutes.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-3">No institutes found. Click "Add Institute" to create one.</div>';
+                return;
+            }
+            
+            data.institutes.forEach((institute, index) => {
+                const item = document.createElement('div');
+                item.className = 'question-item';
+                item.id = `institute-${institute.id}`;
+                item.innerHTML = `
+                    <div class="question-content">
+                        <div class="question-number">${index + 1}. ${institute.name}</div>
+                        <div class="question-text"><strong>Code:</strong> ${institute.code}</div>
+                    </div>
+                    <div class="question-actions">
+                        <button class="btn-edit" onclick="editInstitute(${institute.id})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn-delete" onclick="deleteInstitute(${institute.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading institutes:', error);
+            showToast('Failed to load institutes', 'error');
+        });
+}
+
+function loadCourses() {
+    fetch('/api/courses/')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('coursesList');
+            container.innerHTML = '';
+            
+            if (data.courses.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-3">No courses found. Click "Add Course" to create one.</div>';
+                return;
+            }
+            
+            data.courses.forEach((course, index) => {
+                const item = document.createElement('div');
+                item.className = 'question-item';
+                item.id = `course-${course.id}`;
+                item.innerHTML = `
+                    <div class="question-content">
+                        <div class="question-number">${index + 1}. ${course.name}</div>
+                        <div class="question-text">
+                            <strong>Institute:</strong> ${course.institute_name}<br>
+                            <strong>Code:</strong> ${course.code || 'N/A'}
+                        </div>
+                    </div>
+                    <div class="question-actions">
+                        <button class="btn-edit" onclick="editCourse(${course.id})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn-delete" onclick="deleteCourse(${course.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading courses:', error);
+            showToast('Failed to load courses', 'error');
+        });
+}
+
+function loadInstitutesForDropdown() {
+    fetch('/api/institutes/')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('newCourseInstitute');
+            select.innerHTML = '<option value="">Select Institute</option>';
+            data.institutes.forEach(inst => {
+                select.innerHTML += `<option value="${inst.id}">${inst.name}</option>`;
+            });
+        });
+}
+
+function showAddInstituteForm() {
+    document.getElementById('addInstituteForm').style.display = 'block';
+    document.getElementById('newInstituteName').value = '';
+    document.getElementById('newInstituteCode').value = '';
+    document.getElementById('newInstituteName').focus();
+}
+
+function cancelAddInstitute() {
+    document.getElementById('addInstituteForm').style.display = 'none';
+}
+
+function saveNewInstitute() {
+    const name = document.getElementById('newInstituteName').value.trim();
+    const code = document.getElementById('newInstituteCode').value.trim();
+    
+    if (!name || !code) {
+        showToast('Please fill in all fields', 'error');
+        return;
+    }
+    
+    fetch('/api/institutes/add/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({ name, code })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Institute added successfully!', 'success');
+            cancelAddInstitute();
+            loadInstitutes();
+            loadInstitutesForDropdown();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to add institute', 'error');
+    });
+}
+
+function editInstitute(id) {
+    fetch(`/api/institutes/${id}/`)
+        .then(response => response.json())
+        .then(data => {
+            const institute = data.institute;
+            const item = document.getElementById(`institute-${id}`);
+            
+            item.innerHTML = `
+                <div class="edit-form">
+                    <div>
+                        <label class="form-label">Institute Name:</label>
+                        <input type="text" class="edit-input" id="edit-inst-name-${id}" value="${institute.name}">
+                    </div>
+                    <div>
+                        <label class="form-label">Institute Code:</label>
+                        <input type="text" class="edit-input" id="edit-inst-code-${id}" value="${institute.code}">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn-save" onclick="saveInstituteEdit(${id})">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button class="btn-cancel" onclick="loadInstitutes()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+}
+
+function saveInstituteEdit(id) {
+    const name = document.getElementById(`edit-inst-name-${id}`).value.trim();
+    const code = document.getElementById(`edit-inst-code-${id}`).value.trim();
+    
+    if (!name || !code) {
+        showToast('Please fill in all fields', 'error');
+        return;
+    }
+    
+    fetch(`/api/institutes/${id}/update/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({ name, code })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Institute updated successfully!', 'success');
+            loadInstitutes();
+            loadCourses();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to update institute', 'error');
+    });
+}
+
+function deleteInstitute(id) {
+    if (!confirm('⚠️ Delete this institute?\n\nAll associated courses will also be deleted!\n\nThis action cannot be undone.')) return;
+    
+    fetch(`/api/institutes/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Institute deleted successfully!', 'success');
+            loadInstitutes();
+            loadCourses();
+            loadInstitutesForDropdown();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to delete institute', 'error');
+    });
+}
+
+function showAddCourseForm() {
+    document.getElementById('addCourseForm').style.display = 'block';
+    document.getElementById('newCourseName').value = '';
+    document.getElementById('newCourseCode').value = '';
+    document.getElementById('newCourseInstitute').value = '';
+    document.getElementById('newCourseName').focus();
+}
+
+function cancelAddCourse() {
+    document.getElementById('addCourseForm').style.display = 'none';
+}
+
+function saveNewCourse() {
+    const instituteId = document.getElementById('newCourseInstitute').value;
+    const name = document.getElementById('newCourseName').value.trim();
+    const code = document.getElementById('newCourseCode').value.trim();
+    
+    if (!instituteId || !name) {
+        showToast('Please fill in required fields', 'error');
+        return;
+    }
+    
+    fetch('/api/courses/add/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({ institute_id: instituteId, name, code })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Course added successfully!', 'success');
+            cancelAddCourse();
+            loadCourses();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to add course', 'error');
+    });
+}
+
+function editCourse(id) {
+    Promise.all([
+        fetch(`/api/courses/${id}/`).then(r => r.json()),
+        fetch('/api/institutes/').then(r => r.json())
+    ])
+    .then(([courseData, instituteData]) => {
+        const course = courseData.course;
+        const item = document.getElementById(`course-${id}`);
+        
+        let instituteOptions = '';
+        instituteData.institutes.forEach(inst => {
+            const selected = inst.id === course.institute_id ? 'selected' : '';
+            instituteOptions += `<option value="${inst.id}" ${selected}>${inst.name}</option>`;
+        });
+        
+        item.innerHTML = `
+            <div class="edit-form">
+                <div>
+                    <label class="form-label">Institute:</label>
+                    <select class="edit-input" id="edit-course-inst-${id}">
+                        ${instituteOptions}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Course Name:</label>
+                    <input type="text" class="edit-input" id="edit-course-name-${id}" value="${course.name}">
+                </div>
+                <div>
+                    <label class="form-label">Course Code:</label>
+                    <input type="text" class="edit-input" id="edit-course-code-${id}" value="${course.code || ''}">
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn-save" onclick="saveCourseEdit(${id})">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button class="btn-cancel" onclick="loadCourses()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function saveCourseEdit(id) {
+    const name = document.getElementById(`edit-course-name-${id}`).value.trim();
+    const code = document.getElementById(`edit-course-code-${id}`).value.trim();
+    
+    if (!name) {
+        showToast('Course name is required', 'error');
+        return;
+    }
+    
+    fetch(`/api/courses/${id}/update/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({ name, code })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Course updated successfully!', 'success');
+            loadCourses();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to update course', 'error');
+    });
+}
+
+function deleteCourse(id) {
+    if (!confirm('⚠️ Delete this course?\n\nThis action cannot be undone.')) return;
+    
+    fetch(`/api/courses/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Course deleted successfully!', 'success');
+            loadCourses();
+        } else {
+            showToast('❌ ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Failed to delete course', 'error');
+    });
 }
 </script>
 {% endblock %}
