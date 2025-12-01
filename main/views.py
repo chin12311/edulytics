@@ -2433,7 +2433,11 @@ class EvaluationFormView(View):
                     else:
                         student_section_display = str(section_obj)
                 else:
-                    student_section_display = "Not assigned"
+                    # Check if student is irregular
+                    if user_profile.is_irregular:
+                        student_section_display = "Irregular"
+                    else:
+                        student_section_display = "Not assigned"
 
                 # ✅ Get already evaluated instructors for this student
                 evaluated_ids = EvaluationResponse.objects.filter(
