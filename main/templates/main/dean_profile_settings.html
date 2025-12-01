@@ -7,6 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- Force page reload with timestamp: {{ timestamp }} -->
 {% endblock %}
 
 {% block body_style %}
@@ -914,14 +915,26 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
 <!-- Include Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- Include Profile Settings JS with cache busting -->
 <script>
-    // Pass data from Django template to JavaScript
+    console.log('🔥 DEAN PROFILE JS LOADED - TIMESTAMP: {{ timestamp }} - VERSION: 3.0');
+    
+    // Active student evaluation period id for saving recommendations
     const ACTIVE_STUDENT_PERIOD_ID = {{ active_student_period_id|default:'null' }};
-    const SECTION_SCORES_DATA = {{ section_scores_json|safe }};
-    const SECTION_MAP_DATA = {{ section_map_json|safe }};
-    const PEER_SCORES_DATA = {{ peer_scores_json|safe }};
-    const IRREGULAR_SCORES_DATA = {{ irregular_scores_json|safe }};
+    // Global variables to store section data
+    let sectionScoresData = {{ section_scores_json|safe }};
+    let sectionMapData = {{ section_map_json|safe }};
+    let peerScoresData = {{ peer_scores_json|safe }};
+    let irregularScoresData = {{ irregular_scores_json|safe }};
+    let selectedSectionId = null;
+    let selectedSectionCode = null;
+    let selectedSectionDisplay = null;
+    let currentlySelectedItem = null;
+    let currentRequestId = 0;
+
+    console.log('📊 Section Scores Data:', sectionScoresData);
+    console.log('🗺️ Section Map Data:', sectionMapData);
+    console.log('👥 Peer Scores Data:', peerScoresData);
+    console.log('🎓 Irregular Scores Data:', irregularScoresData);
 
 
     // Helper function to format numbers to 2 decimal places
@@ -1068,10 +1081,10 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     } else if (selectedSectionId === 'peer') {
                         document.getElementById('sectionDropdown').innerHTML = 
                             `👥 Peer Evaluation Results <i class="fas fa-chevron-down"></i>`;
-                    }
                     } else if (selectedSectionId === 'irregular') {
                         document.getElementById('sectionDropdown').innerHTML = 
-                            `🎓 Irregular Student Evaluations <i class="fas fa-chevron-down"></i>`; else {
+                            `🎓 Irregular Student Evaluations <i class="fas fa-chevron-down"></i>`;
+                    } else {
                         document.getElementById('sectionDropdown').innerHTML = 
                             `📊 ${selectedSectionDisplay} <i class="fas fa-chevron-down"></i>`;
                     }
@@ -2258,20 +2271,6 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         evaluationContent.innerHTML = content;
     }
 
-</script>
-
-<!-- External Profile Settings JS with timestamp cache busting -->
-<script src="{% static 'js/profile_settings.js' %}?v={{ timestamp|default:'20241201' }}"></script>
-<script>
-    // Initialize with data from Django
-    document.addEventListener('DOMContentLoaded', function() {
-        window.initializeProfileSettings(
-            SECTION_SCORES_DATA,
-            SECTION_MAP_DATA,
-            PEER_SCORES_DATA,
-            IRREGULAR_SCORES_DATA
-        );
-    });
 </script>
 
 <!-- Add Font Awesome for icons -->
