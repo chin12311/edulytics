@@ -2873,6 +2873,10 @@ class DeanProfileSettingsView(View):
             years = list(Section.objects.values_list('year_level', flat=True).distinct().order_by('year_level'))
             currently_assigned_ids = [assignment.section.id for assignment in assigned_sections_list]
 
+            # Add timestamp for cache busting
+            import time
+            timestamp = int(time.time())
+
             return render(request, 'main/dean_profile_settings.html', {
                 'user': user,
                 'next_url': next_url,
@@ -2896,6 +2900,7 @@ class DeanProfileSettingsView(View):
                 'sections': sections,
                 'years': years,
                 'currently_assigned_ids': currently_assigned_ids,
+                'timestamp': timestamp,  # Cache busting timestamp
             })
         return redirect('login')
     
