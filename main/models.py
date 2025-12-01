@@ -89,6 +89,9 @@ class UserProfile(models.Model):
     )
 
     institute = models.CharField(max_length=50, blank=True, null=True)
+    
+    # Irregular student flag - no section, can evaluate all instructors
+    is_irregular = models.BooleanField(default=False)
 
     # ADD THESE FIELDS FOR FAILURE TRACKING
     evaluation_failure_count = models.IntegerField(default=0)
@@ -284,6 +287,51 @@ class EvaluationResponse(models.Model):
 
     def __str__(self):
         return f"{self.evaluator.get_full_name() or self.evaluator.username}'s Evaluation for {self.evaluatee.get_full_name() or self.evaluatee.username}"
+
+# ------------------------
+# Irregular Student Evaluation (Separate from regular evaluations)
+# ------------------------
+class IrregularEvaluation(models.Model):
+    evaluator = models.ForeignKey(User, related_name='irregular_evaluations', on_delete=models.CASCADE, db_index=True)
+    evaluatee = models.ForeignKey(User, related_name='irregular_evaluated_by', on_delete=models.CASCADE, db_index=True)
+    evaluation_period = models.ForeignKey(EvaluationPeriod, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+
+    # Student information
+    student_number = models.CharField(max_length=20, blank=True, null=True)
+    
+    # Timestamp
+    submitted_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    # Evaluation questions (same as regular)
+    question1 = models.CharField(max_length=50, default='Poor')
+    question2 = models.CharField(max_length=50, default='Poor')
+    question3 = models.CharField(max_length=50, default='Poor')
+    question4 = models.CharField(max_length=50, default='Poor')
+    question5 = models.CharField(max_length=50, default='Poor')
+    question6 = models.CharField(max_length=50, default='Poor')
+    question7 = models.CharField(max_length=50, default='Poor')
+    question8 = models.CharField(max_length=50, default='Poor')
+    question9 = models.CharField(max_length=50, default='Poor')
+    question10 = models.CharField(max_length=50, default='Poor')
+    question11 = models.CharField(max_length=50, default='Poor')
+    question12 = models.CharField(max_length=50, default='Poor')
+    question13 = models.CharField(max_length=50, default='Poor')
+    question14 = models.CharField(max_length=50, default='Poor')
+    question15 = models.CharField(max_length=50, default='Poor')
+    question16 = models.CharField(max_length=50, default='Poor')
+    question17 = models.CharField(max_length=50, default='Poor')
+    question18 = models.CharField(max_length=50, default='Poor')
+    question19 = models.CharField(max_length=50, default='Poor')
+
+    comments = models.TextField(blank=True, null=True, verbose_name="Additional Comments/Suggestions")
+
+    class Meta:
+        unique_together = ('evaluator', 'evaluatee', 'evaluation_period')
+        verbose_name = "Irregular Student Evaluation"
+        verbose_name_plural = "Irregular Student Evaluations"
+
+    def __str__(self):
+        return f"[IRREGULAR] {self.evaluator.get_full_name() or self.evaluator.username}'s Evaluation for {self.evaluatee.get_full_name() or self.evaluatee.username}"
 
 # ------------------------
 # Evaluation Result

@@ -274,6 +274,20 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     </select>
                 </div>
                 
+                <!-- Irregular Student Toggle -->
+                <div class="form-group">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <label for="id_is_irregular" class="mb-0">Irregular Student:</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="id_is_irregular" name="is_irregular" onchange="toggleSectionField()">
+                            <label class="form-check-label ms-2" for="id_is_irregular" id="irregularLabel">
+                                OFF
+                            </label>
+                        </div>
+                    </div>
+                    <small class="text-muted">Enable this for students without a fixed section. Irregular students can evaluate all available instructors.</small>
+                </div>
+                
                 <div class="form-group">
                     <label for="id_section">Section:</label>
                     <select name="section" id="id_section" class="form-control mb-3 custom-input-width text-center">
@@ -446,6 +460,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Toggle section field based on irregular status
+    function toggleSectionField() {
+        const isIrregular = document.getElementById('id_is_irregular').checked;
+        const sectionField = document.getElementById('id_section');
+        const irregularLabel = document.getElementById('irregularLabel');
+        
+        if (isIrregular) {
+            sectionField.disabled = true;
+            sectionField.required = false;
+            sectionField.value = ''; // Clear selection
+            sectionField.style.opacity = '0.5';
+            irregularLabel.textContent = 'ON';
+            irregularLabel.style.color = '#47682c';
+            irregularLabel.style.fontWeight = 'bold';
+        } else {
+            sectionField.disabled = false;
+            sectionField.required = document.getElementById('id_role').value === 'Student';
+            sectionField.style.opacity = '1';
+            irregularLabel.textContent = 'OFF';
+            irregularLabel.style.color = '#6c757d';
+            irregularLabel.style.fontWeight = 'normal';
+        }
+    }
+    
     function toggleFields() {
         const role = roleField.value;
         
@@ -456,7 +494,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Make student fields required
             document.getElementById('id_studentNumber').required = true;
             document.getElementById('id_course').required = true;
-            document.getElementById('id_section').required = true;
+            // Section requirement depends on irregular status
+            const isIrregular = document.getElementById('id_is_irregular').checked;
+            document.getElementById('id_section').required = !isIrregular;
             document.getElementById('id_institute').required = false;
         } else if (['Dean', 'Faculty', 'Coordinator'].includes(role)) {
             studentFields.style.display = 'none';

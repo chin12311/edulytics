@@ -2317,28 +2317,36 @@ class EvaluationFormView(View):
                 ).order_by('-created_at').first()
 
                 # ✅ SHOW ALL INSTRUCTORS (FACULTY, COORDINATOR, DEAN) ASSIGNED TO STUDENT'S SECTION
-                student_section = user_profile.section
-                
-                if student_section:
-                    # Get ALL instructors (faculty, coordinators, deans) assigned to this student's section
-                    section_assignments = SectionAssignment.objects.filter(
-                        section=student_section
-                    ).select_related('user', 'user__userprofile')
-                    
-                    assigned_instructor_ids = list(section_assignments.values_list('user_id', flat=True))
-                    
-                    # Get the actual user objects with their profiles
+                # 🔥 IRREGULAR STUDENTS: Show ALL instructors (except admin) regardless of section
+                if user_profile.is_irregular:
+                    # Irregular students can evaluate ALL instructors in the system
                     faculty = User.objects.filter(
-                        id__in=assigned_instructor_ids,
                         userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
                     )
-                    
                 else:
-                    # Fallback if student has no section assigned - show all faculty from institute
-                    faculty = User.objects.filter(
-                        userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN],
-                        userprofile__institute=user_profile.institute
-                    )
+                    # Regular students: show only instructors assigned to their section
+                    student_section = user_profile.section
+                    
+                    if student_section:
+                        # Get ALL instructors (faculty, coordinators, deans) assigned to this student's section
+                        section_assignments = SectionAssignment.objects.filter(
+                            section=student_section
+                        ).select_related('user', 'user__userprofile')
+                        
+                        assigned_instructor_ids = list(section_assignments.values_list('user_id', flat=True))
+                        
+                        # Get the actual user objects with their profiles
+                        faculty = User.objects.filter(
+                            id__in=assigned_instructor_ids,
+                            userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
+                        )
+                        
+                    else:
+                        # Fallback if student has no section assigned - show all faculty from institute
+                        faculty = User.objects.filter(
+                            userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN],
+                            userprofile__institute=user_profile.institute
+                        )
                     
 
                 # ✅ Auto-fill student number from user profile

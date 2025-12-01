@@ -83,6 +83,13 @@ class RegisterForm(forms.Form):
         required=False,
         empty_label="Select Section"
     )
+    
+    # Irregular Student Flag
+    is_irregular = forms.BooleanField(
+        required=False,
+        initial=False,
+        help_text="Check if student has no fixed section"
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -268,10 +275,16 @@ class RegisterForm(forms.Form):
             course = None
             section = None
             institute = self.cleaned_data.get('institute', '') or None  # Convert empty string to None
+            is_irregular = False
         else:
             studentnumber = self.cleaned_data.get('studentNumber', '') or None
             course = self.cleaned_data.get('course', '') or None
-            section = self.cleaned_data.get('section')
+            is_irregular = self.cleaned_data.get('is_irregular', False)
+            # Irregular students have no section
+            if is_irregular:
+                section = None
+            else:
+                section = self.cleaned_data.get('section')
             institute = None  # Students don't have institute (use None, not empty string)
         
         # The signal should have already created the profile
@@ -290,6 +303,7 @@ class RegisterForm(forms.Form):
         profile.section = section
         profile.institute = institute
         profile.role = role
+        profile.is_irregular = is_irregular
         
         # Call full_clean() to validate before saving
         try:
