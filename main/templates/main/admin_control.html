@@ -622,6 +622,73 @@ function getCookie(name) {
 
 const csrftoken = getCookie('csrftoken');
 
+// Global variable for selected users
+let selectedUsers = new Set();
+
+// Update selected count display - MUST be defined before any button clicks
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    selectedUsers = new Set(Array.from(checkboxes).map(cb => cb.value));
+    
+    const selectedCount = document.getElementById('selectedCount');
+    const resetSelectedBtn = document.getElementById('resetSelectedBtn');
+    const selectedUsersInput = document.getElementById('selectedUsersInput');
+    
+    // Debug log
+    console.log('updateSelectedCount called');
+    console.log('Checked checkboxes:', checkboxes.length);
+    console.log('Selected users:', Array.from(selectedUsers));
+    console.log('Selected count:', selectedUsers.size);
+    
+    if (selectedCount) {
+        selectedCount.textContent = selectedUsers.size;
+        console.log('Updated count display to:', selectedUsers.size);
+    } else {
+        console.error('selectedCount element not found!');
+    }
+    
+    // Enable/disable the reset button
+    if (resetSelectedBtn) {
+        const shouldDisable = selectedUsers.size === 0;
+        resetSelectedBtn.disabled = shouldDisable;
+        console.log('Reset Selected button - disabled:', shouldDisable);
+    } else {
+        console.error('resetSelectedBtn element not found!');
+    }
+    
+    // Update hidden input with selected user IDs as comma-separated string
+    if (selectedUsersInput) {
+        selectedUsersInput.value = Array.from(selectedUsers).join(',');
+        console.log('Hidden input value:', selectedUsersInput.value);
+    } else {
+        console.error('selectedUsersInput element not found!');
+    }
+}
+
+// Confirmation for reset selected
+function confirmResetSelected() {
+    console.log('confirmResetSelected called');
+    console.log('Selected users count:', selectedUsers.size);
+    
+    if (selectedUsers.size === 0) {
+        alert('Please select at least one user to reset.');
+        return false;
+    }
+    
+    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    let userList = '';
+    
+    checkboxes.forEach((checkbox, index) => {
+        const username = checkbox.getAttribute('data-username');
+        const failures = checkbox.getAttribute('data-failures');
+        userList += `${index + 1}. ${username} (${failures} failures)\n`;
+    });
+    
+    const confirmation = confirm(`Reset failure counts for ${selectedUsers.size} user(s)?\n\n${userList}\n\nClick OK to confirm.`);
+    console.log('User confirmed:', confirmation);
+    return confirmation;
+}
+
 // Toast notification function
 function showToast(message, type = 'success') {
     // Create a simple toast notification
@@ -733,48 +800,6 @@ function resetAllFailures() {
     makeRequest('/reset-failures/', 'resetAllBtn', 'Reset ALL failure counts? This cannot be undone.');
 }
 
-let selectedUsers = new Set();
-
-// Update selected count display
-function updateSelectedCount() {
-    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
-    selectedUsers = new Set(Array.from(checkboxes).map(cb => cb.value));
-    
-    const selectedCount = document.getElementById('selectedCount');
-    const resetSelectedBtn = document.getElementById('resetSelectedBtn');
-    const selectedUsersInput = document.getElementById('selectedUsersInput');
-    
-    // Debug log
-    console.log('updateSelectedCount called');
-    console.log('Checked checkboxes:', checkboxes.length);
-    console.log('Selected users:', Array.from(selectedUsers));
-    console.log('Selected count:', selectedUsers.size);
-    
-    if (selectedCount) {
-        selectedCount.textContent = selectedUsers.size;
-        console.log('Updated count display to:', selectedUsers.size);
-    } else {
-        console.error('selectedCount element not found!');
-    }
-    
-    // Enable/disable the reset button
-    if (resetSelectedBtn) {
-        const shouldDisable = selectedUsers.size === 0;
-        resetSelectedBtn.disabled = shouldDisable;
-        console.log('Reset Selected button - disabled:', shouldDisable);
-    } else {
-        console.error('resetSelectedBtn element not found!');
-    }
-    
-    // Update hidden input with selected user IDs as comma-separated string
-    if (selectedUsersInput) {
-        selectedUsersInput.value = Array.from(selectedUsers).join(',');
-        console.log('Hidden input value:', selectedUsersInput.value);
-    } else {
-        console.error('selectedUsersInput element not found!');
-    }
-}
-
 // Select all functionality
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing checkbox functionality...');
@@ -804,30 +829,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the selected count on page load
     updateSelectedCount();
 });
-
-// Confirmation for reset selected
-function confirmResetSelected() {
-    console.log('confirmResetSelected called');
-    console.log('Selected users count:', selectedUsers.size);
-    
-    if (selectedUsers.size === 0) {
-        alert('Please select at least one user to reset.');
-        return false;
-    }
-    
-    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
-    let userList = '';
-    
-    checkboxes.forEach((checkbox, index) => {
-        const username = checkbox.getAttribute('data-username');
-        const failures = checkbox.getAttribute('data-failures');
-        userList += `${index + 1}. ${username} (${failures} failures)\n`;
-    });
-    
-    const confirmation = confirm(`Reset failure counts for ${selectedUsers.size} user(s)?\n\n${userList}\n\nClick OK to confirm.`);
-    console.log('User confirmed:', confirmation);
-    return confirmation;
-}
 
 function loadInstitutes() {
     fetch('/api/institutes/')
