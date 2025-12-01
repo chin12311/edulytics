@@ -627,7 +627,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     {% if assigned_sections %}
                     <div class="section-dropdown">
                         <div class="dropdown">
-                            <button class="btn dropdown-toggle" type="button" id="sectionDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <button class="btn dropdown-toggle" type="button" id="sectionDropdown" data-bs-toggle="dropdown" data-bs-auto-close="false" aria-expanded="false">
                                 📊 Select Section
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="sectionDropdown">
@@ -673,7 +673,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     {% if assigned_sections %}
                     <div class="section-dropdown">
                         <div class="dropdown">
-                            <button class="btn dropdown-toggle" type="button" id="sectionDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <button class="btn dropdown-toggle" type="button" id="sectionDropdown" data-bs-toggle="dropdown" data-bs-auto-close="false" aria-expanded="false">
                                 📊 Select Section
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="sectionDropdown">
@@ -1033,14 +1033,14 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             
             // Hide overall stats for peer evaluations
             document.getElementById('overallStats').style.display = 'none';
-        }
         } else if (sectionId === 'irregular') {
             // Load irregular student evaluation data
             sectionData = irregularScoresData;
             console.log("Irregular student evaluation data:", sectionData);
             
             // Hide overall stats for irregular evaluations
-            document.getElementById('overallStats').style.display = 'none'; else if (sectionId === 'overall') {
+            document.getElementById('overallStats').style.display = 'none';
+        } else if (sectionId === 'overall') {
             // Calculate overall results
             sectionData = calculateOverallResults();
             console.log("Overall data:", sectionData);
@@ -1101,9 +1101,10 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         const category3Score = formatToTwoDecimals(sectionData.category_scores[2]);
         const category4Score = formatToTwoDecimals(sectionData.category_scores[3]);
         
-        // CORRECTED: Calculate percentage of max for each category with proper weights
-        const category1Percentage = formatToTwoDecimals(((sectionData.category_scores[0] / 35) * 100));
-        const category2Percentage = formatToTwoDecimals(((sectionData.category_scores[1] / 25) * 100));
+        // Calculate percentage of max for each category with proper weights
+        // Irregular uses 30/30/20/20, Regular student uses 30/30/20/20 (both same now)
+        const category1Percentage = formatToTwoDecimals(((sectionData.category_scores[0] / 30) * 100));
+        const category2Percentage = formatToTwoDecimals(((sectionData.category_scores[1] / 30) * 100));
         const category3Percentage = formatToTwoDecimals(((sectionData.category_scores[2] / 20) * 100));
         const category4Percentage = formatToTwoDecimals(((sectionData.category_scores[3] / 20) * 100));
         
@@ -1119,20 +1120,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     </div>
                 </div>
 
-                ${!isPeer && !isIrregular ? `
-                <!-- Max Score Information (Student Evaluations Only) -->
-                <div class="max-score-info">
-                    <h5>📝 Scoring Information</h5>
-                    <p style="margin: 0; font-size: 14px;">
-                        <strong>Category Weights:</strong><br>
-                        • Mastery of Subject Matter: 35%<br>
-                        • Classroom Management: 25%<br>
-                        • Compliance to Policies: 20%<br>
-                        • Personality: 20%<br>
-                        Total Maximum Possible Score: <strong>100%</strong>
-                    </p>
-                </div>
-                ` : `
+                ${isPeer ? `
                 <!-- Peer Evaluation Information -->
                 <div class="max-score-info">
                     <h5>📝 Scoring Information</h5>
@@ -1142,6 +1130,17 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                         Maximum Possible Score: <strong>100%</strong>
                     </p>
                 </div>
+                ` : `
+                <!-- Max Score Information (Student & Irregular Evaluations) -->
+                <div class="max-score-info">
+                    <h5>📝 Scoring Information</h5>
+                    <p style="margin: 0; font-size: 14px;">
+                        <strong>${isIrregular ? 'Irregular Student Evaluation:' : 'Student Evaluation:'}</strong><br>
+                        ${isIrregular ? 'Irregular students - 19 questions' : 'Category Weights:'}<br>
+                        ${isIrregular ? '' : '• Mastery of Subject Matter: 30%<br>• Classroom Management: 30%<br>• Compliance to Policies: 20%<br>• Personality: 20%<br>'}
+                        Total Maximum Possible Score: <strong>100%</strong>
+                    </p>
+                </div>
                 `}
 
                 <!-- Chart -->
@@ -1149,13 +1148,13 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <canvas id="evaluationChart"></canvas>
                 </div>
 
-                ${!isPeer && !isIrregular ? `
-                <!-- Score Breakdown (Student Evaluations Only) -->
+                ${!isPeer ? `
+                <!-- Score Breakdown (Student & Irregular Evaluations) -->
                 <div class="score-breakdown">
                     <div class="score-item">
                         <div>
                             <div class="score-category">Mastery of Subject Matter</div>
-                            <div class="score-max">Max: 35%</div>
+                            <div class="score-max">Max: 30%</div>
                         </div>
                         <div class="score-value">
                             ${category1Score}%
@@ -1167,7 +1166,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <div class="score-item">
                         <div>
                             <div class="score-category">Classroom Management</div>
-                            <div class="score-max">Max: 25%</div>
+                            <div class="score-max">Max: 30%</div>
                         </div>
                         <div class="score-value">
                             ${category2Score}%
@@ -1551,7 +1550,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         
         const recommendations = [];
         const categoryScores = sectionData.category_scores || [0, 0, 0, 0];
-        const maxScores = [35, 25, 20, 20];
+        const maxScores = [30, 30, 20, 20];
         const categoryNames = [
             'Mastery of Subject Matter',
             'Classroom Management', 
@@ -1795,8 +1794,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                // CORRECTED: Use proper max scores for each category
-                                const maxScores = [35, 25, 20, 20];
+                                // Use proper max scores: 30%, 30%, 20%, 20%
+                                const maxScores = [30, 30, 20, 20];
                                 const maxScore = maxScores[context.dataIndex];
                                 const percentageOfMax = formatToTwoDecimals((context.raw / maxScore) * 100);
                                 return `${context.label}: ${context.raw}% (${percentageOfMax}% of maximum)`;
