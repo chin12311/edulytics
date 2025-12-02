@@ -189,7 +189,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <i class="fas fa-eye" id="toggleConfirmPassword" 
                        style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
                 </div>
-                <small id="passwordError" class="text-danger d-block mt-2" style="display: none;">Passwords do not match!</small>
+                <small id="passwordError" class="text-danger d-block mt-2"></small>
             </div>
 
             {% if user.userprofile.role == "Student" %}
@@ -571,71 +571,47 @@ function initializePasswordValidation() {
     const passwordError = document.getElementById('passwordError');
     
     if (password && confirmPassword && passwordError) {
-        // Ensure error is hidden on page load
-        passwordError.style.display = 'none';
-        
-        // Track if user has interacted with either password field
-        let userHasInteracted = false;
-
-        function validatePasswords() {
+        // Validate when user clicks away from confirm password field
+        confirmPassword.addEventListener('blur', function() {
             const pass = password.value;
             const confirmPass = confirmPassword.value;
 
-            // Don't validate until user has interacted with the form
-            if (!userHasInteracted) {
+            // Clear previous error
+            passwordError.textContent = '';
+            passwordError.style.display = 'none';
+            confirmPassword.style.borderColor = '';
+            password.style.borderColor = '';
+
+            // Only validate if user has entered something in password fields
+            if (!pass && !confirmPass) {
                 return;
             }
 
-            // Check password length requirements if password field has content
-            if (pass) {
-                if (pass.length < 8) {
-                    passwordError.textContent = 'Password must be at least 8 characters long!';
-                    passwordError.style.display = 'block';
-                    password.style.borderColor = '#dc3545';
-                    return;
-                } else if (pass.length > 16) {
-                    passwordError.textContent = 'Password must not exceed 16 characters!';
-                    passwordError.style.display = 'block';
-                    password.style.borderColor = '#dc3545';
-                    return;
-                }
+            // Check password length requirements
+            if (pass && pass.length < 8) {
+                passwordError.textContent = 'Password must be at least 8 characters long!';
+                passwordError.style.display = 'block';
+                password.style.borderColor = '#dc3545';
+                return;
             }
 
-            // Show mismatch error only if both fields have content and don't match
+            if (pass && pass.length > 16) {
+                passwordError.textContent = 'Password must not exceed 16 characters!';
+                passwordError.style.display = 'block';
+                password.style.borderColor = '#dc3545';
+                return;
+            }
+
+            // Check if passwords match
             if (pass && confirmPass && pass !== confirmPass) {
                 passwordError.textContent = 'Passwords do not match!';
                 passwordError.style.display = 'block';
                 confirmPassword.style.borderColor = '#dc3545';
-            } else {
-                // Hide error if validation passes or fields are empty
-                passwordError.style.display = 'none';
-                
-                // Update border colors based on validation state
-                if (pass && confirmPass && pass === confirmPass && pass.length >= 8 && pass.length <= 16) {
-                    confirmPassword.style.borderColor = '#47682c';
-                    password.style.borderColor = '#47682c';
-                } else {
-                    if (pass && pass.length >= 8 && pass.length <= 16) {
-                        password.style.borderColor = '#47682c';
-                    } else if (!pass) {
-                        password.style.borderColor = '';
-                    }
-                    if (!confirmPass) {
-                        confirmPassword.style.borderColor = '';
-                    }
-                }
+            } else if (pass && confirmPass && pass === confirmPass) {
+                // Passwords match - show success
+                confirmPassword.style.borderColor = '#47682c';
+                password.style.borderColor = '#47682c';
             }
-        }
-
-        // Set interaction flag on first input in either field
-        password.addEventListener('input', function() {
-            userHasInteracted = true;
-            validatePasswords();
-        });
-        
-        confirmPassword.addEventListener('input', function() {
-            userHasInteracted = true;
-            validatePasswords();
         });
     }
 }
