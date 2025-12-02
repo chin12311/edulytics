@@ -1649,12 +1649,14 @@ class CoordinatorDetailView(View):
                 
                 a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
                 
-                # Get evaluation count for this section from EvaluationResponse (filtered by latest period)
-                evaluation_count = EvaluationResponse.objects.filter(
+                # Get evaluation count for this section from EvaluationResponse (filtered by latest period if exists)
+                eval_filter = EvaluationResponse.objects.filter(
                     evaluatee=coordinator.user,
-                    student_section=section_code,
-                    evaluation_period=latest_student_period
-                ).count() if latest_student_period else 0
+                    student_section=section_code
+                )
+                if latest_student_period:
+                    eval_filter = eval_filter.filter(evaluation_period=latest_student_period)
+                evaluation_count = eval_filter.count()
                 
                 # Only include sections that have evaluations
                 if total_percentage > 0:
@@ -1673,12 +1675,14 @@ class CoordinatorDetailView(View):
                     }
 
             # Calculate PEER evaluation scores (overall, no section breakdown)
-            # Filter by latest peer evaluation period
-            peer_responses = EvaluationResponse.objects.filter(
+            # Filter by latest peer evaluation period if exists
+            peer_filter = EvaluationResponse.objects.filter(
                 evaluatee=coordinator.user,
-                student_section__isnull=True,  # Peer evaluations don't have sections
-                evaluation_period=latest_peer_period
-            ) if latest_peer_period else EvaluationResponse.objects.none()
+                student_section__isnull=True  # Peer evaluations don't have sections
+            )
+            if latest_peer_period:
+                peer_filter = peer_filter.filter(evaluation_period=latest_peer_period)
+            peer_responses = peer_filter
             
             peer_evaluation_count = peer_responses.count()
             
@@ -1703,11 +1707,13 @@ class CoordinatorDetailView(View):
                 }
 
             # Calculate IRREGULAR evaluation scores
-            # Filter by latest student evaluation period
-            irregular_responses = IrregularEvaluation.objects.filter(
-                evaluatee=coordinator.user,
-                evaluation_period=latest_student_period
-            ) if latest_student_period else IrregularEvaluation.objects.none()
+            # Filter by latest student evaluation period if exists
+            irregular_filter = IrregularEvaluation.objects.filter(
+                evaluatee=coordinator.user
+            )
+            if latest_student_period:
+                irregular_filter = irregular_filter.filter(evaluation_period=latest_student_period)
+            irregular_responses = irregular_filter
             irregular_evaluation_count = irregular_responses.count()
             
             if irregular_evaluation_count > 0:
@@ -1796,11 +1802,11 @@ class CoordinatorDetailView(View):
             # Calculate overall statistics for the template
             total_sections = assigned_sections.count()
             sections_with_data = sum(1 for scores in section_scores.values() if scores['has_data'])
-            # Filter total evaluations by latest student period
-            total_evaluations = EvaluationResponse.objects.filter(
-                evaluatee=coordinator.user,
-                evaluation_period=latest_student_period
-            ).count() if latest_student_period else 0
+            # Filter total evaluations by latest student period if exists
+            total_eval_filter = EvaluationResponse.objects.filter(evaluatee=coordinator.user)
+            if latest_student_period:
+                total_eval_filter = total_eval_filter.filter(evaluation_period=latest_student_period)
+            total_evaluations = total_eval_filter.count()
 
             # Get all sections and years for section assignment editing (for Dean/Coordinator viewing others)
             sections = Section.objects.all().order_by('year_level', 'code')
