@@ -565,6 +565,14 @@
             </div>
         </div>
         
+        <!-- Peer Evaluation Simple Display -->
+        <div id="peerDisplay" style="display: none; text-align: center; padding: 40px; background: #f8fafc; border-radius: 12px; margin: 20px 0;">
+            <h4 style="color: #576d2e; margin-bottom: 20px;">👥 Peer Evaluation Average Score</h4>
+            <div style="font-size: 72px; font-weight: bold; color: #576d2e;" id="peerTotalScore">0%</div>
+            <p style="color: #718096; margin-top: 15px; font-size: 1.1rem;">Simple average of all 15 peer evaluation questions</p>
+            <p style="color: #4a5568; margin-top: 10px;"><strong>Total Evaluations:</strong> <span id="peerEvaluationCount">0</span></p>
+        </div>
+
         <div class="dashboard-grid">
             <div class="chart-container">
                 <canvas id="evaluationPieChart"></canvas>
@@ -740,7 +748,28 @@
 
         console.log("Rendering with scores:", categoryScores, "Total:", totalPercentage);
 
-        // Update score details for ALL 4 CATEGORIES
+        // For peer evaluations, only show total score (no categories)
+        if (dataType === 'peer') {
+            // Hide chart and category breakdown
+            document.getElementById('evaluationPieChart').style.display = 'none';
+            document.getElementById('scoreDetails').style.display = 'none';
+            document.getElementById('noDataMessage').style.display = 'none';
+            document.getElementById('explanationBox').style.display = 'none';
+            document.querySelector('.dashboard-grid').style.display = 'none';
+            
+            // Show peer display
+            const peerDisplay = document.getElementById('peerDisplay');
+            peerDisplay.style.display = 'block';
+            document.getElementById('peerTotalScore').textContent = totalPercentage.toFixed(1) + '%';
+            document.getElementById('peerEvaluationCount').textContent = sectionData.evaluation_count || 0;
+            return;
+        }
+        
+        // For non-peer evaluations, show dashboard grid
+        document.querySelector('.dashboard-grid').style.display = 'grid';
+        document.getElementById('peerDisplay').style.display = 'none';
+
+        // Update score details for ALL 4 CATEGORIES (student and irregular only)
         document.getElementById('scoreA').textContent = categoryScores[0].toFixed(1) + '%';
         document.getElementById('scoreB').textContent = categoryScores[1].toFixed(1) + '%';
         document.getElementById('scoreC').textContent = categoryScores[2].toFixed(1) + '%';
@@ -752,10 +781,15 @@
         document.getElementById('noDataMessage').style.display = 'none';
         document.getElementById('explanationBox').style.display = 'block';
 
+        // Show canvas for non-peer evaluations
+        const canvas = document.getElementById('evaluationPieChart');
+        canvas.style.display = 'block';
+
         // Chart labels based on type
         let labels;
         if (dataType === 'peer') {
-            labels = ['Peer: Subject Mastery', 'Peer: Classroom Management', 'Peer: Compliance', 'Peer: Personality'];
+            // Peer evaluations don't have categories, skip chart
+            return;
         } else if (dataType === 'irregular') {
             labels = ['Irregular: Subject Mastery', 'Irregular: Classroom Management', 'Irregular: Compliance', 'Irregular: Personality'];
         } else if (isOverall) {
