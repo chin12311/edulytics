@@ -5785,13 +5785,26 @@ class EvaluationHistoryView(View):
         evaluation_history = []
         rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
         
-        # Deduplicate periods by date range - only keep the most recent period for each unique date range
-        seen_date_ranges = set()
+        # Deduplicate periods - group "Student Evaluation" and "Peer Evaluation" with same timestamp
+        # Extract base timestamp from period name (e.g., "December 02, 2025 19:36" from both types)
+        import re
+        seen_periods = {}
         unique_periods = []
+        
         for period in completed_periods:
-            date_key = (period.start_date, period.end_date)
-            if date_key not in seen_date_ranges:
-                seen_date_ranges.add(date_key)
+            # Extract timestamp pattern from period name to group related periods
+            # Match patterns like "December 02, 2025 19:36" or "December 2025"
+            timestamp_match = re.search(r'((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}(?:\s+\d{1,2}:\d{2})?)', period.name)
+            
+            if timestamp_match:
+                timestamp_key = timestamp_match.group(1)
+            else:
+                # If no timestamp, use full name as key
+                timestamp_key = period.name
+            
+            # Only keep the first (most recent) period for each timestamp
+            if timestamp_key not in seen_periods:
+                seen_periods[timestamp_key] = period
                 unique_periods.append(period)
         
         # Process each completed period - ONE entry per period combining all evaluation types
