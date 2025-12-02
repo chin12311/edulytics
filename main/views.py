@@ -3713,61 +3713,24 @@ class DeanProfileSettingsView(View):
             'Very Satisfactory': 4, 'Outstanding': 5
         }
         
-        total_category_a = total_category_b = total_category_c = total_category_d = 0
-        total_count_a = total_count_b = total_count_c = total_count_d = 0
+        total_score = 0
+        total_count = 0
         
         for response in peer_evaluations:
-            # Category A: Questions 1-4 (Mastery of Subject Matter - 35%)
-            for i in range(1, 5):
+            # Peer evaluations: Questions 1-15 (no categories, simple average)
+            for i in range(1, 16):
                 question_key = f'question{i}'
                 rating_text = getattr(response, question_key, 'Poor')
                 score = rating_to_numeric.get(rating_text, 1)
-                total_category_a += score
-                total_count_a += 1
-
-            # Category B: Questions 5-8 (Classroom Management - 25%)
-            for i in range(5, 9):
-                question_key = f'question{i}'
-                rating_text = getattr(response, question_key, 'Poor')
-                score = rating_to_numeric.get(rating_text, 1)
-                total_category_b += score
-                total_count_b += 1
-
-            # Category C: Questions 9-12 (Compliance to Policies - 20%)
-            for i in range(9, 13):
-                question_key = f'question{i}'
-                rating_text = getattr(response, question_key, 'Poor')
-                score = rating_to_numeric.get(rating_text, 1)
-                total_category_c += score
-                total_count_c += 1
-
-            # Category D: Questions 13-15 (Personality - 20%)
-            for i in range(13, 16):
-                question_key = f'question{i}'
-                rating_text = getattr(response, question_key, 'Poor')
-                score = rating_to_numeric.get(rating_text, 1)
-                total_category_d += score
-                total_count_d += 1
+                total_score += score
+                total_count += 1
         
-        # Calculate weighted averages
-        max_score_per_question = 5
-        a_weight = 0.35  # Mastery of Subject Matter
-        b_weight = 0.25  # Classroom Management
-        c_weight = 0.20  # Compliance to Policies
-        d_weight = 0.20  # Personality
-        
-        def scaled_avg(total, count, weight):
-            if count == 0:
-                return 0.00
-            average_score = total / count
-            return (average_score / max_score_per_question) * weight * 100
-        
-        a_avg = scaled_avg(total_category_a, total_count_a, a_weight)
-        b_avg = scaled_avg(total_category_b, total_count_b, b_weight)
-        c_avg = scaled_avg(total_category_c, total_count_c, c_weight)
-        d_avg = scaled_avg(total_category_d, total_count_d, d_weight)
-        
-        total_percentage = a_avg + b_avg + c_avg + d_avg
+        # Calculate simple average percentage
+        if total_count > 0:
+            average_score = total_score / total_count
+            total_percentage = (average_score / 5) * 100
+        else:
+            total_percentage = 0
         
         # Fetch peer comments and categorize them
         peer_comments = peer_evaluations.filter(
@@ -3786,12 +3749,7 @@ class DeanProfileSettingsView(View):
         
         return {
             'has_data': True,
-            'category_scores': [
-                round(a_avg, 2),
-                round(b_avg, 2),
-                round(c_avg, 2),
-                round(d_avg, 2)
-            ],
+            'category_scores': [0, 0, 0, 0],  # Peer evaluations don't have categories
             'total_percentage': round(total_percentage, 2),
             'evaluation_count': evaluation_count,
             'total_evaluations': evaluation_count,  # For template compatibility
@@ -3897,15 +3855,10 @@ class DeanProfileSettingsView(View):
         
         return {
             'has_data': True,
-            'category_scores': [
-                round(a_avg, 2),
-                round(b_avg, 2),
-                round(c_avg, 2),
-                round(d_avg, 2)
-            ],
+            'category_scores': [0, 0, 0, 0],  # Peer evaluations don't have categories
             'total_percentage': round(total_percentage, 2),
             'evaluation_count': evaluation_count,
-            'total_evaluations': evaluation_count,
+            'total_evaluations': evaluation_count,  # For template compatibility
             'positive_comments': positive_comments,
             'negative_comments': negative_comments
         }
@@ -4531,61 +4484,24 @@ class CoordinatorProfileSettingsView(View):
             'Very Satisfactory': 4, 'Outstanding': 5
         }
         
-        total_category_a = total_category_b = total_category_c = total_category_d = 0
-        total_count_a = total_count_b = total_count_c = total_count_d = 0
+        total_score = 0
+        total_count = 0
         
         for response in peer_evaluations:
-            # Category A: Questions 1-4 (Mastery of Subject Matter - 35%)
-            for i in range(1, 5):
+            # Peer evaluations: Questions 1-15 (no categories, simple average)
+            for i in range(1, 16):
                 question_key = f'question{i}'
                 rating_text = getattr(response, question_key, 'Poor')
                 score = rating_to_numeric.get(rating_text, 1)
-                total_category_a += score
-                total_count_a += 1
-
-            # Category B: Questions 5-8 (Classroom Management - 25%)
-            for i in range(5, 9):
-                question_key = f'question{i}'
-                rating_text = getattr(response, question_key, 'Poor')
-                score = rating_to_numeric.get(rating_text, 1)
-                total_category_b += score
-                total_count_b += 1
-
-            # Category C: Questions 9-12 (Compliance to Policies - 20%)
-            for i in range(9, 13):
-                question_key = f'question{i}'
-                rating_text = getattr(response, question_key, 'Poor')
-                score = rating_to_numeric.get(rating_text, 1)
-                total_category_c += score
-                total_count_c += 1
-
-            # Category D: Questions 13-15 (Personality - 20%)
-            for i in range(13, 16):
-                question_key = f'question{i}'
-                rating_text = getattr(response, question_key, 'Poor')
-                score = rating_to_numeric.get(rating_text, 1)
-                total_category_d += score
-                total_count_d += 1
+                total_score += score
+                total_count += 1
         
-        # Calculate weighted averages
-        max_score_per_question = 5
-        a_weight = 0.35  # Mastery of Subject Matter
-        b_weight = 0.25  # Classroom Management
-        c_weight = 0.20  # Compliance to Policies
-        d_weight = 0.20  # Personality
-        
-        def scaled_avg(total, count, weight):
-            if count == 0:
-                return 0.00
-            average_score = total / count
-            return (average_score / max_score_per_question) * weight * 100
-        
-        a_avg = scaled_avg(total_category_a, total_count_a, a_weight)
-        b_avg = scaled_avg(total_category_b, total_count_b, b_weight)
-        c_avg = scaled_avg(total_category_c, total_count_c, c_weight)
-        d_avg = scaled_avg(total_category_d, total_count_d, d_weight)
-        
-        total_percentage = a_avg + b_avg + c_avg + d_avg
+        # Calculate simple average percentage
+        if total_count > 0:
+            average_score = total_score / total_count
+            total_percentage = (average_score / 5) * 100
+        else:
+            total_percentage = 0
         
         # Fetch peer comments and categorize them
         peer_comments = peer_evaluations.filter(
@@ -4604,12 +4520,7 @@ class CoordinatorProfileSettingsView(View):
         
         return {
             'has_data': True,
-            'category_scores': [
-                round(a_avg, 2),
-                round(b_avg, 2),
-                round(c_avg, 2),
-                round(d_avg, 2)
-            ],
+            'category_scores': [0, 0, 0, 0],  # Peer evaluations don't have categories
             'total_percentage': round(total_percentage, 2),
             'evaluation_count': evaluation_count,
             'total_evaluations': evaluation_count,  # For template compatibility
@@ -4715,15 +4626,10 @@ class CoordinatorProfileSettingsView(View):
         
         return {
             'has_data': True,
-            'category_scores': [
-                round(a_avg, 2),
-                round(b_avg, 2),
-                round(c_avg, 2),
-                round(d_avg, 2)
-            ],
+            'category_scores': [0, 0, 0, 0],  # Peer evaluations don't have categories
             'total_percentage': round(total_percentage, 2),
             'evaluation_count': evaluation_count,
-            'total_evaluations': evaluation_count,
+            'total_evaluations': evaluation_count,  # For template compatibility
             'positive_comments': positive_comments,
             'negative_comments': negative_comments
         }
@@ -5252,61 +5158,24 @@ class FacultyProfileSettingsView(View):
             'Very Satisfactory': 4, 'Outstanding': 5
         }
         
-        total_category_a = total_category_b = total_category_c = total_category_d = 0
-        total_count_a = total_count_b = total_count_c = total_count_d = 0
+        total_score = 0
+        total_count = 0
         
         for response in peer_evaluations:
-            # Category A: Questions 1-4 (Mastery of Subject Matter - 35%)
-            for i in range(1, 5):
+            # Peer evaluations: Questions 1-15 (no categories, simple average)
+            for i in range(1, 16):
                 question_key = f'question{i}'
                 rating_text = getattr(response, question_key, 'Poor')
                 score = rating_to_numeric.get(rating_text, 1)
-                total_category_a += score
-                total_count_a += 1
-
-            # Category B: Questions 5-8 (Classroom Management - 25%)
-            for i in range(5, 9):
-                question_key = f'question{i}'
-                rating_text = getattr(response, question_key, 'Poor')
-                score = rating_to_numeric.get(rating_text, 1)
-                total_category_b += score
-                total_count_b += 1
-
-            # Category C: Questions 9-12 (Compliance to Policies - 20%)
-            for i in range(9, 13):
-                question_key = f'question{i}'
-                rating_text = getattr(response, question_key, 'Poor')
-                score = rating_to_numeric.get(rating_text, 1)
-                total_category_c += score
-                total_count_c += 1
-
-            # Category D: Questions 13-15 (Personality - 20%)
-            for i in range(13, 16):
-                question_key = f'question{i}'
-                rating_text = getattr(response, question_key, 'Poor')
-                score = rating_to_numeric.get(rating_text, 1)
-                total_category_d += score
-                total_count_d += 1
+                total_score += score
+                total_count += 1
         
-        # Calculate weighted averages
-        max_score_per_question = 5
-        a_weight = 0.35  # Mastery of Subject Matter
-        b_weight = 0.25  # Classroom Management
-        c_weight = 0.20  # Compliance to Policies
-        d_weight = 0.20  # Personality
-        
-        def scaled_avg(total, count, weight):
-            if count == 0:
-                return 0.00
-            average_score = total / count
-            return (average_score / max_score_per_question) * weight * 100
-        
-        a_avg = scaled_avg(total_category_a, total_count_a, a_weight)
-        b_avg = scaled_avg(total_category_b, total_count_b, b_weight)
-        c_avg = scaled_avg(total_category_c, total_count_c, c_weight)
-        d_avg = scaled_avg(total_category_d, total_count_d, d_weight)
-        
-        total_percentage = a_avg + b_avg + c_avg + d_avg
+        # Calculate simple average percentage
+        if total_count > 0:
+            average_score = total_score / total_count
+            total_percentage = (average_score / 5) * 100
+        else:
+            total_percentage = 0
         
         # Fetch peer comments and categorize them
         peer_comments = peer_evaluations.filter(
@@ -5325,12 +5194,7 @@ class FacultyProfileSettingsView(View):
         
         return {
             'has_data': True,
-            'category_scores': [
-                round(a_avg, 2),
-                round(b_avg, 2),
-                round(c_avg, 2),
-                round(d_avg, 2)
-            ],
+            'category_scores': [0, 0, 0, 0],  # Peer evaluations don't have categories
             'total_percentage': round(total_percentage, 2),
             'evaluation_count': evaluation_count,
             'total_evaluations': evaluation_count,  # For template compatibility
@@ -5432,15 +5296,10 @@ class FacultyProfileSettingsView(View):
         
         return {
             'has_data': True,
-            'category_scores': [
-                round(a_avg, 2),
-                round(b_avg, 2),
-                round(c_avg, 2),
-                round(d_avg, 2)
-            ],
+            'category_scores': [0, 0, 0, 0],  # Peer evaluations don't have categories
             'total_percentage': round(total_percentage, 2),
             'evaluation_count': evaluation_count,
-            'total_evaluations': evaluation_count,
+            'total_evaluations': evaluation_count,  # For template compatibility
             'positive_comments': positive_comments,
             'negative_comments': negative_comments
         }
