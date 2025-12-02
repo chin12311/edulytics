@@ -3279,11 +3279,13 @@ class DeanProfileSettingsView(View):
         from main.models import EvaluationResult
         section_scores = {}
         
-        # Get the most recent INACTIVE period (last completed evaluation)
+        # Get the most recent INACTIVE period that has actually ended (not future periods)
         # Results are stored in EvaluationResult when period ends (unrelease)
+        from django.utils import timezone
         latest_period = EvaluationPeriod.objects.filter(
             evaluation_type='student',
-            is_active=False
+            is_active=False,
+            end_date__lte=timezone.now()  # Only past periods
         ).order_by('-end_date').first()
         
         for section_assignment in assigned_sections:
@@ -4012,11 +4014,13 @@ class CoordinatorProfileSettingsView(View):
         from main.models import EvaluationResult
         section_scores = {}
         
-        # Get the most recent INACTIVE period (last completed evaluation)
+        # Get the most recent INACTIVE period that has actually ended (not future periods)
         # Results are stored in EvaluationResult when period ends (unrelease)
+        from django.utils import timezone
         latest_period = EvaluationPeriod.objects.filter(
             evaluation_type='student',
-            is_active=False
+            is_active=False,
+            end_date__lte=timezone.now()  # Only past periods
         ).order_by('-end_date').first()
         
         for section_assignment in assigned_sections:
@@ -4631,11 +4635,13 @@ class FacultyProfileSettingsView(View):
         from main.models import EvaluationResult
         section_scores = {}
         
-        # Get the most recent INACTIVE period (last completed evaluation)
+        # Get the most recent INACTIVE period that has actually ended (not future periods)
         # Results are stored in EvaluationResult when period ends (unrelease)
+        from django.utils import timezone
         latest_period = EvaluationPeriod.objects.filter(
             evaluation_type='student',
-            is_active=False
+            is_active=False,
+            end_date__lte=timezone.now()  # Only past periods
         ).order_by('-end_date').first()
         
         for section_assignment in assigned_sections:
