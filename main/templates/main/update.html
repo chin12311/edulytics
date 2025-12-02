@@ -566,32 +566,25 @@ function initializeYearFilter() {
 
 // Real-time password validation
 function initializePasswordValidation() {
-        // Always hide password error on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const passwordError = document.getElementById('passwordError');
-            if (passwordError) passwordError.style.display = 'none';
-        });
     const password = document.getElementById('password');
     const confirmPassword = document.getElementById('confirm_password');
     const passwordError = document.getElementById('passwordError');
     
     if (password && confirmPassword && passwordError) {
-        // Track if user has typed in confirm password field
-        let confirmPasswordTyped = false;
-
-
-        // Only set confirmPasswordTyped to true after first input event
-        confirmPassword.addEventListener('input', function() {
-            if (!confirmPasswordTyped && confirmPassword.value.length > 0) {
-                confirmPasswordTyped = true;
-            } else if (confirmPassword.value.length === 0) {
-                confirmPasswordTyped = false;
-            }
-        });
+        // Ensure error is hidden on page load
+        passwordError.style.display = 'none';
+        
+        // Track if user has interacted with either password field
+        let userHasInteracted = false;
 
         function validatePasswords() {
             const pass = password.value;
             const confirmPass = confirmPassword.value;
+
+            // Don't validate until user has interacted with the form
+            if (!userHasInteracted) {
+                return;
+            }
 
             // Check password length requirements if password field has content
             if (pass) {
@@ -608,15 +601,17 @@ function initializePasswordValidation() {
                 }
             }
 
-            // Only show mismatch error if user has typed in confirm password field (not on page load)
-            if (confirmPasswordTyped && pass && confirmPass && pass !== confirmPass) {
+            // Show mismatch error only if both fields have content and don't match
+            if (pass && confirmPass && pass !== confirmPass) {
                 passwordError.textContent = 'Passwords do not match!';
                 passwordError.style.display = 'block';
                 confirmPassword.style.borderColor = '#dc3545';
             } else {
-                // Hide error in all other cases, including page load
+                // Hide error if validation passes or fields are empty
                 passwordError.style.display = 'none';
-                if (pass && confirmPass && pass === confirmPass) {
+                
+                // Update border colors based on validation state
+                if (pass && confirmPass && pass === confirmPass && pass.length >= 8 && pass.length <= 16) {
                     confirmPassword.style.borderColor = '#47682c';
                     password.style.borderColor = '#47682c';
                 } else {
@@ -625,15 +620,23 @@ function initializePasswordValidation() {
                     } else if (!pass) {
                         password.style.borderColor = '';
                     }
-                    if (!confirmPasswordTyped || !confirmPass) {
+                    if (!confirmPass) {
                         confirmPassword.style.borderColor = '';
                     }
                 }
             }
         }
 
-        password.addEventListener('input', validatePasswords);
-        confirmPassword.addEventListener('input', validatePasswords);
+        // Set interaction flag on first input in either field
+        password.addEventListener('input', function() {
+            userHasInteracted = true;
+            validatePasswords();
+        });
+        
+        confirmPassword.addEventListener('input', function() {
+            userHasInteracted = true;
+            validatePasswords();
+        });
     }
 }
 
