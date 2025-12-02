@@ -926,13 +926,22 @@ def release_student_evaluation(request):
                 logger.info("Attempting to release already released student evaluation")
                 return JsonResponse({'success': False, 'error': "Student evaluation is already released."})
 
-            # STEP 1: Move current EvaluationResult records to EvaluationHistory
+            # STEP 1: Deactivate any existing active periods to prevent multiple active periods
+            existing_active = EvaluationPeriod.objects.filter(
+                evaluation_type='student',
+                is_active=True
+            )
+            if existing_active.exists():
+                deactivated_count = existing_active.update(is_active=False, end_date=timezone.now())
+                logger.info(f"Deactivated {deactivated_count} existing active period(s)")
+            
+            # STEP 2: Move current EvaluationResult records to EvaluationHistory
             # This preserves the results that were visible in profile settings
             logger.info("Moving current EvaluationResult records to history...")
             archived_count = move_current_results_to_history()
             logger.info(f"Moved {archived_count} results to evaluation history")
             
-            # STEP 2: Create a new active evaluation period for this release
+            # STEP 3: Create a new active evaluation period for this release
             # Always create a unique period by including timestamp
             new_period = EvaluationPeriod.objects.create(
                 name=f"Student Evaluation {timezone.now().strftime('%B %d, %Y %H:%M')}",
@@ -2223,6 +2232,16 @@ def submit_evaluation(request):
             else:
                 # Save to regular EvaluationResponse table
                 logger.info(f"🔍 Regular student/staff evaluation - saving to EvaluationResponse")
+                
+                # Check for duplicate regular evaluation in current period
+                if EvaluationResponse.objects.filter(
+                    evaluator=request.user,
+                    evaluatee=evaluatee,
+                    evaluation_period=current_period
+                ).exists():
+                    messages.error(request, 'You have already evaluated this instructor in this evaluation period.')
+                    return redirect('main:evaluationform')
+                
                 evaluation_response = EvaluationResponse(
                     evaluator=request.user,
                     evaluatee=evaluatee,
