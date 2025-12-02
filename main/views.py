@@ -7428,40 +7428,6 @@ def download_evaluation_history_pdf(request, period_id):
         from main.models import SectionAssignment
         assigned_sections = SectionAssignment.objects.filter(user=user).select_related('section')
         
-        # ========== OVERALL RESULTS (like profile settings) ==========
-        story.append(Paragraph("Overall Performance", heading_style))
-        
-        # Calculate overall score using same logic as profile settings
-        overall_data = compute_overall_scores_for_period(user, all_period_ids, assigned_sections)
-        
-        if overall_data['has_data']:
-            summary_data = [
-                ['Category', 'Score'],
-                ['Category A (Mastery)', f"{overall_data['category_a']:.2f}%"],
-                ['Category B (Teaching)', f"{overall_data['category_b']:.2f}%"],
-                ['Category C (Management)', f"{overall_data['category_c']:.2f}%"],
-                ['Category D (Engagement)', f"{overall_data['category_d']:.2f}%"],
-                ['Overall Average', f"{overall_data['overall']:.2f}%"],
-                ['Total Responses', str(overall_data['total_responses'])],
-            ]
-            
-            summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
-            summary_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a237e')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            story.append(summary_table)
-        else:
-            story.append(Paragraph("No overall evaluation data available.", styles['Normal']))
-        
-        story.append(Spacer(1, 0.3*inch))
-        
         # ========== SECTION BREAKDOWN ==========
         story.append(Paragraph("Section-wise Performance", heading_style))
         
