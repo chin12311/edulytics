@@ -5938,12 +5938,11 @@ def process_evaluation_results_for_user(user, evaluation_period=None):
             is_active=False
         )
     
-    # CRITICAL FIX: Filter responses by the evaluation period's date range
-    # This ensures we only calculate results for responses submitted during THIS period
+    # CRITICAL FIX: Filter responses by the evaluation_period foreign key
+    # This is more reliable than date range filtering
     responses = EvaluationResponse.objects.filter(
         evaluatee=user,
-        submitted_at__gte=evaluation_period.start_date,
-        submitted_at__lte=evaluation_period.end_date
+        evaluation_period=evaluation_period
     )
     
     if not responses.exists():
