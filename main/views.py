@@ -3618,14 +3618,64 @@ class DeanProfileSettingsView(View):
         }
     
     def get_ai_recommendations(self, user, section_data=None, section_code=None):
-        """Get AI recommendations using shared service"""
+        """Get AI recommendations - retrieve saved ones for archived periods or generate new ones"""
+        from main.models import AiRecommendation, EvaluationPeriod
+        
+        # Get the latest completed student period
+        latest_student_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False
+        ).order_by('-end_date').first()
+        
+        # Check if we have saved recommendations for this period and section
+        if latest_student_period and section_code:
+            saved_recs = AiRecommendation.objects.filter(
+                user=user,
+                evaluation_period=latest_student_period,
+                section_code=section_code,
+                evaluation_type='student'
+            ).order_by('created_at')
+            
+            if saved_recs.exists():
+                # Return saved recommendations
+                return [
+                    {
+                        'title': rec.title,
+                        'description': rec.description,
+                        'priority': rec.priority,
+                        'reason': rec.reason
+                    }
+                    for rec in saved_recs
+                ]
+        
+        # Generate new recommendations if none saved
         ai_service = TeachingAIRecommendationService()
-        return ai_service.get_recommendations(
+        recommendations = ai_service.get_recommendations(
             user=user,
             section_data=section_data,
             section_code=section_code,
             role="Dean"
         )
+        
+        # Save recommendations if we have a period and they're not already saved
+        if latest_student_period and section_code and recommendations:
+            for rec in recommendations:
+                if isinstance(rec, dict):
+                    AiRecommendation.objects.get_or_create(
+                        user=user,
+                        evaluation_period=latest_student_period,
+                        section_code=section_code,
+                        evaluation_type='student',
+                        title=str(rec.get('title', '')[:255]),
+                        defaults={
+                            'description': rec.get('description', ''),
+                            'priority': rec.get('priority', ''),
+                            'reason': rec.get('reason', ''),
+                            'recommendation': rec.get('description', '')
+                        }
+                    )
+        
+        return recommendations
     
     def get_peer_evaluation_scores(self, user):
         """Calculate peer evaluation scores (evaluations from other staff members)"""
@@ -4374,14 +4424,64 @@ class CoordinatorProfileSettingsView(View):
         }
     
     def get_ai_recommendations(self, user, section_data=None, section_code=None):
-        """Get AI recommendations using shared service"""
+        """Get AI recommendations - retrieve saved ones for archived periods or generate new ones"""
+        from main.models import AiRecommendation, EvaluationPeriod
+        
+        # Get the latest completed student period
+        latest_student_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False
+        ).order_by('-end_date').first()
+        
+        # Check if we have saved recommendations for this period and section
+        if latest_student_period and section_code:
+            saved_recs = AiRecommendation.objects.filter(
+                user=user,
+                evaluation_period=latest_student_period,
+                section_code=section_code,
+                evaluation_type='student'
+            ).order_by('created_at')
+            
+            if saved_recs.exists():
+                # Return saved recommendations
+                return [
+                    {
+                        'title': rec.title,
+                        'description': rec.description,
+                        'priority': rec.priority,
+                        'reason': rec.reason
+                    }
+                    for rec in saved_recs
+                ]
+        
+        # Generate new recommendations if none saved
         ai_service = TeachingAIRecommendationService()
-        return ai_service.get_recommendations(
+        recommendations = ai_service.get_recommendations(
             user=user,
             section_data=section_data,
             section_code=section_code,
             role="Coordinator"
         )
+        
+        # Save recommendations if we have a period and they're not already saved
+        if latest_student_period and section_code and recommendations:
+            for rec in recommendations:
+                if isinstance(rec, dict):
+                    AiRecommendation.objects.get_or_create(
+                        user=user,
+                        evaluation_period=latest_student_period,
+                        section_code=section_code,
+                        evaluation_type='student',
+                        title=str(rec.get('title', '')[:255]),
+                        defaults={
+                            'description': rec.get('description', ''),
+                            'priority': rec.get('priority', ''),
+                            'reason': rec.get('reason', ''),
+                            'recommendation': rec.get('description', '')
+                        }
+                    )
+        
+        return recommendations
     
     def get_peer_evaluation_scores(self, user):
         """Calculate peer evaluation scores (evaluations from other staff members)"""
@@ -5033,14 +5133,64 @@ class FacultyProfileSettingsView(View):
         }
     
     def get_ai_recommendations(self, user, section_data=None, section_code=None):
-        """Get AI recommendations using shared service"""
+        """Get AI recommendations - retrieve saved ones for archived periods or generate new ones"""
+        from main.models import AiRecommendation, EvaluationPeriod
+        
+        # Get the latest completed student period
+        latest_student_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False
+        ).order_by('-end_date').first()
+        
+        # Check if we have saved recommendations for this period and section
+        if latest_student_period and section_code:
+            saved_recs = AiRecommendation.objects.filter(
+                user=user,
+                evaluation_period=latest_student_period,
+                section_code=section_code,
+                evaluation_type='student'
+            ).order_by('created_at')
+            
+            if saved_recs.exists():
+                # Return saved recommendations
+                return [
+                    {
+                        'title': rec.title,
+                        'description': rec.description,
+                        'priority': rec.priority,
+                        'reason': rec.reason
+                    }
+                    for rec in saved_recs
+                ]
+        
+        # Generate new recommendations if none saved
         ai_service = TeachingAIRecommendationService()
-        return ai_service.get_recommendations(
+        recommendations = ai_service.get_recommendations(
             user=user,
             section_data=section_data,
             section_code=section_code,
             role="Faculty"
         )
+        
+        # Save recommendations if we have a period and they're not already saved
+        if latest_student_period and section_code and recommendations:
+            for rec in recommendations:
+                if isinstance(rec, dict):
+                    AiRecommendation.objects.get_or_create(
+                        user=user,
+                        evaluation_period=latest_student_period,
+                        section_code=section_code,
+                        evaluation_type='student',
+                        title=str(rec.get('title', '')[:255]),
+                        defaults={
+                            'description': rec.get('description', ''),
+                            'priority': rec.get('priority', ''),
+                            'reason': rec.get('reason', ''),
+                            'recommendation': rec.get('description', '')
+                        }
+                    )
+        
+        return recommendations
     
     def get_peer_evaluation_scores(self, user):
         """Calculate peer evaluation scores (evaluations from other staff members)"""
