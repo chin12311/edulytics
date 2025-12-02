@@ -998,6 +998,113 @@ def release_student_evaluation(request):
     logger.debug("Not a POST request")
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
+
+def generate_and_save_ai_recommendations_for_period(period):
+    """
+    Generate and save AI recommendations for all users who have evaluation results in this period
+    Called when a period ends (unrelease) to preserve AI recommendations for history
+    """
+    from main.models import EvaluationResult, AiRecommendation, SectionAssignment
+    from main.services.teaching_ai_service import TeachingAIRecommendationService
+    
+    ai_service = TeachingAIRecommendationService()
+    recommendations_saved = 0
+    
+    # Get all unique users who have results in this period
+    users_with_results = EvaluationResult.objects.filter(
+        evaluation_period=period
+    ).values_list('user', flat=True).distinct()
+    
+    for user_id in users_with_results:
+        try:
+            user = User.objects.get(id=user_id)
+            
+            # Get user's assigned sections
+            assigned_sections = SectionAssignment.objects.filter(user=user).select_related('section')
+            
+            # Get results for each section
+            for assignment in assigned_sections:
+                section = assignment.section
+                section_code = section.code
+                
+                # Get evaluation result for this section
+                try:
+                    result = EvaluationResult.objects.get(
+                        user=user,
+                        section=section,
+                        evaluation_period=period
+                    )
+                    
+                    # Prepare section data for AI recommendations
+                    section_data = {
+                        'has_data': True,
+                        'category_scores': [
+                            result.category_a_score,
+                            result.category_b_score,
+                            result.category_c_score,
+                            result.category_d_score
+                        ],
+                        'total_percentage': result.total_percentage,
+                        'evaluation_count': result.total_responses,
+                        'positive_comments': [],
+                        'negative_comments': [],
+                        'mixed_comments': []
+                    }
+                    
+                    # Get comments for this section
+                    comments = EvaluationResponse.objects.filter(
+                        evaluatee=user,
+                        student_section=section_code,
+                        evaluation_period=period,
+                        comments__isnull=False
+                    ).exclude(comments='').values_list('comments', flat=True)
+                    
+                    # Categorize comments
+                    for comment in comments:
+                        sentiment = TeachingAIRecommendationService.analyze_comment_sentiment(comment)
+                        if sentiment == 'positive':
+                            section_data['positive_comments'].append(comment)
+                        elif sentiment == 'negative':
+                            section_data['negative_comments'].append(comment)
+                        elif sentiment == 'mixed':
+                            section_data['mixed_comments'].append(comment)
+                    
+                    # Generate AI recommendations for this section
+                    recommendations = ai_service.get_recommendations(
+                        user=user,
+                        section_data=section_data,
+                        section_code=section_code,
+                        role=user.userprofile.role if hasattr(user, 'userprofile') else "Faculty"
+                    )
+                    
+                    # Save recommendations to database
+                    if recommendations and isinstance(recommendations, list):
+                        for rec in recommendations:
+                            if isinstance(rec, dict):
+                                AiRecommendation.objects.create(
+                                    user=user,
+                                    evaluation_period=period,
+                                    title=str(rec.get('title', '')[:255]),
+                                    description=rec.get('description', ''),
+                                    priority=rec.get('priority', ''),
+                                    reason=rec.get('reason', ''),
+                                    recommendation=rec.get('description', ''),
+                                    evaluation_type='student',
+                                    section_code=section_code
+                                )
+                                recommendations_saved += 1
+                                
+                except EvaluationResult.DoesNotExist:
+                    # No result for this section, skip
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"Error generating AI recommendations for user {user_id}: {str(e)}")
+            continue
+    
+    return recommendations_saved
+
+
 def unrelease_student_evaluation(request):
     """
     NEW FLOW: When admin clicks unrelease (ends evaluation):
@@ -1028,6 +1135,11 @@ def unrelease_student_evaluation(request):
                 logger.info(f"Processing evaluation results for period: {active_period.name}")
                 processed_count = process_evaluation_period_to_results(active_period)
                 logger.info(f"Processed {processed_count} evaluation results")
+                
+                # STEP 1.5: Generate and save AI recommendations for all evaluated users
+                logger.info(f"Generating AI recommendations for period: {active_period.name}")
+                ai_recs_count = generate_and_save_ai_recommendations_for_period(active_period)
+                logger.info(f"Generated {ai_recs_count} AI recommendations")
                 
                 # STEP 2: Deactivate the current evaluation period
                 active_period.is_active = False
