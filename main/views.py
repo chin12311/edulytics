@@ -5785,11 +5785,10 @@ class EvaluationHistoryView(View):
         evaluation_history = []
         rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
         
-        # Deduplicate periods - group "Student Evaluation" and "Peer Evaluation" with same timestamp
-        # Extract base timestamp from period name (e.g., "December 02, 2025 19:36" from both types)
+        # Group periods by timestamp - combine "Student Evaluation" and "Peer Evaluation" with same timestamp
         import re
-        seen_periods = {}
-        unique_periods = []
+        from collections import defaultdict
+        timestamp_groups = defaultdict(list)
         
         for period in completed_periods:
             # Extract timestamp pattern from period name to group related periods
@@ -5802,27 +5801,30 @@ class EvaluationHistoryView(View):
                 # If no timestamp, use full name as key
                 timestamp_key = period.name
             
-            # Only keep the first (most recent) period for each timestamp
-            if timestamp_key not in seen_periods:
-                seen_periods[timestamp_key] = period
-                unique_periods.append(period)
+            # Group all periods with same timestamp together
+            timestamp_groups[timestamp_key].append(period)
         
-        # Process each completed period - ONE entry per period combining all evaluation types
-        for period in unique_periods:
-            # Get ALL evaluations for this period (student, irregular, peer)
+        # Process each timestamp group - ONE entry per timestamp combining ALL evaluation types from all related periods
+        for timestamp_key, periods_in_group in timestamp_groups.items():
+            # Get the representative period (first one) for display info
+            representative_period = periods_in_group[0]
+            
+            # Collect ALL responses from ALL periods in this timestamp group
+            all_period_ids = [p.id for p in periods_in_group]
+            # Get ALL evaluations across ALL periods in this group (student, irregular, peer)
             regular_responses = EvaluationResponse.objects.filter(
                 evaluatee=user,
-                evaluation_period=period
+                evaluation_period__id__in=all_period_ids
             ).exclude(evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN])
             
             irregular_responses = IrregularEvaluation.objects.filter(
                 evaluatee=user,
-                evaluation_period=period
+                evaluation_period__id__in=all_period_ids
             )
             
             peer_responses = EvaluationResponse.objects.filter(
                 evaluatee=user,
-                evaluation_period=period,
+                evaluation_period__id__in=all_period_ids,
                 evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
             )
             
@@ -5872,16 +5874,20 @@ class EvaluationHistoryView(View):
             overall_score = sum(all_scores) / len(all_scores)
             total_responses = len(all_scores)
             
+            # Create clean display name without type prefix
+            display_name = re.sub(r'^(Student|Peer|Irregular)\s+Evaluation\s+', 'Evaluation Period ', representative_period.name)
+            
             evaluation_history.append({
-                'period_name': period.name,
-                'evaluation_period_id': period.id,
-                'period_start_date': period.start_date,
-                'period_end_date': period.end_date,
+                'period_name': display_name,
+                'evaluation_period_id': representative_period.id,
+                'period_start_date': representative_period.start_date,
+                'period_end_date': representative_period.end_date,
                 'overall_percentage': overall_score,
                 'total_responses': total_responses,
                 'student_responses': regular_responses.count(),
                 'irregular_responses': irregular_responses.count(),
-                'peer_responses': peer_responses.count()
+                'peer_responses': peer_responses.count(),
+                'all_period_ids': all_period_ids  # Store all period IDs for PDF generation
             })
         
         # Calculate summary statistics
@@ -7176,12 +7182,19 @@ def api_delete_course(request, course_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
-def compute_overall_scores_for_period(user, period, assigned_sections):
+def compute_overall_scores_for_period(user, period_or_periods, assigned_sections):
     """
-    Compute overall scores across all sections for a specific period
+    Compute overall scores across all sections for a specific period or multiple periods
     Returns dict with category scores and overall average
+    period_or_periods can be a single period or a list of period IDs
     """
     rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
+    
+    # Handle both single period and list of period IDs
+    if isinstance(period_or_periods, list):
+        period_ids = period_or_periods
+    else:
+        period_ids = [period_or_periods.id]
     
     category_a_total = 0
     category_b_total = 0
@@ -7191,22 +7204,29 @@ def compute_overall_scores_for_period(user, period, assigned_sections):
     
     for assignment in assigned_sections:
         section = assignment.section
-        a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = compute_category_scores(
-            user, section.code, evaluation_period=period
-        )
+        # Get responses across all periods
+        responses = EvaluationResponse.objects.filter(
+            evaluatee=user,
+            student_section=section.code,
+            evaluation_period__id__in=period_ids
+        ).exclude(evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN])
         
-        if total_percentage > 0:
-            response_count = EvaluationResponse.objects.filter(
-                evaluatee=user,
-                student_section=section.code,
-                evaluation_period=period
-            ).count()
+        for response in responses:
+            # Category A (questions 1-3)
+            a_total = sum([rating_values.get(getattr(response, f'question{i}'), 0) for i in range(1, 4)])
+            # Category B (questions 4-7)
+            b_total = sum([rating_values.get(getattr(response, f'question{i}'), 0) for i in range(4, 8)])
+            # Category C (questions 8-11)
+            c_total = sum([rating_values.get(getattr(response, f'question{i}'), 0) for i in range(8, 12)])
+            # Category D (questions 12-15)
+            d_total = sum([rating_values.get(getattr(response, f'question{i}'), 0) for i in range(12, 16)])
             
-            category_a_total += (a_avg * response_count)
-            category_b_total += (b_avg * response_count)
-            category_c_total += (c_avg * response_count)
-            category_d_total += (d_avg * response_count)
-            total_responses += response_count
+            if a_total > 0 or b_total > 0 or c_total > 0 or d_total > 0:
+                category_a_total += (a_total / 15) * 100  # 3 questions * 5 points = 15
+                category_b_total += (b_total / 20) * 100  # 4 questions * 5 points = 20
+                category_c_total += (c_total / 20) * 100  # 4 questions * 5 points = 20
+                category_d_total += (d_total / 20) * 100  # 4 questions * 5 points = 20
+                total_responses += 1
     
     if total_responses > 0:
         return {
@@ -7222,16 +7242,22 @@ def compute_overall_scores_for_period(user, period, assigned_sections):
     return {'has_data': False}
 
 
-def compute_peer_scores_for_period(user, period):
+def compute_peer_scores_for_period(user, period_or_periods):
     """
-    Compute peer evaluation scores for a specific period
+    Compute peer evaluation scores for a specific period or multiple periods
     Returns dict with count and average
     """
     rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
     
+    # Handle both single period and list of period IDs
+    if isinstance(period_or_periods, list):
+        period_ids = period_or_periods
+    else:
+        period_ids = [period_or_periods.id]
+    
     peer_responses = EvaluationResponse.objects.filter(
         evaluatee=user,
-        evaluation_period=period,
+        evaluation_period__id__in=period_ids,
         evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
     )
     
@@ -7260,18 +7286,24 @@ def compute_peer_scores_for_period(user, period):
     return {'has_data': False}
 
 
-def compute_irregular_scores_for_period(user, period):
+def compute_irregular_scores_for_period(user, period_or_periods):
     """
-    Compute irregular student evaluation scores for a specific period
+    Compute irregular student evaluation scores for a specific period or multiple periods
     Returns dict with count and average
     """
     from main.models import IrregularEvaluation
     
     rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
     
+    # Handle both single period and list of period IDs
+    if isinstance(period_or_periods, list):
+        period_ids = period_or_periods
+    else:
+        period_ids = [period_or_periods.id]
+    
     irregular_responses = IrregularEvaluation.objects.filter(
         evaluatee=user,
-        evaluation_period=period
+        evaluation_period__id__in=period_ids
     )
     
     if not irregular_responses.exists():
@@ -7325,9 +7357,24 @@ def download_evaluation_history_pdf(request, period_id):
         if not user.userprofile.role in [Role.FACULTY, Role.COORDINATOR, Role.DEAN]:
             return HttpResponse("Access denied", status=403)
         
-        # Check if there's any data for this period
-        student_responses = EvaluationResponse.objects.filter(evaluatee=user, evaluation_period=period)
-        irregular_responses = IrregularEvaluation.objects.filter(evaluatee=user, evaluation_period=period)
+        # Find ALL periods with the same timestamp (e.g., "Student Evaluation" and "Peer Evaluation" for same date)
+        timestamp_match = re.search(r'((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}(?:\s+\d{1,2}:\d{2})?)', period.name)
+        
+        if timestamp_match:
+            timestamp_key = timestamp_match.group(1)
+            # Find all periods with this timestamp
+            related_periods = EvaluationPeriod.objects.filter(
+                name__icontains=timestamp_key,
+                is_active=False
+            )
+            all_period_ids = [p.id for p in related_periods]
+        else:
+            # No timestamp match, use single period
+            all_period_ids = [period_id]
+        
+        # Check if there's any data across ALL related periods
+        student_responses = EvaluationResponse.objects.filter(evaluatee=user, evaluation_period__id__in=all_period_ids)
+        irregular_responses = IrregularEvaluation.objects.filter(evaluatee=user, evaluation_period__id__in=all_period_ids)
         
         if not student_responses.exists() and not irregular_responses.exists():
             return HttpResponse("No evaluation data found for this period", status=404)
@@ -7385,7 +7432,7 @@ def download_evaluation_history_pdf(request, period_id):
         story.append(Paragraph("Overall Performance", heading_style))
         
         # Calculate overall score using same logic as profile settings
-        overall_data = compute_overall_scores_for_period(user, period, assigned_sections)
+        overall_data = compute_overall_scores_for_period(user, all_period_ids, assigned_sections)
         
         if overall_data['has_data']:
             summary_data = [
@@ -7421,15 +7468,23 @@ def download_evaluation_history_pdf(request, period_id):
         section_scores_list = []
         for assignment in assigned_sections:
             section = assignment.section
-            scores = compute_category_scores(user, section.code, evaluation_period=period)
-            a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = scores
+            # Get responses across all periods
+            responses = EvaluationResponse.objects.filter(
+                evaluatee=user,
+                student_section=section.code,
+                evaluation_period__id__in=all_period_ids
+            ).exclude(evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN])
             
-            if total_percentage > 0:
-                response_count = EvaluationResponse.objects.filter(
-                    evaluatee=user,
-                    student_section=section.code,
-                    evaluation_period=period
-                ).count()
+            response_count = responses.count()
+            if response_count > 0:
+                # Calculate category scores manually
+                rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
+                total_score = 0
+                for resp in responses:
+                    resp_total = sum([rating_values.get(getattr(resp, f'question{i}'), 0) for i in range(1, 20)])
+                    total_score += (resp_total / 95) * 100  # 19 questions * 5 = 95
+                
+                total_percentage = total_score / response_count if response_count > 0 else 0
                 
                 section_scores_list.append({
                     'section': section.code,
@@ -7472,7 +7527,7 @@ def download_evaluation_history_pdf(request, period_id):
         # ========== PEER EVALUATION ==========
         story.append(Paragraph("Peer Evaluation Results", heading_style))
         
-        peer_data = compute_peer_scores_for_period(user, period)
+        peer_data = compute_peer_scores_for_period(user, all_period_ids)
         
         if peer_data['has_data']:
             peer_table_data = [
@@ -7495,7 +7550,7 @@ def download_evaluation_history_pdf(request, period_id):
         # ========== IRREGULAR STUDENT EVALUATION ==========
         story.append(Paragraph("Irregular Student Evaluation Results", heading_style))
         
-        irregular_data = compute_irregular_scores_for_period(user, period)
+        irregular_data = compute_irregular_scores_for_period(user, all_period_ids)
         
         if irregular_data['has_data']:
             irregular_table_data = [
@@ -7522,7 +7577,7 @@ def download_evaluation_history_pdf(request, period_id):
         # Get comments from regular student evaluations
         regular_comments = EvaluationResponse.objects.filter(
             evaluatee=user,
-            evaluation_period=period,
+            evaluation_period__id__in=all_period_ids,
             comments__isnull=False
         ).exclude(comments='').exclude(
             evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
@@ -7531,7 +7586,7 @@ def download_evaluation_history_pdf(request, period_id):
         # Get comments from irregular evaluations
         irregular_comments_qs = IrregularEvaluation.objects.filter(
             evaluatee=user,
-            evaluation_period=period,
+            evaluation_period__id__in=all_period_ids,
             comments__isnull=False
         ).exclude(comments='')
         
@@ -7559,7 +7614,7 @@ def download_evaluation_history_pdf(request, period_id):
         from main.models import AiRecommendation
         recommendations = AiRecommendation.objects.filter(
             user=user,
-            evaluation_period=period
+            evaluation_period__id__in=all_period_ids
         ).order_by('-created_at')
         
         if recommendations.exists():
