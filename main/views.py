@@ -5866,10 +5866,7 @@ class EvaluationHistoryView(View):
         average_percentage = sum([eval['overall_percentage'] for eval in evaluation_history]) / total_evaluations if total_evaluations > 0 else 0
         latest_score = evaluation_history[0]['overall_percentage'] if total_evaluations > 0 else 0
         
-        # Get unique sections from evaluation history for filtering
-        sections_in_history = list(set([eval['section'] for eval in evaluation_history if eval['section'] != 'All Sections']))
-        
-        # Get user's assigned sections for all roles (include sections even if no data)
+        # Get user's assigned sections for all roles (for display purposes)
         from main.models import SectionAssignment
         assigned_sections_qs = SectionAssignment.objects.filter(user=user).select_related('section')
         user_sections = [{'id': a.section.id, 'code': a.section.code, 'name': str(a.section)} for a in assigned_sections_qs]
@@ -5882,7 +5879,6 @@ class EvaluationHistoryView(View):
             'latest_score': round(latest_score, 2),
             'page_title': 'Evaluation History',
             'evaluation_period_active': Evaluation.is_evaluation_period_active('student'),
-            'sections_in_history': sections_in_history,
             'user_sections': user_sections
         }
         
