@@ -3629,11 +3629,23 @@ class DeanProfileSettingsView(View):
     
     def get_peer_evaluation_scores(self, user):
         """Calculate peer evaluation scores (evaluations from other staff members)"""
+        # Get the most recent INACTIVE peer period that has ended
+        from django.utils import timezone
+        latest_peer_period = EvaluationPeriod.objects.filter(
+            evaluation_type='peer',
+            is_active=False,
+            end_date__lte=timezone.now()
+        ).order_by('-end_date').first()
+        
         # Peer evaluations are identified by having "Staff" in student_section field
         peer_evaluations = EvaluationResponse.objects.filter(
             evaluatee=user,
             student_section__icontains="Staff"
         )
+        
+        # Filter by the latest completed peer period
+        if latest_peer_period:
+            peer_evaluations = peer_evaluations.filter(evaluation_period=latest_peer_period)
         
         evaluation_count = peer_evaluations.count()
         
@@ -4373,11 +4385,23 @@ class CoordinatorProfileSettingsView(View):
     
     def get_peer_evaluation_scores(self, user):
         """Calculate peer evaluation scores (evaluations from other staff members)"""
+        # Get the most recent INACTIVE peer period that has ended
+        from django.utils import timezone
+        latest_peer_period = EvaluationPeriod.objects.filter(
+            evaluation_type='peer',
+            is_active=False,
+            end_date__lte=timezone.now()
+        ).order_by('-end_date').first()
+        
         # Peer evaluations are identified by having "Staff" in student_section field
         peer_evaluations = EvaluationResponse.objects.filter(
             evaluatee=user,
             student_section__icontains="Staff"
         )
+        
+        # Filter by the latest completed peer period
+        if latest_peer_period:
+            peer_evaluations = peer_evaluations.filter(evaluation_period=latest_peer_period)
         
         evaluation_count = peer_evaluations.count()
         
@@ -5020,11 +5044,23 @@ class FacultyProfileSettingsView(View):
     
     def get_peer_evaluation_scores(self, user):
         """Calculate peer evaluation scores (evaluations from other staff members)"""
+        # Get the most recent INACTIVE peer period that has ended
+        from django.utils import timezone
+        latest_peer_period = EvaluationPeriod.objects.filter(
+            evaluation_type='peer',
+            is_active=False,
+            end_date__lte=timezone.now()
+        ).order_by('-end_date').first()
+        
         # Peer evaluations are identified by having "Staff" in student_section field
         peer_evaluations = EvaluationResponse.objects.filter(
             evaluatee=user,
             student_section__icontains="Staff"
         )
+        
+        # Filter by the latest completed peer period
+        if latest_peer_period:
+            peer_evaluations = peer_evaluations.filter(evaluation_period=latest_peer_period)
         
         evaluation_count = peer_evaluations.count()
         
