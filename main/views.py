@@ -3400,20 +3400,20 @@ class DeanProfileSettingsView(View):
         # Calculate overall scores across all assigned sections
         total_category_a = total_category_b = total_category_c = total_category_d = 0
         total_count_a = total_count_b = total_count_c = total_count_d = 0
-        total_responses = 0
-        
-        # Get active student evaluation period (NOT peer evaluation)
-        active_student_period = EvaluationPeriod.objects.filter(
-            is_active=True,
-            evaluation_type='student'
-        ).first()
+        total_responses = 0        # Get the most recent COMPLETED period (same as section scores)
+        from django.utils import timezone
+        latest_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False,
+            end_date__lte=timezone.now()
+        ).order_by('-end_date').first()
         
         for section_assignment in assigned_sections:
             section = section_assignment.section
             section_code = section.code
             
             # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code, evaluation_period=active_student_period)
+            category_scores = compute_category_scores(user, section_code, evaluation_period=latest_period)
             a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
             
             # Only include sections that have evaluations
@@ -3424,9 +3424,9 @@ class DeanProfileSettingsView(View):
                     student_section=section_code
                 )
                 
-                # Filter by active student period to exclude peer evaluations
-                if active_student_period:
-                    section_responses = section_responses.filter(evaluation_period=active_student_period)
+                # Filter by completed period to match section scores
+                if latest_period:
+                    section_responses = section_responses.filter(evaluation_period=latest_period)
                 
                 if section_responses.exists():
                     total_responses += section_responses.count()
@@ -3491,15 +3491,15 @@ class DeanProfileSettingsView(View):
         total_percentage = a_avg + b_avg + c_avg + d_avg
         
         # FETCH COMMENTS FROM ALL SECTIONS FOR OVERALL VIEW
-        # IMPORTANT: Only student evaluation comments, NOT peer evaluation comments
+        # IMPORTANT: Only student evaluation comments from completed period
         comments_query = EvaluationResponse.objects.filter(
             evaluatee=user,
             comments__isnull=False
         ).exclude(comments='')
         
-        # Filter by active student period to exclude peer evaluations
-        if active_student_period:
-            comments_query = comments_query.filter(evaluation_period=active_student_period)
+        # Filter by completed period to match section scores
+        if latest_period:
+            comments_query = comments_query.filter(evaluation_period=latest_period)
         
         all_comments = comments_query.values_list('comments', flat=True)
         
@@ -4144,20 +4144,20 @@ class CoordinatorProfileSettingsView(View):
         # Calculate overall scores across all assigned sections
         total_category_a = total_category_b = total_category_c = total_category_d = 0
         total_count_a = total_count_b = total_count_c = total_count_d = 0
-        total_responses = 0
-        
-        # Get active student evaluation period (NOT peer evaluation)
-        active_student_period = EvaluationPeriod.objects.filter(
-            is_active=True,
-            evaluation_type='student'
-        ).first()
+        total_responses = 0        # Get the most recent COMPLETED period (same as section scores)
+        from django.utils import timezone
+        latest_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False,
+            end_date__lte=timezone.now()
+        ).order_by('-end_date').first()
         
         for section_assignment in assigned_sections:
             section = section_assignment.section
             section_code = section.code
             
             # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code, evaluation_period=active_student_period)
+            category_scores = compute_category_scores(user, section_code, evaluation_period=latest_period)
             a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
             
             # Only include sections that have evaluations
@@ -4168,9 +4168,9 @@ class CoordinatorProfileSettingsView(View):
                     student_section=section_code
                 )
                 
-                # Filter by active student period to exclude peer evaluations
-                if active_student_period:
-                    section_responses = section_responses.filter(evaluation_period=active_student_period)
+                # Filter by completed period to match section scores
+                if latest_period:
+                    section_responses = section_responses.filter(evaluation_period=latest_period)
                 
                 if section_responses.exists():
                     total_responses += section_responses.count()
@@ -4235,15 +4235,15 @@ class CoordinatorProfileSettingsView(View):
         total_percentage = a_avg + b_avg + c_avg + d_avg
         
         # FETCH COMMENTS FROM ALL SECTIONS FOR OVERALL VIEW
-        # IMPORTANT: Only student evaluation comments, NOT peer evaluation comments
+        # IMPORTANT: Only student evaluation comments from completed period
         comments_query = EvaluationResponse.objects.filter(
             evaluatee=user,
             comments__isnull=False
         ).exclude(comments='')
         
-        # Filter by active student period to exclude peer evaluations
-        if active_student_period:
-            comments_query = comments_query.filter(evaluation_period=active_student_period)
+        # Filter by completed period to match section scores
+        if latest_period:
+            comments_query = comments_query.filter(evaluation_period=latest_period)
         
         all_comments = comments_query.values_list('comments', flat=True)
         
@@ -4816,13 +4816,13 @@ class FacultyProfileSettingsView(View):
         # Calculate overall scores across all assigned sections
         total_category_a = total_category_b = total_category_c = total_category_d = 0
         total_count_a = total_count_b = total_count_c = total_count_d = 0
-        total_responses = 0
-        
-        # Get active student evaluation period (NOT peer evaluation)
-        active_student_period = EvaluationPeriod.objects.filter(
-            is_active=True,
-            evaluation_type='student'
-        ).first()
+        total_responses = 0        # Get the most recent COMPLETED period (same as section scores)
+        from django.utils import timezone
+        latest_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False,
+            end_date__lte=timezone.now()
+        ).order_by('-end_date').first()
         
         # Initialize overall rating distribution
         overall_rating_distribution = [0, 0, 0, 0, 0]
@@ -4832,7 +4832,7 @@ class FacultyProfileSettingsView(View):
             section_code = section.code
             
             # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code, evaluation_period=active_student_period)
+            category_scores = compute_category_scores(user, section_code, evaluation_period=latest_period)
             a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
             
             # Only include sections that have evaluations
@@ -4845,9 +4845,9 @@ class FacultyProfileSettingsView(View):
                     student_section=section_code
                 )
                 
-                # Filter by active student period to exclude peer evaluations
-                if active_student_period:
-                    section_responses = section_responses.filter(evaluation_period=active_student_period)
+                # Filter by completed period to match section scores
+                if latest_period:
+                    section_responses = section_responses.filter(evaluation_period=latest_period)
                 
                 if section_responses.exists():
                     total_responses += section_responses.count()
