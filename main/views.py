@@ -3141,14 +3141,18 @@ class DeanProfileSettingsView(View):
             section_code = section.code
             
             # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code)
+            category_scores = compute_category_scores(user, section_code, evaluation_period=active_period)
             a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
             
-            # Get evaluation count for this section
-            evaluation_count = EvaluationResponse.objects.filter(
-                evaluatee=user,
-                student_section=section_code
-            ).count()
+            # Get evaluation count for this section filtered by active period
+            evaluation_count_filter = {
+                'evaluatee': user,
+                'student_section': section_code
+            }
+            if active_period:
+                evaluation_count_filter['submitted_at__gte'] = active_period.start_date
+                evaluation_count_filter['submitted_at__lte'] = active_period.end_date
+            evaluation_count = EvaluationResponse.objects.filter(**evaluation_count_filter).count()
             
             # Fetch student comments for this section
             # Fetch student comments for this section, filtered by active evaluation period
@@ -3221,7 +3225,7 @@ class DeanProfileSettingsView(View):
             section_code = section.code
             
             # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code)
+            category_scores = compute_category_scores(user, section_code, evaluation_period=active_student_period)
             a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
             
             # Only include sections that have evaluations
@@ -3860,14 +3864,18 @@ class CoordinatorProfileSettingsView(View):
             section_code = section.code
             
             # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code)
+            category_scores = compute_category_scores(user, section_code, evaluation_period=active_period)
             a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
             
-            # Get evaluation count for this section
-            evaluation_count = EvaluationResponse.objects.filter(
-                evaluatee=user,
-                student_section=section_code
-            ).count()
+            # Get evaluation count for this section filtered by active period
+            evaluation_count_filter = {
+                'evaluatee': user,
+                'student_section': section_code
+            }
+            if active_period:
+                evaluation_count_filter['submitted_at__gte'] = active_period.start_date
+                evaluation_count_filter['submitted_at__lte'] = active_period.end_date
+            evaluation_count = EvaluationResponse.objects.filter(**evaluation_count_filter).count()
             
             # Fetch student comments for this section
             # Fetch student comments for this section, filtered by active evaluation period
@@ -3940,7 +3948,7 @@ class CoordinatorProfileSettingsView(View):
             section_code = section.code
             
             # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code)
+            category_scores = compute_category_scores(user, section_code, evaluation_period=active_student_period)
             a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
             
             # Only include sections that have evaluations
@@ -4465,14 +4473,18 @@ class FacultyProfileSettingsView(View):
             section_code = section.code
             
             # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code)
+            category_scores = compute_category_scores(user, section_code, evaluation_period=active_period)
             a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
             
-            # Get actual evaluation count for this section
-            evaluation_count = EvaluationResponse.objects.filter(
-                evaluatee=user,
-                student_section=section_code
-            ).count()
+            # Get actual evaluation count for this section filtered by active period
+            evaluation_count_filter = {
+                'evaluatee': user,
+                'student_section': section_code
+            }
+            if active_period:
+                evaluation_count_filter['submitted_at__gte'] = active_period.start_date
+                evaluation_count_filter['submitted_at__lte'] = active_period.end_date
+            evaluation_count = EvaluationResponse.objects.filter(**evaluation_count_filter).count()
             
             # Calculate average rating (convert percentage to 5-point scale)
             average_rating = (total_percentage / 20) if evaluation_count > 0 else 0
@@ -4569,7 +4581,7 @@ class FacultyProfileSettingsView(View):
             section_code = section.code
             
             # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code)
+            category_scores = compute_category_scores(user, section_code, evaluation_period=active_student_period)
             a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
             
             # Only include sections that have evaluations
