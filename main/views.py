@@ -3855,7 +3855,7 @@ class DeanProfileSettingsView(View):
         
         return {
             'has_data': True,
-            'category_scores': [0, 0, 0, 0],  # Peer evaluations don't have categories
+            'category_scores': [round(a_avg, 2), round(b_avg, 2), round(c_avg, 2), round(d_avg, 2)],
             'total_percentage': round(total_percentage, 2),
             'evaluation_count': evaluation_count,
             'total_evaluations': evaluation_count,  # For template compatibility
@@ -4626,7 +4626,7 @@ class CoordinatorProfileSettingsView(View):
         
         return {
             'has_data': True,
-            'category_scores': [0, 0, 0, 0],  # Peer evaluations don't have categories
+            'category_scores': [round(a_avg, 2), round(b_avg, 2), round(c_avg, 2), round(d_avg, 2)],
             'total_percentage': round(total_percentage, 2),
             'evaluation_count': evaluation_count,
             'total_evaluations': evaluation_count,  # For template compatibility
@@ -5296,7 +5296,7 @@ class FacultyProfileSettingsView(View):
         
         return {
             'has_data': True,
-            'category_scores': [0, 0, 0, 0],  # Peer evaluations don't have categories
+            'category_scores': [round(a_avg, 2), round(b_avg, 2), round(c_avg, 2), round(d_avg, 2)],
             'total_percentage': round(total_percentage, 2),
             'evaluation_count': evaluation_count,
             'total_evaluations': evaluation_count,  # For template compatibility
