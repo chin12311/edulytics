@@ -3863,10 +3863,10 @@ class DeanProfileSettingsView(View):
                 total_count_d += 1
         
         max_score_per_question = 5
-        a_weight = 0.30
-        b_weight = 0.30
-        c_weight = 0.20
-        d_weight = 0.20
+        a_weight = 0.35  # Mastery of Subject Matter
+        b_weight = 0.25  # Classroom Management
+        c_weight = 0.20  # Compliance to Policies
+        d_weight = 0.20  # Personality
         
         def scaled_avg(total, count, weight):
             if count == 0:
@@ -4681,10 +4681,10 @@ class CoordinatorProfileSettingsView(View):
                 total_count_d += 1
         
         max_score_per_question = 5
-        a_weight = 0.30
-        b_weight = 0.30
-        c_weight = 0.20
-        d_weight = 0.20
+        a_weight = 0.35  # Mastery of Subject Matter
+        b_weight = 0.25  # Classroom Management
+        c_weight = 0.20  # Compliance to Policies
+        d_weight = 0.20  # Personality
         
         def scaled_avg(total, count, weight):
             if count == 0:
@@ -5397,8 +5397,8 @@ class FacultyProfileSettingsView(View):
         
         # Calculate weighted averages
         max_score_per_question = 5
-        a_weight = 0.30  # Mastery of Subject Matter
-        b_weight = 0.30  # Classroom Management
+        a_weight = 0.35  # Mastery of Subject Matter
+        b_weight = 0.25  # Classroom Management
         c_weight = 0.20  # Compliance to Policies
         d_weight = 0.20  # Personality
         
