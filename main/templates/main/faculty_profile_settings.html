@@ -1106,10 +1106,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         const category3Score = formatToTwoDecimals(sectionData.category_scores[2]);
         const category4Score = formatToTwoDecimals(sectionData.category_scores[3]);
         
-        // Calculate percentage of max for each category with proper weights
-        // Irregular uses 30/30/20/20, Regular student uses 30/30/20/20 (both same now)
-        const category1Percentage = formatToTwoDecimals(((sectionData.category_scores[0] / 30) * 100));
-        const category2Percentage = formatToTwoDecimals(((sectionData.category_scores[1] / 30) * 100));
+        // Calculate percentage of max for each category with proper weights (35/25/20/20)
+        const category1Percentage = formatToTwoDecimals(((sectionData.category_scores[0] / 35) * 100));
+        const category2Percentage = formatToTwoDecimals(((sectionData.category_scores[1] / 25) * 100));
         const category3Percentage = formatToTwoDecimals(((sectionData.category_scores[2] / 20) * 100));
         const category4Percentage = formatToTwoDecimals(((sectionData.category_scores[3] / 20) * 100));
         
@@ -1803,8 +1802,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                // Use proper max scores: 30%, 30%, 20%, 20%
-                                const maxScores = [30, 30, 20, 20];
+                                // Use proper max scores: 35%, 25%, 20%, 20%
+                                const maxScores = [35, 25, 20, 20];
                                 const maxScore = maxScores[context.dataIndex];
                                 const percentageOfMax = formatToTwoDecimals((context.raw / maxScore) * 100);
                                 return `${context.label}: ${context.raw}% (${percentageOfMax}% of maximum)`;
