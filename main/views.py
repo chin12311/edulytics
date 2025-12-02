@@ -2464,7 +2464,12 @@ class EvaluationFormView(View):
                     'questions': student_questions,
                     'page_title': 'Teacher Evaluation Form',
                 }
-                return render(request, 'main/evaluationform.html', context)
+                response = render(request, 'main/evaluationform.html', context)
+                # Prevent browser caching to ensure updated questions appear
+                response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+                response['Pragma'] = 'no-cache'
+                response['Expires'] = '0'
+                return response
 
             # 🔹 STAFF VIEW (Faculty, Dean, Coordinator) - PEER EVALUATION
             elif user_profile.role in [Role.FACULTY, Role.DEAN, Role.COORDINATOR]:
@@ -2809,7 +2814,12 @@ def evaluation_form_staffs(request):
                 'questions': peer_questions,
                 'page_title': 'Peer Evaluation Form',
             }
-            return render(request, 'main/evaluationform_staffs.html', context)
+            response = render(request, 'main/evaluationform_staffs.html', context)
+            # Prevent browser caching to ensure updated questions appear
+            response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+            return response
 
         else:
             return render(request, 'main/no_permission.html', {
