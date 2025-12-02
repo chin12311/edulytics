@@ -5312,7 +5312,15 @@ class StudentCommentsAPIView(View):
             if section_id == 'overall' or section_id == 'peer':
                 # For overall/peer, get ALL comments TO this user
                 # Dean/Coordinator/Faculty are being evaluated BY students
+                
+                # Regular student evaluations
                 evaluation_responses = EvaluationResponse.objects.filter(
+                    evaluatee=user,
+                    comments__isnull=False
+                ).exclude(comments='')
+                
+                # Irregular student evaluations
+                irregular_responses = IrregularEvaluation.objects.filter(
                     evaluatee=user,
                     comments__isnull=False
                 ).exclude(comments='')
@@ -5323,7 +5331,7 @@ class StudentCommentsAPIView(View):
                     section_id = int(section_id)
                     section = Section.objects.get(id=section_id)
                     
-                    # Get all students in this section
+                    # Get all students in this section (regular students only)
                     students_in_section = User.objects.filter(
                         userprofile__section=section
                     ).values_list('id', flat=True)
@@ -5350,16 +5358,30 @@ class StudentCommentsAPIView(View):
                             comments__isnull=False
                         ).exclude(comments='').distinct()
                     
+                    # ALSO include irregular student evaluations for this faculty
+                    # Irregular students don't have a section but can evaluate any instructor
+                    irregular_responses = IrregularEvaluation.objects.filter(
+                        evaluatee=user,
+                        comments__isnull=False
+                    ).exclude(comments='').distinct()
+                    
                 except (ValueError, Section.DoesNotExist) as e:
                     print(f"❌ Section Error: {e}")
                     evaluation_responses = EvaluationResponse.objects.none()
+                    irregular_responses = IrregularEvaluation.objects.none()
             
-            # Extract just the comments (no student/section info)
+            # Extract comments from regular evaluations
             for response in evaluation_responses:
                 if response.comments and response.comments.strip():
                     comments.append(response.comments.strip())
             
-            print(f"   Total evaluation responses: {evaluation_responses.count()}")
+            # Extract comments from irregular student evaluations
+            for response in irregular_responses:
+                if response.comments and response.comments.strip():
+                    comments.append(response.comments.strip())
+            
+            print(f"   Total regular evaluation responses: {evaluation_responses.count()}")
+            print(f"   Total irregular evaluation responses: {irregular_responses.count()}")
             print(f"   Comments extracted: {len(comments)}")
             if comments:
                 for idx, comment in enumerate(comments, 1):
