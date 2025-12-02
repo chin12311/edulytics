@@ -5901,7 +5901,7 @@ class EvaluationHistoryView(View):
             'user_sections': user_sections
         }
         
-        return render(request, 'main/evaluation_history.html', context)
+        return render(request, 'main/evaluation_history_simple.html', context)
     
 def process_evaluation_results_for_user(user, evaluation_period=None):
     """
@@ -7170,5 +7170,359 @@ def api_delete_course(request, course_id):
         return JsonResponse({'success': False, 'error': 'Course not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def download_evaluation_history_pdf(request, period_id):
+    """
+    Generate and download PDF report for archived evaluation period
+    Includes: Overall results, section breakdown, irregular results, peer evaluation, comments, and AI recommendations
+    """
+    try:
+        from io import BytesIO
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+        from django.http import HttpResponse
+        import re
+        
+        user = request.user
+        
+        # Get the evaluation period
+        period = EvaluationPeriod.objects.get(id=period_id)
+        
+        # Verify user has access to this data
+        if not user.userprofile.role in [Role.FACULTY, Role.COORDINATOR, Role.DEAN]:
+            return HttpResponse("Access denied", status=403)
+        
+        # Get historical results for this user and period
+        history_results = EvaluationHistory.objects.filter(
+            user=user,
+            evaluation_period=period
+        ).select_related('section')
+        
+        if not history_results.exists():
+            return HttpResponse("No historical data found for this period", status=404)
+        
+        # Create PDF buffer
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        
+        # Container for PDF elements
+        story = []
+        styles = getSampleStyleSheet()
+        
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#1a237e'),
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=16,
+            textColor=colors.HexColor('#1a237e'),
+            spaceAfter=12,
+            spaceBefore=12,
+            fontName='Helvetica-Bold'
+        )
+        
+        subheading_style = ParagraphStyle(
+            'CustomSubHeading',
+            parent=styles['Heading3'],
+            fontSize=12,
+            textColor=colors.HexColor('#283593'),
+            spaceAfter=6,
+            fontName='Helvetica-Bold'
+        )
+        
+        # Title
+        story.append(Paragraph("Teacher Evaluation Report", title_style))
+        story.append(Paragraph(f"Evaluation Period: {period.name}", styles['Heading3']))
+        story.append(Paragraph(f"Instructor: {user.get_full_name() or user.username}", styles['Normal']))
+        story.append(Paragraph(f"Generated: {timezone.now().strftime('%B %d, %Y at %I:%M %p')}", styles['Normal']))
+        story.append(Spacer(1, 0.3*inch))
+        
+        # ========== OVERALL SUMMARY ==========
+        story.append(Paragraph("Overall Performance Summary", heading_style))
+        
+        # Calculate overall metrics
+        total_responses = sum(h.total_responses for h in history_results)
+        avg_overall_score = sum(h.overall_score * h.total_responses for h in history_results) / total_responses if total_responses > 0 else 0
+        
+        summary_data = [
+            ['Metric', 'Value'],
+            ['Overall Average Score', f'{avg_overall_score:.2f}%'],
+            ['Total Evaluations Received', str(total_responses)],
+            ['Number of Sections', str(history_results.count())],
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a237e')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(summary_table)
+        story.append(Spacer(1, 0.3*inch))
+        
+        # ========== SECTION BREAKDOWN ==========
+        story.append(Paragraph("Section-wise Performance", heading_style))
+        
+        section_data = [['Section', 'Responses', 'Score', 'Rating']]
+        for h in history_results.order_by('-overall_score'):
+            section_name = h.section.code if h.section else 'General'
+            rating = 'Outstanding' if h.overall_score >= 90 else \
+                     'Very Satisfactory' if h.overall_score >= 80 else \
+                     'Satisfactory' if h.overall_score >= 70 else \
+                     'Needs Improvement'
+            section_data.append([
+                section_name,
+                str(h.total_responses),
+                f'{h.overall_score:.2f}%',
+                rating
+            ])
+        
+        section_table = Table(section_data, colWidths=[1.5*inch, 1.2*inch, 1.3*inch, 1.5*inch])
+        section_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#283593')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f5f5f5')),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')])
+        ]))
+        story.append(section_table)
+        story.append(Spacer(1, 0.3*inch))
+        
+        # ========== IRREGULAR STUDENT EVALUATIONS ==========
+        irregular_evals = IrregularEvaluation.objects.filter(
+            evaluatee=user,
+            evaluation_period=period
+        )
+        
+        if irregular_evals.exists():
+            story.append(Paragraph("Irregular Student Evaluations", heading_style))
+            
+            # Calculate irregular scores
+            irregular_scores = []
+            for eval in irregular_evals:
+                rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
+                total_score = 0
+                question_count = 0
+                
+                for i in range(1, 20):
+                    rating = getattr(eval, f'question{i}', None)
+                    if rating and rating in rating_values:
+                        total_score += rating_values[rating]
+                        question_count += 1
+                
+                if question_count > 0:
+                    avg_score = (total_score / (question_count * 5)) * 100
+                    irregular_scores.append(avg_score)
+            
+            if irregular_scores:
+                avg_irregular = sum(irregular_scores) / len(irregular_scores)
+                irregular_data = [
+                    ['Total Irregular Evaluations', str(irregular_evals.count())],
+                    ['Average Score', f'{avg_irregular:.2f}%']
+                ]
+                irregular_table = Table(irregular_data, colWidths=[3*inch, 2*inch])
+                irregular_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fff3e0')),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ]))
+                story.append(irregular_table)
+                story.append(Spacer(1, 0.2*inch))
+        
+        # ========== PEER EVALUATIONS ==========
+        peer_evals = EvaluationResponse.objects.filter(
+            evaluatee=user,
+            evaluation_period=period,
+            evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
+        )
+        
+        if peer_evals.exists():
+            story.append(Paragraph("Peer Evaluations", heading_style))
+            
+            # Calculate peer scores
+            peer_scores = []
+            for eval in peer_evals:
+                rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
+                total_score = 0
+                question_count = 0
+                
+                for i in range(1, 16):
+                    rating = getattr(eval, f'question{i}', None)
+                    if rating and rating in rating_values:
+                        total_score += rating_values[rating]
+                        question_count += 1
+                
+                if question_count > 0:
+                    avg_score = (total_score / (question_count * 5)) * 100
+                    peer_scores.append(avg_score)
+            
+            if peer_scores:
+                avg_peer = sum(peer_scores) / len(peer_scores)
+                peer_data = [
+                    ['Total Peer Evaluations', str(peer_evals.count())],
+                    ['Average Score', f'{avg_peer:.2f}%']
+                ]
+                peer_table = Table(peer_data, colWidths=[3*inch, 2*inch])
+                peer_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#e8f5e9')),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ]))
+                story.append(peer_table)
+                story.append(Spacer(1, 0.2*inch))
+        
+        # ========== STUDENT COMMENTS ==========
+        story.append(PageBreak())
+        story.append(Paragraph("Student Comments", heading_style))
+        
+        all_responses = EvaluationResponse.objects.filter(
+            evaluatee=user,
+            evaluation_period=period
+        ).exclude(comments='').exclude(comments__isnull=True)
+        
+        irregular_responses = IrregularEvaluation.objects.filter(
+            evaluatee=user,
+            evaluation_period=period
+        ).exclude(comments='').exclude(comments__isnull=True)
+        
+        if all_responses.exists() or irregular_responses.exists():
+            comment_count = 1
+            for response in all_responses:
+                if response.comments:
+                    # Clean HTML tags from comments
+                    clean_comment = re.sub('<[^<]+?>', '', response.comments)
+                    story.append(Paragraph(f"<b>Comment {comment_count}:</b>", subheading_style))
+                    story.append(Paragraph(clean_comment, styles['Normal']))
+                    story.append(Spacer(1, 0.1*inch))
+                    comment_count += 1
+            
+            for response in irregular_responses:
+                if response.comments:
+                    clean_comment = re.sub('<[^<]+?>', '', response.comments)
+                    story.append(Paragraph(f"<b>Comment {comment_count} (Irregular):</b>", subheading_style))
+                    story.append(Paragraph(clean_comment, styles['Normal']))
+                    story.append(Spacer(1, 0.1*inch))
+                    comment_count += 1
+        else:
+            story.append(Paragraph("No comments were provided for this evaluation period.", styles['Normal']))
+        
+        story.append(Spacer(1, 0.3*inch))
+        
+        # ========== AI RECOMMENDATIONS ==========
+        story.append(Paragraph("AI-Generated Recommendations", heading_style))
+        
+        # Get AI recommendations for this user
+        ai_recs = get_ai_recommendations_for_period(user, period)
+        
+        if ai_recs:
+            for category, recommendation in ai_recs.items():
+                story.append(Paragraph(f"<b>{category}:</b>", subheading_style))
+                story.append(Paragraph(recommendation, styles['Normal']))
+                story.append(Spacer(1, 0.15*inch))
+        else:
+            story.append(Paragraph("No AI recommendations available for this evaluation period.", styles['Normal']))
+        
+        # ========== FOOTER ==========
+        story.append(Spacer(1, 0.5*inch))
+        footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, textColor=colors.gray, alignment=TA_CENTER)
+        story.append(Paragraph(f"This report is confidential and generated from the Edulytics Evaluation System.", footer_style))
+        story.append(Paragraph(f"© {timezone.now().year} Edulytics. All rights reserved.", footer_style))
+        
+        # Build PDF
+        doc.build(story)
+        
+        # Return PDF response
+        buffer.seek(0)
+        response = HttpResponse(buffer, content_type='application/pdf')
+        filename = f"Evaluation_Report_{user.username}_{period.name.replace(' ', '_')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except EvaluationPeriod.DoesNotExist:
+        return HttpResponse("Evaluation period not found", status=404)
+    except Exception as e:
+        logger.error(f"Error generating PDF: {str(e)}", exc_info=True)
+        return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
+
+def get_ai_recommendations_for_period(user, period):
+    """
+    Generate AI recommendations based on evaluation data for a specific period
+    Returns dict of category recommendations
+    """
+    try:
+        # Get all responses for this user in this period
+        responses = EvaluationResponse.objects.filter(
+            evaluatee=user,
+            evaluation_period=period
+        )
+        
+        if not responses.exists():
+            return None
+        
+        # Calculate category averages
+        rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
+        
+        categories = {
+            'Knowledge & Mastery': [1, 2, 3],
+            'Teaching Effectiveness': [4, 5, 6, 7],
+            'Classroom Management': [8, 9, 10, 11],
+            'Student Engagement': [12, 13, 14, 15]
+        }
+        
+        category_scores = {}
+        for category, questions in categories.items():
+            total = 0
+            count = 0
+            for response in responses:
+                for q in questions:
+                    rating = getattr(response, f'question{q}', None)
+                    if rating and rating in rating_values:
+                        total += rating_values[rating]
+                        count += 1
+            category_scores[category] = (total / count) if count > 0 else 0
+        
+        # Generate simple recommendations based on scores
+        recommendations = {}
+        for category, score in category_scores.items():
+            if score >= 4.5:
+                recommendations[category] = f"Excellent performance in {category.lower()}. Continue to maintain these high standards and consider mentoring colleagues in this area."
+            elif score >= 3.5:
+                recommendations[category] = f"Strong performance in {category.lower()}. Consider exploring advanced teaching methodologies to further enhance effectiveness."
+            elif score >= 2.5:
+                recommendations[category] = f"Satisfactory performance in {category.lower()}. Focus on professional development opportunities to strengthen skills in this area."
+            else:
+                recommendations[category] = f"Improvement needed in {category.lower()}. Recommend attending targeted training sessions and seeking mentorship from senior faculty."
+        
+        return recommendations
+        
+    except Exception as e:
+        logger.error(f"Error generating AI recommendations: {str(e)}", exc_info=True)
+        return None
 
 

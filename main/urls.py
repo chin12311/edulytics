@@ -74,4 +74,7 @@ urlpatterns = [
     path('api/courses/<int:course_id>/', views.api_get_course, name='api_get_course'),
     path('api/courses/<int:course_id>/update/', views.api_update_course, name='api_update_course'),
     path('api/courses/<int:course_id>/delete/', views.api_delete_course, name='api_delete_course'),
+    
+    # PDF Download for Evaluation History
+    path('download-evaluation-history/<int:period_id>/', views.download_evaluation_history_pdf, name='download_evaluation_history_pdf'),
 ]

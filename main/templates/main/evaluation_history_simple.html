@@ -1,0 +1,177 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Evaluation History{% endblock %}
+
+{% block content %}
+<style>
+    .period-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, #f9f9f9, #ffffff);
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .period-card:hover {
+        border-color: #47682c;
+        box-shadow: 0 4px 16px rgba(71, 104, 44, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .period-info {
+        flex: 1;
+    }
+    
+    .period-title {
+        color: #47682c;
+        font-weight: 600;
+        margin: 0 0 12px 0;
+        font-size: 1.3rem;
+    }
+    
+    .period-meta {
+        display: flex;
+        gap: 24px;
+        font-size: 0.95rem;
+        color: #666;
+        flex-wrap: wrap;
+    }
+    
+    .period-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .period-meta-item i {
+        color: #47682c;
+        width: 18px;
+    }
+    
+    .download-btn {
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #47682c, #5a8537);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95rem;
+    }
+    
+    .download-btn:hover {
+        background: linear-gradient(135deg, #5a8537, #47682c);
+        transform: scale(1.05);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .download-btn i {
+        font-size: 1.1rem;
+    }
+    
+    .no-history {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .no-history-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+</style>
+
+<div class="container mt-4 mb-5">
+    <div class="row">
+        <div class="col-12">
+            <!-- Page Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="card-title h3 mb-2">
+                                <i class="bi bi-clock-history me-2"></i>Evaluation History
+                            </h1>
+                            <p class="text-muted mb-0">Download detailed PDF reports for past evaluation periods</p>
+                        </div>
+                        <div class="badge bg-success">
+                            <i class="bi bi-archive me-1"></i>
+                            {{ evaluation_history|length }} Archived Period{{ evaluation_history|length|pluralize }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Archived Evaluation Periods -->
+            {% if evaluation_history %}
+                {% for period in evaluation_history %}
+                    <div class="period-card">
+                        <div class="period-info">
+                            <h4 class="period-title">{{ period.period_name }}</h4>
+                            <div class="period-meta">
+                                <div class="period-meta-item">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span>{{ period.period_start_date|date:"M d, Y" }} - {{ period.period_end_date|date:"M d, Y" }}</span>
+                                </div>
+                                <div class="period-meta-item">
+                                    <i class="fas fa-users"></i>
+                                    <span>{{ period.total_responses }} Response{{ period.total_responses|pluralize }}</span>
+                                </div>
+                                <div class="period-meta-item">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span>{{ period.overall_percentage|floatformat:1 }}% Average Score</span>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{% url 'main:download_evaluation_history_pdf' period.evaluation_period_id %}" class="download-btn">
+                            <i class="fas fa-file-pdf"></i>
+                            Download PDF Report
+                        </a>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="card">
+                    <div class="card-body">
+                        <div class="no-history">
+                            <div class="no-history-icon">
+                                <i class="bi bi-inbox"></i>
+                            </div>
+                            <h4>No Evaluation History Yet</h4>
+                            <p class="text-muted">Your archived evaluation reports will appear here after evaluation periods are completed and archived.</p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Add loading animation to download buttons
+    document.querySelectorAll('.download-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+            this.style.pointerEvents = 'none';
+            
+            // Re-enable after 3 seconds (in case of error)
+            setTimeout(() => {
+                this.innerHTML = originalHTML;
+                this.style.pointerEvents = 'auto';
+            }, 3000);
+        });
+    });
+</script>
+{% endblock %}

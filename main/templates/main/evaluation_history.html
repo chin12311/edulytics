@@ -1,6 +1,8 @@
 {% extends 'main/base.html' %}
 
-{% block title %}Evaluation History{% endblock %}{% block content %}
+{% block title %}Evaluation History{% endblock %}
+
+{% block content %}
 <style>
     .period-card {
         border: 2px solid #e0e0e0;
@@ -10,6 +12,9 @@
         background: linear-gradient(135deg, #f9f9f9, #ffffff);
         transition: all 0.3s ease;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
     
     .period-card:hover {
@@ -18,86 +23,62 @@
         transform: translateY(-2px);
     }
     
-    .period-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        margin-bottom: 16px;
-        border-bottom: 2px solid #f0f0f0;
-        padding-bottom: 16px;
+    .period-info {
+        flex: 1;
     }
     
     .period-title {
         color: #47682c;
         font-weight: 600;
-        margin: 0;
+        margin: 0 0 12px 0;
         font-size: 1.3rem;
     }
     
-    .period-dates {
+    .period-meta {
         display: flex;
-        gap: 20px;
-        margin-top: 8px;
+        gap: 24px;
         font-size: 0.95rem;
         color: #666;
+        flex-wrap: wrap;
     }
     
-    .period-dates i {
+    .period-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .period-meta-item i {
         color: #47682c;
-        margin-right: 6px;
         width: 18px;
     }
     
-    .score-badge {
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 1.1rem;
-        text-align: center;
-        min-width: 90px;
-    }
-    
-    .score-excellent {
+    .download-btn {
+        padding: 12px 24px;
         background: linear-gradient(135deg, #47682c, #5a8537);
         color: white;
-    }
-    
-    .score-good {
-        background: linear-gradient(135deg, #5a8537, #7da345);
-        color: white;
-    }
-    
-    .score-average {
-        background: linear-gradient(135deg, #f39c12, #e67e22);
-        color: white;
-    }
-    
-    .score-poor {
-        background: linear-gradient(135deg, #e74c3c, #c0392b);
-        color: white;
-    }
-    
-    .period-content {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .info-box {
-        background: #f5f5f5;
-        padding: 16px;
+        border: none;
         border-radius: 8px;
-        border-left: 4px solid #47682c;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95rem;
     }
     
-    .info-box-title {
-        color: #666;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-        font-weight: 600;
+    .download-btn:hover {
+        background: linear-gradient(135deg, #5a8537, #47682c);
+        transform: scale(1.05);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .download-btn i {
+        font-size: 1.1rem;
+    }
     }
     
     .info-box-value {
