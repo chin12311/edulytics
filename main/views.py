@@ -3275,45 +3275,57 @@ class DeanProfileSettingsView(View):
         return SectionAssignment.objects.filter(user=user)
     
     def get_section_scores(self, user, assigned_sections):
-        """Calculate scores for each assigned section"""
+        """Get scores for each assigned section from EvaluationResult table"""
+        from main.models import EvaluationResult
         section_scores = {}
         
-        # Get current active evaluation period for filtering comments
-        active_period = EvaluationPeriod.objects.filter(is_active=True, evaluation_type='student').first()
+        # Get the most recent INACTIVE period (last completed evaluation)
+        # Results are stored in EvaluationResult when period ends (unrelease)
+        latest_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False
+        ).order_by('-end_date').first()
         
         for section_assignment in assigned_sections:
             section = section_assignment.section
             section_code = section.code
             
-            # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code, evaluation_period=active_period)
-            a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
+            # Try to get pre-computed result from EvaluationResult table
+            result = None
+            if latest_period:
+                try:
+                    result = EvaluationResult.objects.get(
+                        user=user,
+                        section=section,
+                        evaluation_period=latest_period
+                    )
+                except EvaluationResult.DoesNotExist:
+                    pass
             
-            # Get evaluation count for this section filtered by active period
-            evaluation_count_filter = {
-                'evaluatee': user,
-                'student_section': section_code
-            }
-            if active_period:
-                evaluation_count_filter['submitted_at__gte'] = active_period.start_date
-                evaluation_count_filter['submitted_at__lte'] = active_period.end_date
-            evaluation_count = EvaluationResponse.objects.filter(**evaluation_count_filter).count()
-            
-            # Fetch student comments for this section
-            # Fetch student comments for this section, filtered by active evaluation period
-            comments_filter = {
-                'evaluatee': user,
-                'student_section': section_code,
-                'comments__isnull': False
-            }
-            
-            # Filter by evaluation period if there's an active one
-            if active_period:
-                comments_filter['evaluation_period'] = active_period
-            
-            comments_queryset = EvaluationResponse.objects.filter(
-                **comments_filter
-            ).exclude(comments='').values_list('comments', flat=True)
+            if result:
+                # Use pre-computed results from EvaluationResult table
+                a_avg = result.category_a_score
+                b_avg = result.category_b_score
+                c_avg = result.category_c_score
+                d_avg = result.category_d_score
+                total_percentage = result.total_percentage
+                evaluation_count = result.total_responses
+                has_data = True
+                
+                # Get comments from the responses in this period
+                comments_queryset = EvaluationResponse.objects.filter(
+                    evaluatee=user,
+                    student_section=section_code,
+                    submitted_at__gte=latest_period.start_date,
+                    submitted_at__lte=latest_period.end_date,
+                    comments__isnull=False
+                ).exclude(comments='').values_list('comments', flat=True)
+            else:
+                # No results yet - section has no data
+                a_avg = b_avg = c_avg = d_avg = total_percentage = 0
+                evaluation_count = 0
+                has_data = False
+                comments_queryset = []
             
             # Categorize comments using sentiment analysis
             positive_comments = []
@@ -3329,17 +3341,14 @@ class DeanProfileSettingsView(View):
                 elif sentiment == 'mixed':
                     mixed_comments.append(comment)
             
-            # Include all sections, mark if they have data
-            has_data = total_percentage > 0 and evaluation_count > 0
-            
             section_scores[section_code] = {
                 'category_scores': [
-                    round(a_avg, 2) if a_avg else 0,
-                    round(b_avg, 2) if b_avg else 0,
-                    round(c_avg, 2) if c_avg else 0,
-                    round(d_avg, 2) if d_avg else 0
+                    round(a_avg, 2),
+                    round(b_avg, 2),
+                    round(c_avg, 2),
+                    round(d_avg, 2)
                 ],
-                'total_percentage': round(total_percentage, 2) if total_percentage else 0,
+                'total_percentage': round(total_percentage, 2),
                 'has_data': has_data,
                 'evaluation_count': evaluation_count,
                 'section_name': section.code,
@@ -3349,6 +3358,7 @@ class DeanProfileSettingsView(View):
             }
         
         return section_scores
+
     
     def get_evaluation_data(self, user):
         # Get assigned sections for this coordinator
@@ -3998,45 +4008,57 @@ class CoordinatorProfileSettingsView(View):
         return SectionAssignment.objects.filter(user=user)
     
     def get_section_scores(self, user, assigned_sections):
-        """Calculate scores for each assigned section"""
+        """Get scores for each assigned section from EvaluationResult table"""
+        from main.models import EvaluationResult
         section_scores = {}
         
-        # Get current active evaluation period for filtering comments
-        active_period = EvaluationPeriod.objects.filter(is_active=True, evaluation_type='student').first()
+        # Get the most recent INACTIVE period (last completed evaluation)
+        # Results are stored in EvaluationResult when period ends (unrelease)
+        latest_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False
+        ).order_by('-end_date').first()
         
         for section_assignment in assigned_sections:
             section = section_assignment.section
             section_code = section.code
             
-            # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code, evaluation_period=active_period)
-            a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
+            # Try to get pre-computed result from EvaluationResult table
+            result = None
+            if latest_period:
+                try:
+                    result = EvaluationResult.objects.get(
+                        user=user,
+                        section=section,
+                        evaluation_period=latest_period
+                    )
+                except EvaluationResult.DoesNotExist:
+                    pass
             
-            # Get evaluation count for this section filtered by active period
-            evaluation_count_filter = {
-                'evaluatee': user,
-                'student_section': section_code
-            }
-            if active_period:
-                evaluation_count_filter['submitted_at__gte'] = active_period.start_date
-                evaluation_count_filter['submitted_at__lte'] = active_period.end_date
-            evaluation_count = EvaluationResponse.objects.filter(**evaluation_count_filter).count()
-            
-            # Fetch student comments for this section
-            # Fetch student comments for this section, filtered by active evaluation period
-            comments_filter = {
-                'evaluatee': user,
-                'student_section': section_code,
-                'comments__isnull': False
-            }
-            
-            # Filter by evaluation period if there's an active one
-            if active_period:
-                comments_filter['evaluation_period'] = active_period
-            
-            comments_queryset = EvaluationResponse.objects.filter(
-                **comments_filter
-            ).exclude(comments='').values_list('comments', flat=True)
+            if result:
+                # Use pre-computed results from EvaluationResult table
+                a_avg = result.category_a_score
+                b_avg = result.category_b_score
+                c_avg = result.category_c_score
+                d_avg = result.category_d_score
+                total_percentage = result.total_percentage
+                evaluation_count = result.total_responses
+                has_data = True
+                
+                # Get comments from the responses in this period
+                comments_queryset = EvaluationResponse.objects.filter(
+                    evaluatee=user,
+                    student_section=section_code,
+                    submitted_at__gte=latest_period.start_date,
+                    submitted_at__lte=latest_period.end_date,
+                    comments__isnull=False
+                ).exclude(comments='').values_list('comments', flat=True)
+            else:
+                # No results yet - section has no data
+                a_avg = b_avg = c_avg = d_avg = total_percentage = 0
+                evaluation_count = 0
+                has_data = False
+                comments_queryset = []
             
             # Categorize comments using sentiment analysis
             positive_comments = []
@@ -4052,17 +4074,14 @@ class CoordinatorProfileSettingsView(View):
                 elif sentiment == 'mixed':
                     mixed_comments.append(comment)
             
-            # Include all sections, mark if they have data
-            has_data = total_percentage > 0 and evaluation_count > 0
-            
             section_scores[section_code] = {
                 'category_scores': [
-                    round(a_avg, 2) if a_avg else 0,
-                    round(b_avg, 2) if b_avg else 0,
-                    round(c_avg, 2) if c_avg else 0,
-                    round(d_avg, 2) if d_avg else 0
+                    round(a_avg, 2),
+                    round(b_avg, 2),
+                    round(c_avg, 2),
+                    round(d_avg, 2)
                 ],
-                'total_percentage': round(total_percentage, 2) if total_percentage else 0,
+                'total_percentage': round(total_percentage, 2),
                 'has_data': has_data,
                 'evaluation_count': evaluation_count,
                 'section_name': section.code,
@@ -4072,6 +4091,7 @@ class CoordinatorProfileSettingsView(View):
             }
         
         return section_scores
+
     
     def get_evaluation_data(self, user):
         # Get assigned sections for this coordinator
@@ -4607,50 +4627,90 @@ class FacultyProfileSettingsView(View):
         return SectionAssignment.objects.filter(user=user)
     
     def get_section_scores(self, user, assigned_sections):
-        """Calculate scores for each assigned section"""
+        """Get scores for each assigned section from EvaluationResult table"""
+        from main.models import EvaluationResult
         section_scores = {}
         
-        # Get current active evaluation period for filtering comments
-        active_period = EvaluationPeriod.objects.filter(is_active=True, evaluation_type='student').first()
+        # Get the most recent INACTIVE period (last completed evaluation)
+        # Results are stored in EvaluationResult when period ends (unrelease)
+        latest_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False
+        ).order_by('-end_date').first()
         
         for section_assignment in assigned_sections:
             section = section_assignment.section
             section_code = section.code
             
-            # Calculate scores for this specific section
-            category_scores = compute_category_scores(user, section_code, evaluation_period=active_period)
-            a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
+            # Try to get pre-computed result from EvaluationResult table
+            result = None
+            if latest_period:
+                try:
+                    result = EvaluationResult.objects.get(
+                        user=user,
+                        section=section,
+                        evaluation_period=latest_period
+                    )
+                except EvaluationResult.DoesNotExist:
+                    pass
             
-            # Get actual evaluation count for this section filtered by active period
-            evaluation_count_filter = {
-                'evaluatee': user,
-                'student_section': section_code
-            }
-            if active_period:
-                evaluation_count_filter['submitted_at__gte'] = active_period.start_date
-                evaluation_count_filter['submitted_at__lte'] = active_period.end_date
-            evaluation_count = EvaluationResponse.objects.filter(**evaluation_count_filter).count()
+            if result:
+                # Use pre-computed results from EvaluationResult table
+                a_avg = result.category_a_score
+                b_avg = result.category_b_score
+                c_avg = result.category_c_score
+                d_avg = result.category_d_score
+                total_percentage = result.total_percentage
+                evaluation_count = result.total_responses
+                has_data = True
+                
+                # Get comments from the responses in this period
+                comments_queryset = EvaluationResponse.objects.filter(
+                    evaluatee=user,
+                    student_section=section_code,
+                    submitted_at__gte=latest_period.start_date,
+                    submitted_at__lte=latest_period.end_date,
+                    comments__isnull=False
+                ).exclude(comments='').values_list('comments', flat=True)
+            else:
+                # No results yet - section has no data
+                a_avg = b_avg = c_avg = d_avg = total_percentage = 0
+                evaluation_count = 0
+                has_data = False
+                comments_queryset = []
             
-            # Calculate average rating (convert percentage to 5-point scale)
-            average_rating = (total_percentage / 20) if evaluation_count > 0 else 0
+            # Categorize comments using sentiment analysis
+            positive_comments = []
+            negative_comments = []
+            mixed_comments = []
             
-            # Calculate rating distribution for this section
-            rating_distribution = self.get_rating_distribution(user, section_code)
-            
-            # Include all sections, but mark if they have data
-            has_data = total_percentage > 0 and evaluation_count > 0
+            for comment in comments_queryset:
+                sentiment = TeachingAIRecommendationService.analyze_comment_sentiment(comment)
+                if sentiment == 'positive':
+                    positive_comments.append(comment)
+                elif sentiment == 'negative':
+                    negative_comments.append(comment)
+                elif sentiment == 'mixed':
+                    mixed_comments.append(comment)
             
             section_scores[section_code] = {
-                'category_scores': [a_avg, b_avg, c_avg, d_avg],
-                'total_percentage': total_percentage,
+                'category_scores': [
+                    round(a_avg, 2),
+                    round(b_avg, 2),
+                    round(c_avg, 2),
+                    round(d_avg, 2)
+                ],
+                'total_percentage': round(total_percentage, 2),
                 'has_data': has_data,
-                'section_name': section.code,
                 'evaluation_count': evaluation_count,
-                'average_rating': round(average_rating, 1),
-                'rating_distribution': rating_distribution
+                'section_name': section.code,
+                'positive_comments': positive_comments,
+                'negative_comments': negative_comments,
+                'mixed_comments': mixed_comments
             }
         
         return section_scores
+
     
     def get_rating_distribution(self, user, section_code):
         """Get the actual rating distribution for a section"""
