@@ -902,6 +902,13 @@ class EvaluationConfigView(View):
         return render(request, 'main/evaluationconfig.html', context)
 # Update your release/unrelease functions to return better messages
 def release_student_evaluation(request):
+    """
+    NEW FLOW: When admin clicks release (starts new evaluation):
+    1. Move old EvaluationResult records to EvaluationHistory
+    2. Clear EvaluationResult table (ready for new period)
+    3. Create and activate new evaluation period
+    4. Students can now evaluate
+    """
     logger.debug("release_student_evaluation called")
     logger.debug(f"Request method: {request.method}")
     logger.debug(f"User: {request.user}")
@@ -919,61 +926,13 @@ def release_student_evaluation(request):
                 logger.info("Attempting to release already released student evaluation")
                 return JsonResponse({'success': False, 'error': "Student evaluation is already released."})
 
-            # CRITICAL: Process results from previous active period BEFORE archiving
-            logger.info("Processing results from previous evaluation period...")
-            previous_period = EvaluationPeriod.objects.filter(
-                evaluation_type='student',
-                is_active=True
-            ).first()
+            # STEP 1: Move current EvaluationResult records to EvaluationHistory
+            # This preserves the results that were visible in profile settings
+            logger.info("Moving current EvaluationResult records to history...")
+            archived_count = move_current_results_to_history()
+            logger.info(f"Moved {archived_count} results to evaluation history")
             
-            if previous_period:
-                # Process all staff results for the period that's about to be archived
-                staff_users = User.objects.filter(
-                    userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
-                ).distinct()
-                
-                for staff_user in staff_users:
-                    try:
-                        # Only process if there are responses in this period
-                        responses_in_period = EvaluationResponse.objects.filter(
-                            evaluatee=staff_user,
-                            submitted_at__gte=previous_period.start_date,
-                            submitted_at__lte=previous_period.end_date
-                        )
-                        
-                        if responses_in_period.exists():
-                            result = process_evaluation_results_for_user(staff_user, previous_period)
-                            if result:
-                                logger.info(f"Processed results for {staff_user.username} in period {previous_period.name}")
-                    except Exception as e:
-                        logger.error(f"Error processing {staff_user.username}: {str(e)}")
-            
-            # ✅ CORRECT FLOW: Archive the PREVIOUS period's results when starting a NEW period
-            # This ensures old results move to history and new results become current
-            logger.info("Archiving previous evaluation period to history...")
-            
-            # Get the currently active period (this will become "previous" when we create the new one)
-            previous_active_period = EvaluationPeriod.objects.filter(
-                evaluation_type='student',
-                is_active=True
-            ).first()
-            
-            # Archive the previous period's results to history BEFORE deactivating it
-            archived_count = 0
-            if previous_active_period:
-                logger.info(f"Archiving period: {previous_active_period.name}")
-                archived_count = archive_period_results_to_history(previous_active_period)
-                logger.info(f"Archived {archived_count} results from {previous_active_period.name} to evaluation history")
-            
-            # Now deactivate all active periods
-            previous_periods = EvaluationPeriod.objects.filter(
-                evaluation_type='student',
-                is_active=True
-            )
-            deactivated_count = previous_periods.update(is_active=False, end_date=timezone.now())
-            logger.info(f"Deactivated {deactivated_count} active period(s) - results archived to history")
-
-            # Create a new active evaluation period for this release
+            # STEP 2: Create a new active evaluation period for this release
             new_period, created = EvaluationPeriod.objects.get_or_create(
                 name=f"Student Evaluation {timezone.now().strftime('%B %Y')}",
                 evaluation_type='student',
@@ -992,7 +951,7 @@ def release_student_evaluation(request):
                 new_period.save()
                 logger.info(f"Activated existing evaluation period: {new_period.name}")
 
-            # Release all student evaluations that are not released
+            # STEP 3: Release all student evaluations that are not released
             evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='student')
             evaluation_count = evaluations.count()
             logger.debug(f"Found {evaluation_count} unreleased student evaluations")
@@ -1004,7 +963,7 @@ def release_student_evaluation(request):
                 log_admin_activity(
                     request=request,
                     action='release_evaluation',
-                    description=f"Released student evaluation form - {updated_count} evaluation(s) activated. Previous periods archived."
+                    description=f"Started new evaluation period '{new_period.name}'. Previous results ({archived_count} records) moved to history."
                 )
                 
                 # Send email notifications to all users
@@ -1014,10 +973,9 @@ def release_student_evaluation(request):
                 
                 response_data = {
                     'success': True,
-                    'message': f'Student evaluation form has been released. New period started: {new_period.name}. Previous period results ({archived_count} records) archived to evaluation history.',
+                    'message': f'New evaluation period started: {new_period.name}. Previous results ({archived_count} records) moved to evaluation history. Students can now evaluate.',
                     'student_evaluation_released': True,
                     'evaluation_period_ended': False,
-                    'periods_archived': deactivated_count,
                     'results_archived': archived_count,
                     'new_period': new_period.name,
                     'email_notification': {
@@ -1040,66 +998,81 @@ def release_student_evaluation(request):
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 def unrelease_student_evaluation(request):
+    """
+    NEW FLOW: When admin clicks unrelease (ends evaluation):
+    1. Process current evaluation responses into EvaluationResult (these become visible in profile settings)
+    2. Deactivate the current evaluation period
+    3. Results in EvaluationResult table are now displayed in instructor profile settings
+    """
     if request.method == 'POST':
-        evaluations = Evaluation.objects.filter(is_released=True, evaluation_type='student')
-        updated_count = evaluations.update(is_released=False)
+        try:
+            evaluations = Evaluation.objects.filter(is_released=True, evaluation_type='student')
+            updated_count = evaluations.update(is_released=False)
 
-        if updated_count > 0:
-            # Deactivate the current evaluation period
-            active_periods = EvaluationPeriod.objects.filter(
-                evaluation_type='student',
-                is_active=True
-            )
-            active_periods.update(is_active=False, end_date=timezone.now())
-            logger.info(f"Deactivated {active_periods.count()} evaluation period(s)")
-            
-            # Log admin activity
-            log_admin_activity(
-                request=request,
-                action='unrelease_evaluation',
-                description=f"Unreleased student evaluation form - {updated_count} evaluation(s) deactivated. Evaluation period ended."
-            )
-            
-            # ✅ PROCESS EVALUATION RESULTS FOR ALL STAFF - THIS IS CRITICAL
-            processing_results = process_all_evaluation_results()
-            
-            # Send email notifications to all users
-            logger.info("Sending email notifications about evaluation close")
-            email_result = EvaluationEmailService.send_evaluation_unreleased_notification('student')
-            logger.info(f"Email notification result: {email_result}")
-            
-            # Build the response message
-            message = 'Student evaluation form has been unreleased. Evaluation period ended.'
-            
-            if processing_results['success']:
-                processed_count = processing_results['processed_count']
-                total_staff = processing_results['total_staff']
-                message += f' Successfully processed evaluation results for {processed_count} out of {total_staff} staff members.'
+            if updated_count > 0:
+                # Get the active period before deactivating it
+                active_period = EvaluationPeriod.objects.filter(
+                    evaluation_type='student',
+                    is_active=True
+                ).first()
                 
-                # Add details for admin
-                if processed_count > 0:
-                    message += ' Evaluation results are now available in staff history.'
-                    
+                if not active_period:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'No active evaluation period found.'
+                    })
+                
+                # STEP 1: Process all evaluation responses from this period into EvaluationResult
+                # This makes results visible in profile settings
+                logger.info(f"Processing evaluation results for period: {active_period.name}")
+                processed_count = process_evaluation_period_to_results(active_period)
+                logger.info(f"Processed {processed_count} evaluation results")
+                
+                # STEP 2: Deactivate the current evaluation period
+                active_period.is_active = False
+                active_period.end_date = timezone.now()
+                active_period.save()
+                logger.info(f"Deactivated evaluation period: {active_period.name}")
+                
+                # Log admin activity
+                log_admin_activity(
+                    request=request,
+                    action='unrelease_evaluation',
+                    description=f"Ended student evaluation period '{active_period.name}'. Processed {processed_count} results now visible in profile settings."
+                )
+                
+                # Send email notifications to all users
+                logger.info("Sending email notifications about evaluation close")
+                email_result = EvaluationEmailService.send_evaluation_unreleased_notification('student')
+                logger.info(f"Email notification result: {email_result}")
+                
+                message = f'Student evaluation period "{active_period.name}" has ended. Results processed for {processed_count} staff members and are now visible in profile settings.'
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': message,
+                    'processed_count': processed_count,
+                    'student_evaluation_released': False,
+                    'evaluation_period_ended': True,
+                    'period_name': active_period.name,
+                    'email_notification': {
+                        'sent': email_result['sent_count'],
+                        'failed': len(email_result['failed_emails']),
+                        'message': email_result['message']
+                    }
+                })
             else:
-                message += ' But evaluation processing failed. Please check the logs.'
-            
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'No student evaluations to unrelease.'
+                })
+        except Exception as e:
+            logger.error(f"Error in unrelease_student_evaluation: {str(e)}", exc_info=True)
             return JsonResponse({
-                'success': True,
-                'message': message,
-                'processing_results': processing_results,
-                'student_evaluation_released': False,
-                'evaluation_period_ended': True,
-                'email_notification': {
-                    'sent': email_result['sent_count'],
-                    'failed': len(email_result['failed_emails']),
-                    'message': email_result['message']
-                }
+                'success': False,
+                'error': f'Server error: {str(e)}'
             })
-        else:
-            return JsonResponse({
-                'success': False, 
-                'error': 'No student evaluations to unrelease.'
-            })
+    
     return JsonResponse({
         'success': False, 
         'error': 'Invalid request'
@@ -6023,6 +5996,217 @@ def get_rating_distribution(user, evaluation_period=None):
         for i in range(1, 16):
             question_key = f'question{i}'
             rating = getattr(response, question_key, 'Poor')
+            numeric_rating = rating_values.get(rating, 1)
+            
+            if numeric_rating == 1:
+                poor += 1
+            elif numeric_rating == 2:
+                unsatisfactory += 1
+            elif numeric_rating == 3:
+                satisfactory += 1
+            elif numeric_rating == 4:
+                very_satisfactory += 1
+            elif numeric_rating == 5:
+                outstanding += 1
+    
+    return [poor, unsatisfactory, satisfactory, very_satisfactory, outstanding]
+
+def move_current_results_to_history():
+    """
+    Move all current EvaluationResult records to EvaluationHistory
+    This is called when starting a NEW evaluation period (when admin clicks RELEASE)
+    After moving, deletes all records from EvaluationResult table
+    Returns: count of records moved
+    """
+    try:
+        results = EvaluationResult.objects.all()
+        moved_count = 0
+        
+        for result in results:
+            # Create history record from result
+            EvaluationHistory.create_from_result(result)
+            moved_count += 1
+            logger.info(f"Moved result to history: {result.user.username} - {result.evaluation_period.name}")
+        
+        # Delete all results from EvaluationResult after moving to history
+        if moved_count > 0:
+            deleted_count = results.delete()[0]
+            logger.info(f"Cleared {deleted_count} records from EvaluationResult table after moving to history")
+        
+        return moved_count
+        
+    except Exception as e:
+        logger.error(f"Error moving results to history: {str(e)}", exc_info=True)
+        return 0
+
+def process_evaluation_period_to_results(evaluation_period):
+    """
+    Process all evaluation responses from a period and create EvaluationResult records
+    This is called when admin UNRELEASES (ends) an evaluation period
+    These results will be displayed in instructor profile settings
+    Returns: count of results processed
+    """
+    try:
+        from main.models import EvaluationResult, Section
+        
+        # Get all staff members
+        staff_users = User.objects.filter(
+            userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
+        ).distinct()
+        
+        processed_count = 0
+        
+        for staff_user in staff_users:
+            # Get all responses for this user in this period
+            responses = EvaluationResponse.objects.filter(
+                evaluatee=staff_user,
+                submitted_at__gte=evaluation_period.start_date,
+                submitted_at__lte=evaluation_period.end_date
+            )
+            
+            if not responses.exists():
+                continue
+            
+            # Group responses by section
+            sections_evaluated = set(responses.values_list('student_section', flat=True).distinct())
+            
+            for section_code in sections_evaluated:
+                if not section_code:
+                    continue
+                
+                # Get section object
+                try:
+                    section = Section.objects.get(code=section_code)
+                except Section.DoesNotExist:
+                    logger.warning(f"Section {section_code} not found")
+                    continue
+                
+                # Filter responses for this section
+                section_responses = responses.filter(student_section=section_code)
+                
+                if not section_responses.exists():
+                    continue
+                
+                # Calculate category scores
+                category_scores = compute_category_scores_from_responses(section_responses)
+                
+                # Get rating distribution
+                rating_dist = get_rating_distribution_from_responses(section_responses)
+                
+                # Create or update EvaluationResult
+                result, created = EvaluationResult.objects.update_or_create(
+                    user=staff_user,
+                    evaluation_period=evaluation_period,
+                    section=section,
+                    defaults={
+                        'category_a_score': category_scores['category_a'],
+                        'category_b_score': category_scores['category_b'],
+                        'category_c_score': category_scores['category_c'],
+                        'category_d_score': category_scores['category_d'],
+                        'total_percentage': category_scores['total_percentage'],
+                        'average_rating': category_scores['average_rating'],
+                        'total_responses': section_responses.count(),
+                        'total_questions': 15,
+                        'poor_count': rating_dist[0],
+                        'unsatisfactory_count': rating_dist[1],
+                        'satisfactory_count': rating_dist[2],
+                        'very_satisfactory_count': rating_dist[3],
+                        'outstanding_count': rating_dist[4],
+                    }
+                )
+                
+                processed_count += 1
+                action = "Created" if created else "Updated"
+                logger.info(f"{action} EvaluationResult for {staff_user.username} - {section_code}: {category_scores['total_percentage']:.1f}%")
+        
+        logger.info(f"Processed {processed_count} evaluation results for period: {evaluation_period.name}")
+        return processed_count
+        
+    except Exception as e:
+        logger.error(f"Error processing evaluation period to results: {str(e)}", exc_info=True)
+        return 0
+
+def compute_category_scores_from_responses(responses):
+    """
+    Compute category scores from a queryset of EvaluationResponse objects
+    Returns dict with category scores and totals
+    """
+    rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
+    
+    # Category mappings (question number -> category)
+    category_a_questions = [1, 2, 3, 4, 5]  # Mastery (35%)
+    category_b_questions = [6, 7, 8, 9]     # Classroom Management (25%)
+    category_c_questions = [10, 11, 12]     # Compliance (20%)
+    category_d_questions = [13, 14, 15]     # Personality (20%)
+    
+    total_a = total_b = total_c = total_d = 0
+    count_a = count_b = count_c = count_d = 0
+    
+    for response in responses:
+        # Category A
+        for q in category_a_questions:
+            rating = getattr(response, f'question{q}', 'Poor')
+            total_a += rating_values.get(rating, 1)
+            count_a += 1
+        
+        # Category B
+        for q in category_b_questions:
+            rating = getattr(response, f'question{q}', 'Poor')
+            total_b += rating_values.get(rating, 1)
+            count_b += 1
+        
+        # Category C
+        for q in category_c_questions:
+            rating = getattr(response, f'question{q}', 'Poor')
+            total_c += rating_values.get(rating, 1)
+            count_c += 1
+        
+        # Category D
+        for q in category_d_questions:
+            rating = getattr(response, f'question{q}', 'Poor')
+            total_d += rating_values.get(rating, 1)
+            count_d += 1
+    
+    # Calculate averages (1-5 scale)
+    avg_a = (total_a / count_a) if count_a > 0 else 0
+    avg_b = (total_b / count_b) if count_b > 0 else 0
+    avg_c = (total_c / count_c) if count_c > 0 else 0
+    avg_d = (total_d / count_d) if count_d > 0 else 0
+    
+    # Convert to percentages with weights
+    category_a = (avg_a / 5) * 35  # 35% weight
+    category_b = (avg_b / 5) * 25  # 25% weight
+    category_c = (avg_c / 5) * 20  # 20% weight
+    category_d = (avg_d / 5) * 20  # 20% weight
+    
+    total_percentage = category_a + category_b + category_c + category_d
+    
+    # Calculate overall average rating
+    total_ratings = total_a + total_b + total_c + total_d
+    total_questions = count_a + count_b + count_c + count_d
+    average_rating = (total_ratings / total_questions) if total_questions > 0 else 0
+    
+    return {
+        'category_a': round(category_a, 2),
+        'category_b': round(category_b, 2),
+        'category_c': round(category_c, 2),
+        'category_d': round(category_d, 2),
+        'total_percentage': round(total_percentage, 2),
+        'average_rating': round(average_rating, 2)
+    }
+
+def get_rating_distribution_from_responses(responses):
+    """
+    Get rating distribution counts from a queryset of responses
+    Returns [poor, unsatisfactory, satisfactory, very_satisfactory, outstanding]
+    """
+    rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
+    
+    poor = unsatisfactory = satisfactory = very_satisfactory = outstanding = 0
+    
+    for response in responses:
+        for i in range(1, 16):
+            rating = getattr(response, f'question{i}', 'Poor')
             numeric_rating = rating_values.get(rating, 1)
             
             if numeric_rating == 1:
