@@ -7198,14 +7198,20 @@ def download_evaluation_history_pdf(request, period_id):
         if not user.userprofile.role in [Role.FACULTY, Role.COORDINATOR, Role.DEAN]:
             return HttpResponse("Access denied", status=403)
         
-        # Get historical results for this user and period
-        history_results = EvaluationHistory.objects.filter(
-            user=user,
+        # Get ALL evaluation responses for this user in this period (student, peer, irregular combined)
+        student_responses = EvaluationResponse.objects.filter(
+            evaluatee=user,
             evaluation_period=period
-        ).select_related('section')
+        ).select_related('evaluator', 'evaluator__userprofile')
         
-        if not history_results.exists():
-            return HttpResponse("No historical data found for this period", status=404)
+        irregular_responses = IrregularEvaluation.objects.filter(
+            evaluatee=user,
+            evaluation_period=period
+        ).select_related('evaluator')
+        
+        # Check if there's any data
+        if not student_responses.exists() and not irregular_responses.exists():
+            return HttpResponse("No evaluation data found for this period", status=404)
         
         # Create PDF buffer
         buffer = BytesIO()
@@ -7255,15 +7261,65 @@ def download_evaluation_history_pdf(request, period_id):
         # ========== OVERALL SUMMARY ==========
         story.append(Paragraph("Overall Performance Summary", heading_style))
         
-        # Calculate overall metrics
-        total_responses = sum(h.total_responses for h in history_results)
-        avg_overall_score = sum(h.overall_score * h.total_responses for h in history_results) / total_responses if total_responses > 0 else 0
+        # Separate student responses from peer responses
+        regular_student_responses = student_responses.exclude(
+            evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
+        )
+        peer_responses = student_responses.filter(
+            evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
+        )
+        
+        # Calculate overall metrics combining ALL evaluation types
+        rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
+        
+        all_scores = []
+        
+        # Student evaluations (19 questions)
+        for response in regular_student_responses:
+            total = 0
+            count = 0
+            for i in range(1, 20):
+                rating = getattr(response, f'question{i}', None)
+                if rating and rating in rating_values:
+                    total += rating_values[rating]
+                    count += 1
+            if count > 0:
+                all_scores.append((total / (count * 5)) * 100)
+        
+        # Irregular evaluations (19 questions)
+        for response in irregular_responses:
+            total = 0
+            count = 0
+            for i in range(1, 20):
+                rating = getattr(response, f'question{i}', None)
+                if rating and rating in rating_values:
+                    total += rating_values[rating]
+                    count += 1
+            if count > 0:
+                all_scores.append((total / (count * 5)) * 100)
+        
+        # Peer evaluations (15 questions)
+        for response in peer_responses:
+            total = 0
+            count = 0
+            for i in range(1, 16):
+                rating = getattr(response, f'question{i}', None)
+                if rating and rating in rating_values:
+                    total += rating_values[rating]
+                    count += 1
+            if count > 0:
+                all_scores.append((total / (count * 5)) * 100)
+        
+        avg_overall_score = sum(all_scores) / len(all_scores) if all_scores else 0
+        total_evaluations = len(all_scores)
         
         summary_data = [
             ['Metric', 'Value'],
             ['Overall Average Score', f'{avg_overall_score:.2f}%'],
-            ['Total Evaluations Received', str(total_responses)],
-            ['Number of Sections', str(history_results.count())],
+            ['Total Evaluations (All Types)', str(total_evaluations)],
+            ['Regular Student Evaluations', str(regular_student_responses.count())],
+            ['Irregular Student Evaluations', str(irregular_responses.count())],
+            ['Peer Evaluations', str(peer_responses.count())],
         ]
         
         summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
@@ -7280,153 +7336,105 @@ def download_evaluation_history_pdf(request, period_id):
         story.append(summary_table)
         story.append(Spacer(1, 0.3*inch))
         
-        # ========== SECTION BREAKDOWN ==========
-        story.append(Paragraph("Section-wise Performance", heading_style))
+        # ========== DETAILED BREAKDOWN BY TYPE ==========
+        story.append(Paragraph("Evaluation Breakdown by Type", heading_style))
         
-        section_data = [['Section', 'Responses', 'Score', 'Rating']]
-        for h in history_results.order_by('-overall_score'):
-            section_name = h.section.code if h.section else 'General'
-            rating = 'Outstanding' if h.overall_score >= 90 else \
-                     'Very Satisfactory' if h.overall_score >= 80 else \
-                     'Satisfactory' if h.overall_score >= 70 else \
-                     'Needs Improvement'
-            section_data.append([
-                section_name,
-                str(h.total_responses),
-                f'{h.overall_score:.2f}%',
-                rating
-            ])
+        # Group regular student responses by section
+        from collections import defaultdict
+        section_scores = defaultdict(lambda: {'responses': 0, 'total_score': 0})
         
-        section_table = Table(section_data, colWidths=[1.5*inch, 1.2*inch, 1.3*inch, 1.5*inch])
-        section_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#283593')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f5f5f5')),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')])
-        ]))
-        story.append(section_table)
-        story.append(Spacer(1, 0.3*inch))
+        for response in regular_student_responses:
+            section = response.student_section or 'No Section'
+            total = 0
+            count = 0
+            for i in range(1, 20):
+                rating = getattr(response, f'question{i}', None)
+                if rating and rating in rating_values:
+                    total += rating_values[rating]
+                    count += 1
+            if count > 0:
+                score = (total / (count * 5)) * 100
+                section_scores[section]['responses'] += 1
+                section_scores[section]['total_score'] += score
         
-        # ========== IRREGULAR STUDENT EVALUATIONS ==========
-        irregular_evals = IrregularEvaluation.objects.filter(
-            evaluatee=user,
-            evaluation_period=period
-        )
-        
-        if irregular_evals.exists():
-            story.append(Paragraph("Irregular Student Evaluations", heading_style))
+        if section_scores:
+            story.append(Paragraph("Regular Student Evaluations by Section", subheading_style))
+            section_data = [['Section', 'Responses', 'Average Score', 'Rating']]
             
-            # Calculate irregular scores
-            irregular_scores = []
-            for eval in irregular_evals:
-                rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
-                total_score = 0
-                question_count = 0
-                
-                for i in range(1, 20):
-                    rating = getattr(eval, f'question{i}', None)
-                    if rating and rating in rating_values:
-                        total_score += rating_values[rating]
-                        question_count += 1
-                
-                if question_count > 0:
-                    avg_score = (total_score / (question_count * 5)) * 100
-                    irregular_scores.append(avg_score)
+            for section, data in sorted(section_scores.items(), key=lambda x: x[1]['total_score']/x[1]['responses'], reverse=True):
+                avg_score = data['total_score'] / data['responses']
+                rating = 'Outstanding' if avg_score >= 90 else \
+                         'Very Satisfactory' if avg_score >= 80 else \
+                         'Satisfactory' if avg_score >= 70 else \
+                         'Needs Improvement'
+                section_data.append([
+                    section,
+                    str(data['responses']),
+                    f'{avg_score:.2f}%',
+                    rating
+                ])
             
-            if irregular_scores:
-                avg_irregular = sum(irregular_scores) / len(irregular_scores)
-                irregular_data = [
-                    ['Total Irregular Evaluations', str(irregular_evals.count())],
-                    ['Average Score', f'{avg_irregular:.2f}%']
-                ]
-                irregular_table = Table(irregular_data, colWidths=[3*inch, 2*inch])
-                irregular_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fff3e0')),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ]))
-                story.append(irregular_table)
-                story.append(Spacer(1, 0.2*inch))
+            section_table = Table(section_data, colWidths=[1.5*inch, 1.2*inch, 1.3*inch, 1.5*inch])
+            section_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#283593')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f5f5f5')),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')])
+            ]))
+            story.append(section_table)
+            story.append(Spacer(1, 0.2*inch))
         
-        # ========== PEER EVALUATIONS ==========
-        peer_evals = EvaluationResponse.objects.filter(
-            evaluatee=user,
-            evaluation_period=period,
-            evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
-        )
-        
-        if peer_evals.exists():
-            story.append(Paragraph("Peer Evaluations", heading_style))
-            
-            # Calculate peer scores
-            peer_scores = []
-            for eval in peer_evals:
-                rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
-                total_score = 0
-                question_count = 0
-                
-                for i in range(1, 16):
-                    rating = getattr(eval, f'question{i}', None)
-                    if rating and rating in rating_values:
-                        total_score += rating_values[rating]
-                        question_count += 1
-                
-                if question_count > 0:
-                    avg_score = (total_score / (question_count * 5)) * 100
-                    peer_scores.append(avg_score)
-            
-            if peer_scores:
-                avg_peer = sum(peer_scores) / len(peer_scores)
-                peer_data = [
-                    ['Total Peer Evaluations', str(peer_evals.count())],
-                    ['Average Score', f'{avg_peer:.2f}%']
-                ]
-                peer_table = Table(peer_data, colWidths=[3*inch, 2*inch])
-                peer_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#e8f5e9')),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ]))
-                story.append(peer_table)
-                story.append(Spacer(1, 0.2*inch))
-        
-        # ========== STUDENT COMMENTS ==========
+        # ========== ALL STUDENT COMMENTS (Combined) ==========
         story.append(PageBreak())
-        story.append(Paragraph("Student Comments", heading_style))
+        story.append(Paragraph("Student & Peer Comments", heading_style))
         
-        all_responses = EvaluationResponse.objects.filter(
-            evaluatee=user,
-            evaluation_period=period
-        ).exclude(comments='').exclude(comments__isnull=True)
+        # Get all comments from all evaluation types
+        all_comments = []
         
-        irregular_responses = IrregularEvaluation.objects.filter(
-            evaluatee=user,
-            evaluation_period=period
-        ).exclude(comments='').exclude(comments__isnull=True)
+        # Regular student comments
+        for response in regular_student_responses:
+            if response.comments:
+                clean_comment = re.sub('<[^<]+?>', '', response.comments)
+                evaluator_name = response.evaluator.get_full_name() or response.evaluator.username if response.evaluator else 'Anonymous'
+                all_comments.append({
+                    'type': 'Regular Student',
+                    'evaluator': evaluator_name,
+                    'comment': clean_comment
+                })
         
-        if all_responses.exists() or irregular_responses.exists():
-            comment_count = 1
-            for response in all_responses:
-                if response.comments:
-                    # Clean HTML tags from comments
-                    clean_comment = re.sub('<[^<]+?>', '', response.comments)
-                    story.append(Paragraph(f"<b>Comment {comment_count}:</b>", subheading_style))
-                    story.append(Paragraph(clean_comment, styles['Normal']))
-                    story.append(Spacer(1, 0.1*inch))
-                    comment_count += 1
-            
-            for response in irregular_responses:
-                if response.comments:
-                    clean_comment = re.sub('<[^<]+?>', '', response.comments)
-                    story.append(Paragraph(f"<b>Comment {comment_count} (Irregular):</b>", subheading_style))
-                    story.append(Paragraph(clean_comment, styles['Normal']))
-                    story.append(Spacer(1, 0.1*inch))
-                    comment_count += 1
+        # Irregular student comments
+        for response in irregular_responses:
+            if response.comments:
+                clean_comment = re.sub('<[^<]+?>', '', response.comments)
+                evaluator_name = response.evaluator.get_full_name() or response.evaluator.username if response.evaluator else 'Anonymous'
+                all_comments.append({
+                    'type': 'Irregular Student',
+                    'evaluator': evaluator_name,
+                    'comment': clean_comment
+                })
+        
+        # Peer comments
+        for response in peer_responses:
+            if response.comments:
+                clean_comment = re.sub('<[^<]+?>', '', response.comments)
+                evaluator_name = response.evaluator.get_full_name() or response.evaluator.username if response.evaluator else 'Anonymous'
+                role = response.evaluator.userprofile.role if hasattr(response.evaluator, 'userprofile') else 'Peer'
+                all_comments.append({
+                    'type': f'Peer ({role})',
+                    'evaluator': evaluator_name,
+                    'comment': clean_comment
+                })
+        
+        if all_comments:
+            for i, comment_data in enumerate(all_comments, 1):
+                story.append(Paragraph(f"<b>Comment {i} [{comment_data['type']}]:</b>", subheading_style))
+                story.append(Paragraph(comment_data['comment'], styles['Normal']))
+                story.append(Spacer(1, 0.1*inch))
         else:
             story.append(Paragraph("No comments were provided for this evaluation period.", styles['Normal']))
         
@@ -7472,20 +7480,32 @@ def download_evaluation_history_pdf(request, period_id):
 
 def get_ai_recommendations_for_period(user, period):
     """
-    Generate AI recommendations based on evaluation data for a specific period
+    Generate AI recommendations based on ALL evaluation data for a specific period
+    Combines student, irregular, and peer evaluations
     Returns dict of category recommendations
     """
     try:
-        # Get all responses for this user in this period
-        responses = EvaluationResponse.objects.filter(
+        # Get all evaluation types for this user in this period
+        student_responses = EvaluationResponse.objects.filter(
+            evaluatee=user,
+            evaluation_period=period
+        ).exclude(evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN])
+        
+        irregular_responses = IrregularEvaluation.objects.filter(
             evaluatee=user,
             evaluation_period=period
         )
         
-        if not responses.exists():
+        peer_responses = EvaluationResponse.objects.filter(
+            evaluatee=user,
+            evaluation_period=period,
+            evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
+        )
+        
+        if not (student_responses.exists() or irregular_responses.exists() or peer_responses.exists()):
             return None
         
-        # Calculate category averages
+        # Calculate category averages from ALL sources
         rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
         
         categories = {
@@ -7499,19 +7519,41 @@ def get_ai_recommendations_for_period(user, period):
         for category, questions in categories.items():
             total = 0
             count = 0
-            for response in responses:
+            
+            # Student evaluations (19 questions, use first 15)
+            for response in student_responses:
                 for q in questions:
-                    rating = getattr(response, f'question{q}', None)
-                    if rating and rating in rating_values:
-                        total += rating_values[rating]
-                        count += 1
+                    if q <= 19:
+                        rating = getattr(response, f'question{q}', None)
+                        if rating and rating in rating_values:
+                            total += rating_values[rating]
+                            count += 1
+            
+            # Irregular evaluations (19 questions, use first 15)
+            for response in irregular_responses:
+                for q in questions:
+                    if q <= 19:
+                        rating = getattr(response, f'question{q}', None)
+                        if rating and rating in rating_values:
+                            total += rating_values[rating]
+                            count += 1
+            
+            # Peer evaluations (15 questions)
+            for response in peer_responses:
+                for q in questions:
+                    if q <= 15:
+                        rating = getattr(response, f'question{q}', None)
+                        if rating and rating in rating_values:
+                            total += rating_values[rating]
+                            count += 1
+            
             category_scores[category] = (total / count) if count > 0 else 0
         
-        # Generate simple recommendations based on scores
+        # Generate recommendations based on combined scores
         recommendations = {}
         for category, score in category_scores.items():
             if score >= 4.5:
-                recommendations[category] = f"Excellent performance in {category.lower()}. Continue to maintain these high standards and consider mentoring colleagues in this area."
+                recommendations[category] = f"Excellent performance in {category.lower()} across all evaluation types. Continue to maintain these high standards and consider mentoring colleagues in this area."
             elif score >= 3.5:
                 recommendations[category] = f"Strong performance in {category.lower()}. Consider exploring advanced teaching methodologies to further enhance effectiveness."
             elif score >= 2.5:
