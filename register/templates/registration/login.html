@@ -14,7 +14,7 @@
 <meta http-equiv="Expires" content="0">
 
 <!-- Professional Loading Screen -->
-<div id="loadingScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); z-index: 9999; justify-content: center; align-items: center;">
+<div id="loadingScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #47682c 0%, #5a8035 50%, #6b9940 100%); z-index: 9999; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.5s ease-in-out;">
     <div style="text-align: center;">
         <!-- Logo with pulse animation -->
         <div style="position: relative; margin-bottom: 30px;">
@@ -252,19 +252,31 @@
             });
         }
         
-        // Show loading screen on successful login
+        // Show loading screen on successful login with fade in
         const loginForm = document.querySelector('form[action="{% url "register:login" %}"]');
         if (loginForm) {
             loginForm.addEventListener('submit', function(e) {
                 const loadingScreen = document.getElementById('loadingScreen');
                 const loginBtn = document.getElementById('loginBtn');
                 
-                // Show loading screen
+                // Show loading screen with fade in
                 loadingScreen.style.display = 'flex';
+                setTimeout(() => {
+                    loadingScreen.style.opacity = '1';
+                }, 10);
+                
                 loginBtn.disabled = true;
                 loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Logging in...';
             });
         }
+        
+        // Fade out loading screen before page unload
+        window.addEventListener('beforeunload', function() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen && loadingScreen.style.display === 'flex') {
+                loadingScreen.style.opacity = '0';
+            }
+        });
     });
 </script>
 
