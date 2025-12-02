@@ -1675,13 +1675,16 @@ class CoordinatorDetailView(View):
                     }
 
             # Calculate PEER evaluation scores (overall, no section breakdown)
-            # Filter by latest peer evaluation period if exists
+            # Peer evaluations are identified by their evaluation_period's evaluation_type being 'peer'
             peer_filter = EvaluationResponse.objects.filter(
-                evaluatee=coordinator.user,
-                student_section__isnull=True  # Peer evaluations don't have sections
+                evaluatee=coordinator.user
             )
             if latest_peer_period:
+                # Filter by the latest peer evaluation period
                 peer_filter = peer_filter.filter(evaluation_period=latest_peer_period)
+            else:
+                # If no peer period defined, get all peer evaluations by joining with EvaluationPeriod
+                peer_filter = peer_filter.filter(evaluation_period__evaluation_type='peer')
             peer_responses = peer_filter
             
             peer_evaluation_count = peer_responses.count()
