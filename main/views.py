@@ -948,31 +948,30 @@ def release_student_evaluation(request):
                     except Exception as e:
                         logger.error(f"Error processing {staff_user.username}: {str(e)}")
             
-            # ✅ FIXED: Only archive OLD INACTIVE periods that haven't been archived yet
-            # The currently active period should NOT be archived - its results stay as "current"
-            # until the NEXT cycle replaces them
-            logger.info("Archiving old evaluation periods...")
+            # ✅ CORRECT FLOW: Archive the PREVIOUS period's results when starting a NEW period
+            # This ensures old results move to history and new results become current
+            logger.info("Archiving previous evaluation period to history...")
             
-            # Find inactive periods that haven't been archived to history yet
-            inactive_periods_without_history = []
-            for period in EvaluationPeriod.objects.filter(evaluation_type='student', is_active=False).order_by('start_date'):
-                # Check if this period's results are already in history
-                has_history = EvaluationHistory.objects.filter(evaluation_period=period).exists()
-                if not has_history:
-                    inactive_periods_without_history.append(period)
+            # Get the currently active period (this will become "previous" when we create the new one)
+            previous_active_period = EvaluationPeriod.objects.filter(
+                evaluation_type='student',
+                is_active=True
+            ).first()
             
-            # Archive any old results that haven't been archived yet
-            for period in inactive_periods_without_history:
-                logger.info(f"Archiving old inactive period: {period.name}")
-                archive_period_results_to_history(period)
+            # Archive the previous period's results to history BEFORE deactivating it
+            archived_count = 0
+            if previous_active_period:
+                logger.info(f"Archiving period: {previous_active_period.name}")
+                archived_count = archive_period_results_to_history(previous_active_period)
+                logger.info(f"Archived {archived_count} results from {previous_active_period.name} to evaluation history")
             
-            # Now deactivate the CURRENTLY ACTIVE periods (but DON'T archive them yet)
+            # Now deactivate all active periods
             previous_periods = EvaluationPeriod.objects.filter(
                 evaluation_type='student',
                 is_active=True
             )
-            archived_periods = previous_periods.update(is_active=False, end_date=timezone.now())
-            logger.info(f"Deactivated {archived_periods} active period(s) - results remain as current (not archived yet)")
+            deactivated_count = previous_periods.update(is_active=False, end_date=timezone.now())
+            logger.info(f"Deactivated {deactivated_count} active period(s) - results archived to history")
 
             # Create a new active evaluation period for this release
             new_period, created = EvaluationPeriod.objects.get_or_create(
@@ -1015,10 +1014,11 @@ def release_student_evaluation(request):
                 
                 response_data = {
                     'success': True,
-                    'message': 'Student evaluation form has been released. Evaluation period started. Previous evaluation results have been archived.',
+                    'message': f'Student evaluation form has been released. New period started: {new_period.name}. Previous period results ({archived_count} records) archived to evaluation history.',
                     'student_evaluation_released': True,
                     'evaluation_period_ended': False,
-                    'periods_archived': archived_periods,
+                    'periods_archived': deactivated_count,
+                    'results_archived': archived_count,
                     'new_period': new_period.name,
                     'email_notification': {
                         'sent': email_result['sent_count'],
@@ -1145,31 +1145,30 @@ def release_peer_evaluation(request):
                     except Exception as e:
                         logger.error(f"Error processing peer {staff_user.username}: {str(e)}")
             
-            # ✅ FIXED: Only archive OLD INACTIVE periods that haven't been archived yet
-            # The currently active period should NOT be archived - its results stay as "current"
-            # until the NEXT cycle replaces them
-            logger.info("Archiving old peer evaluation periods...")
+            # ✅ CORRECT FLOW: Archive the PREVIOUS peer period's results when starting a NEW period
+            # This ensures old results move to history and new results become current
+            logger.info("Archiving previous peer evaluation period to history...")
             
-            # Find inactive periods that haven't been archived to history yet
-            inactive_periods_without_history = []
-            for period in EvaluationPeriod.objects.filter(evaluation_type='peer', is_active=False).order_by('start_date'):
-                # Check if this period's results are already in history
-                has_history = EvaluationHistory.objects.filter(evaluation_period=period).exists()
-                if not has_history:
-                    inactive_periods_without_history.append(period)
+            # Get the currently active period (this will become "previous" when we create the new one)
+            previous_active_period = EvaluationPeriod.objects.filter(
+                evaluation_type='peer',
+                is_active=True
+            ).first()
             
-            # Archive any old results that haven't been archived yet
-            for period in inactive_periods_without_history:
-                logger.info(f"Archiving old inactive peer period: {period.name}")
-                archive_period_results_to_history(period)
+            # Archive the previous period's results to history BEFORE deactivating it
+            archived_count = 0
+            if previous_active_period:
+                logger.info(f"Archiving peer period: {previous_active_period.name}")
+                archived_count = archive_period_results_to_history(previous_active_period)
+                logger.info(f"Archived {archived_count} peer results from {previous_active_period.name} to evaluation history")
             
-            # Now deactivate the CURRENTLY ACTIVE periods (but DON'T archive them yet)
+            # Now deactivate all active periods
             previous_periods = EvaluationPeriod.objects.filter(
                 evaluation_type='peer',
                 is_active=True
             )
-            archived_periods = previous_periods.update(is_active=False, end_date=timezone.now())
-            logger.info(f"Deactivated {archived_periods} active peer period(s) - results remain as current (not archived yet)")
+            deactivated_count = previous_periods.update(is_active=False, end_date=timezone.now())
+            logger.info(f"Deactivated {deactivated_count} active peer period(s) - results archived to history")
 
             # Create a new active evaluation period for peer evaluation
             evaluation_period, created = EvaluationPeriod.objects.get_or_create(
@@ -1203,10 +1202,11 @@ def release_peer_evaluation(request):
                 
                 return JsonResponse({
                     'success': True,
-                    'message': 'Peer evaluation form has been released. Evaluation period started. Previous evaluation results have been archived.',
+                    'message': f'Peer evaluation form has been released. New period started: {evaluation_period.name}. Previous period results ({archived_count} records) archived to evaluation history.',
                     'peer_evaluation_released': True,
                     'evaluation_period_ended': False,
-                    'periods_archived': archived_periods,
+                    'periods_archived': deactivated_count,
+                    'results_archived': archived_count,
                     'new_period': evaluation_period.name,
                     'email_notification': {
                         'sent': email_result['sent_count'],
