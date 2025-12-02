@@ -1618,15 +1618,17 @@ class CoordinatorDetailView(View):
             if user_profile.role in [Role.COORDINATOR, Role.DEAN] and coordinator.institute != user_profile.institute:
                 return HttpResponseForbidden("You do not have permission to access this coordinator's details.")
 
-            # Get the most recent evaluation period for student evaluations
+            # Get the ACTIVE evaluation period for student evaluations (matching profile settings logic)
             latest_student_period = EvaluationPeriod.objects.filter(
-                evaluation_type='student'
-            ).order_by('-start_date').first()
+                evaluation_type='student',
+                is_active=True
+            ).first()
             
-            # Get the most recent evaluation period for peer evaluations
+            # Get the ACTIVE evaluation period for peer evaluations
             latest_peer_period = EvaluationPeriod.objects.filter(
-                evaluation_type='peer'
-            ).order_by('-start_date').first()
+                evaluation_type='peer',
+                is_active=True
+            ).first()
 
             # Get assigned sections for this coordinator
             assigned_sections = SectionAssignment.objects.filter(user=coordinator.user)
@@ -1649,14 +1651,15 @@ class CoordinatorDetailView(View):
                 
                 a_avg, b_avg, c_avg, d_avg, total_percentage, total_a, total_b, total_c, total_d = category_scores
                 
-                # Get evaluation count for this section from EvaluationResponse (filtered by latest period if exists)
-                eval_filter = EvaluationResponse.objects.filter(
-                    evaluatee=coordinator.user,
-                    student_section=section_code
-                )
+                # Get evaluation count for this section from EvaluationResponse (filtered by active period if exists)
+                eval_filter_kwargs = {
+                    'evaluatee': coordinator.user,
+                    'student_section': section_code
+                }
                 if latest_student_period:
-                    eval_filter = eval_filter.filter(evaluation_period=latest_student_period)
-                evaluation_count = eval_filter.count()
+                    eval_filter_kwargs['submitted_at__gte'] = latest_student_period.start_date
+                    eval_filter_kwargs['submitted_at__lte'] = latest_student_period.end_date
+                evaluation_count = EvaluationResponse.objects.filter(**eval_filter_kwargs).count()
                 
                 # Only include sections that have evaluations
                 if total_percentage > 0:
@@ -1675,17 +1678,16 @@ class CoordinatorDetailView(View):
                     }
 
             # Calculate PEER evaluation scores (overall, no section breakdown)
-            # Peer evaluations are identified by their evaluation_period's evaluation_type being 'peer'
-            peer_filter = EvaluationResponse.objects.filter(
-                evaluatee=coordinator.user
-            )
+            # Filter by active peer evaluation period using date range
+            peer_filter_kwargs = {'evaluatee': coordinator.user}
             if latest_peer_period:
-                # Filter by the latest peer evaluation period
-                peer_filter = peer_filter.filter(evaluation_period=latest_peer_period)
+                peer_filter_kwargs['submitted_at__gte'] = latest_peer_period.start_date
+                peer_filter_kwargs['submitted_at__lte'] = latest_peer_period.end_date
+                peer_filter_kwargs['evaluation_period__evaluation_type'] = 'peer'
             else:
-                # If no peer period defined, get all peer evaluations by joining with EvaluationPeriod
-                peer_filter = peer_filter.filter(evaluation_period__evaluation_type='peer')
-            peer_responses = peer_filter
+                # If no active peer period, get all peer evaluations
+                peer_filter_kwargs['evaluation_period__evaluation_type'] = 'peer'
+            peer_responses = EvaluationResponse.objects.filter(**peer_filter_kwargs)
             
             peer_evaluation_count = peer_responses.count()
             
@@ -1710,13 +1712,12 @@ class CoordinatorDetailView(View):
                 }
 
             # Calculate IRREGULAR evaluation scores
-            # Filter by latest student evaluation period if exists
-            irregular_filter = IrregularEvaluation.objects.filter(
-                evaluatee=coordinator.user
-            )
+            # Filter by active student evaluation period using date range
+            irregular_filter_kwargs = {'evaluatee': coordinator.user}
             if latest_student_period:
-                irregular_filter = irregular_filter.filter(evaluation_period=latest_student_period)
-            irregular_responses = irregular_filter
+                irregular_filter_kwargs['submitted_at__gte'] = latest_student_period.start_date
+                irregular_filter_kwargs['submitted_at__lte'] = latest_student_period.end_date
+            irregular_responses = IrregularEvaluation.objects.filter(**irregular_filter_kwargs)
             irregular_evaluation_count = irregular_responses.count()
             
             if irregular_evaluation_count > 0:
@@ -1805,11 +1806,12 @@ class CoordinatorDetailView(View):
             # Calculate overall statistics for the template
             total_sections = assigned_sections.count()
             sections_with_data = sum(1 for scores in section_scores.values() if scores['has_data'])
-            # Filter total evaluations by latest student period if exists
-            total_eval_filter = EvaluationResponse.objects.filter(evaluatee=coordinator.user)
+            # Filter total evaluations by active student period if exists
+            total_eval_filter_kwargs = {'evaluatee': coordinator.user}
             if latest_student_period:
-                total_eval_filter = total_eval_filter.filter(evaluation_period=latest_student_period)
-            total_evaluations = total_eval_filter.count()
+                total_eval_filter_kwargs['submitted_at__gte'] = latest_student_period.start_date
+                total_eval_filter_kwargs['submitted_at__lte'] = latest_student_period.end_date
+            total_evaluations = EvaluationResponse.objects.filter(**total_eval_filter_kwargs).count()
 
             # Get all sections and years for section assignment editing (for Dean/Coordinator viewing others)
             sections = Section.objects.all().order_by('year_level', 'code')
