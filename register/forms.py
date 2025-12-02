@@ -145,13 +145,9 @@ class RegisterForm(forms.Form):
         if '@' not in email or '.' not in email:
             raise ValidationError("Please enter a valid email address.")
 
-        if role == 'Student':
-            if not email.endswith('@cca.edu.ph'):
-                raise ValidationError("Students must register with a @cca.edu.ph email address.")
-        else:
-            allowed_domains = ['@gmail.com', '@cca.edu.ph']
-            if not any(email.endswith(domain) for domain in allowed_domains):
-                raise ValidationError("Please use a valid email address (e.g., Gmail or cca.edu.ph).")
+        # All users must use @cca.edu.ph email
+        if not email.endswith('@cca.edu.ph'):
+            raise ValidationError("All users must register with a @cca.edu.ph email address.")
 
         # Check for existing email (case-insensitive)
         if User.objects.filter(email__iexact=email).exists():
