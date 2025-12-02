@@ -717,7 +717,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <div id="tabs-navigation" class="tabs hidden-content">
                         <button class="tab active" onclick="switchTab('evaluation')">Evaluation Results</button>
                         <button class="tab" onclick="switchTab('recommendations')">AI Recommendations</button>
-                        <button class="tab" onclick="switchTab('comments')">Students Comments</button>
+                        <button id="comments-tab-button" class="tab hidden-content" onclick="switchTab('comments')">Students Comments</button>
                     </div>
 
                     {% else %}
@@ -734,7 +734,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <div id="tabs-navigation" class="tabs hidden-content">
                         <button class="tab active" onclick="switchTab('evaluation')">Evaluation Results</button>
                         <button class="tab" onclick="switchTab('recommendations')">AI Recommendations</button>
-                        <button class="tab" onclick="switchTab('comments')">Students Comments</button>
+                        <button id="comments-tab-button" class="tab hidden-content" onclick="switchTab('comments')">Students Comments</button>
                     </div>
                     {% endif %}
 
@@ -966,6 +966,14 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     document.getElementById('tabs-navigation').classList.remove('hidden-content');
                     document.getElementById('evaluation-tab').classList.remove('hidden-content');
                     document.getElementById('recommendations-tab').classList.remove('hidden-content');
+                    
+                    // Show/hide comments tab based on selection
+                    const commentsTabButton = document.getElementById('comments-tab-button');
+                    if (selectedSectionId === 'overall') {
+                        commentsTabButton.classList.remove('hidden-content');
+                    } else {
+                        commentsTabButton.classList.add('hidden-content');
+                    }
                     
                     // Update section names in all tabs
                     document.getElementById('selected-section-name').textContent = selectedSectionDisplay;
