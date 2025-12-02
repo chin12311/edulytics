@@ -258,8 +258,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 </div>
                 
                 <div class="form-group">
-                    <label for="id_institute">Institute:</label>
-                    <select name="institute" id="id_institute" class="form-control mb-3 custom-input-width text-center">
+                    <label for="id_student_institute">Institute:</label>
+                    <select name="student_institute" id="id_student_institute" class="form-control mb-3 custom-input-width text-center">
                         <option value="">Select Institute</option>
                         {% for institute in institutes %}
                             <option value="{{ institute.id }}">{{ institute.name }}</option>
@@ -496,36 +496,56 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function toggleFields() {
         const role = roleField.value;
+        const courseField = document.getElementById('id_course');
+        const studentNumberField = document.getElementById('id_studentNumber');
+        const sectionField = document.getElementById('id_section');
+        const studentInstituteField = document.getElementById('id_student_institute');
+        const staffInstituteField = document.getElementById('id_institute');
         
         if (role === 'Student') {
             studentFields.style.display = 'block';
             staffFields.style.display = 'none';
             
             // Make student fields required
-            document.getElementById('id_studentNumber').required = true;
-            document.getElementById('id_course').required = true;
+            studentNumberField.required = true;
+            studentNumberField.disabled = false;
+            courseField.required = true;
+            courseField.disabled = false;
+            studentInstituteField.disabled = false;
             // Section requirement depends on irregular status
             const isIrregular = document.getElementById('id_is_irregular').checked;
-            document.getElementById('id_section').required = !isIrregular;
-            document.getElementById('id_institute').required = false;
+            sectionField.required = !isIrregular;
+            sectionField.disabled = false;
+            staffInstituteField.required = false;
+            staffInstituteField.disabled = true;
         } else if (['Dean', 'Faculty', 'Coordinator'].includes(role)) {
             studentFields.style.display = 'none';
             staffFields.style.display = 'block';
             
-            // Make staff fields required
-            document.getElementById('id_studentNumber').required = false;
-            document.getElementById('id_course').required = false;
-            document.getElementById('id_section').required = false;
-            document.getElementById('id_institute').required = true;
+            // Disable and clear student fields
+            studentNumberField.required = false;
+            studentNumberField.disabled = true;
+            studentNumberField.value = '';
+            courseField.required = false;
+            courseField.disabled = true;
+            courseField.value = '';
+            sectionField.required = false;
+            sectionField.disabled = true;
+            sectionField.value = '';
+            studentInstituteField.disabled = true;
+            
+            // Enable staff fields
+            staffInstituteField.required = true;
+            staffInstituteField.disabled = false;
         } else {
             studentFields.style.display = 'none';
             staffFields.style.display = 'none';
             
             // Remove requirements when no role selected
-            document.getElementById('id_studentNumber').required = false;
-            document.getElementById('id_course').required = false;
-            document.getElementById('id_section').required = false;
-            document.getElementById('id_institute').required = false;
+            studentNumberField.required = false;
+            courseField.required = false;
+            sectionField.required = false;
+            staffInstituteField.required = false;
         }
     }
     
@@ -539,12 +559,12 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleSectionField(); // Initialize irregular toggle state on page load
     }
     
-    // Handle institute selection to load courses dynamically
-    const instituteField = document.getElementById('id_institute');
+    // Handle institute selection to load courses dynamically (for students)
+    const studentInstituteField = document.getElementById('id_student_institute');
     const courseField = document.getElementById('id_course');
     
-    if (instituteField && courseField) {
-        instituteField.addEventListener('change', function() {
+    if (studentInstituteField && courseField) {
+        studentInstituteField.addEventListener('change', function() {
             const instituteId = this.value;
             
             if (!instituteId) {
