@@ -43,8 +43,10 @@ def _split_env_list(name: str):
     return [item.strip() for item in val.split(',') if item.strip()]
 
 # Default ALLOWED_HOSTS to '*' for local/dev, but prefer env when provided
-_env_allowed_hosts = _split_env_list('ALLOWED_HOSTS')
-ALLOWED_HOSTS = _env_allowed_hosts if _env_allowed_hosts else ['*']
+ALLOWED_HOSTS = ["*", "edulytics.uk", "www.edulytics.uk", "13.211.104.201", "127.0.0.1"]
+
+DOMAIN = os.getenv('DOMAIN', 'edulytics.uk')
+SITE_NAME = os.getenv('SITE_NAME', 'Edulytics')
 
 # CSRF trusted origins must be full scheme+host values
 # Example: CSRF_TRUSTED_ORIGINS="http://13.211.161.178,https://13.211.161.178"

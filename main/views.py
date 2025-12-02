@@ -1209,35 +1209,46 @@ def unrelease_peer_evaluation(request):
         updated_count = evaluations.update(is_released=False)
 
         if updated_count > 0:
-            # Deactivate the current evaluation period
-            active_periods = EvaluationPeriod.objects.filter(
+            # Get the active peer evaluation period BEFORE deactivating
+            active_period = EvaluationPeriod.objects.filter(
                 evaluation_type='peer',
                 is_active=True
-            )
-            active_periods.update(is_active=False, end_date=timezone.now())
-            logger.info(f"Deactivated {active_periods.count()} peer evaluation period(s)")
-            
-            # Process peer evaluation results
-            processing_results = process_peer_evaluation_results()
-            
+            ).first()
+
+            if not active_period:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No active peer evaluation period found.'
+                })
+
+            # Process peer evaluation results for this period
+            processing_results = process_peer_evaluation_results(evaluation_period=active_period)
+
+            # Deactivate the current evaluation period
+            active_period.is_active = False
+            active_period.end_date = timezone.now()
+            active_period.save()
+            logger.info(f"Deactivated peer evaluation period: {active_period.name}")
+
             # Send email notifications to all users
             logger.info("Sending email notifications about peer evaluation close")
             email_result = EvaluationEmailService.send_evaluation_unreleased_notification('peer')
             logger.info(f"Email notification result: {email_result}")
-            
-            message = 'Peer evaluation form has been unreleased. Evaluation period ended.'
-            
+
+            message = f'Peer evaluation period "{active_period.name}" has ended.'
+
             if processing_results['success']:
                 processed_count = processing_results['processed_count']
                 message += f' Successfully processed evaluation results for {processed_count} staff members.'
             else:
                 message += ' But evaluation processing failed. Please check the logs.'
-            
+
             return JsonResponse({
                 'success': True,
                 'message': message,
                 'peer_evaluation_released': False,
                 'evaluation_period_ended': True,
+                'period_name': active_period.name,
                 'email_notification': {
                     'sent': email_result['sent_count'],
                     'failed': len(email_result['failed_emails']),
@@ -1254,31 +1265,32 @@ def unrelease_peer_evaluation(request):
         'error': 'Invalid request'
     })
 
-def process_peer_evaluation_results():
+def process_peer_evaluation_results(evaluation_period=None):
     """
     Process peer evaluation results for all staff members after evaluation period ends
     """
     try:
-        # Get or create the peer evaluation period that just ended
-        current_period = EvaluationPeriod.objects.filter(
-            evaluation_type='peer',
-            is_active=True
-        ).first()
-        
+        # Use the provided evaluation period if given; otherwise try to infer
+        current_period = evaluation_period
         if not current_period:
-            # Create a new evaluation period for this cycle
-            current_period = EvaluationPeriod.objects.create(
-                name=f"Peer Evaluation {timezone.now().strftime('%B %Y')}",
+            # Fallback: use latest active peer period, if any
+            current_period = EvaluationPeriod.objects.filter(
                 evaluation_type='peer',
-                start_date=timezone.now() - timezone.timedelta(days=30),
-                end_date=timezone.now(),
+                is_active=True
+            ).first()
+        if not current_period:
+            # As a last resort, use the latest completed peer period
+            current_period = EvaluationPeriod.objects.filter(
+                evaluation_type='peer',
                 is_active=False
-            )
-        else:
-            # Mark the existing period as inactive/ended
-            current_period.is_active = False
-            current_period.end_date = timezone.now()
-            current_period.save()
+            ).order_by('-end_date').first()
+        if not current_period:
+            return {
+                'success': False,
+                'error': 'No peer evaluation period available to process.',
+                'processed_count': 0,
+                'details': []
+            }
         
         # Get all staff members who might have been evaluated
         staff_users = User.objects.filter(
@@ -1511,6 +1523,16 @@ def unrelease_all_evaluations(request):
             peer_updated = peer_evaluations.update(is_released=False)
             print(f"🔍 DEBUG: Unreleased {peer_updated} peer evaluations")
             
+            # Capture active periods BEFORE deactivation
+            student_active_period = EvaluationPeriod.objects.filter(
+                evaluation_type='student',
+                is_active=True
+            ).first()
+            peer_active_period = EvaluationPeriod.objects.filter(
+                evaluation_type='peer',
+                is_active=True
+            ).first()
+
             # Deactivate student evaluation periods
             student_periods = EvaluationPeriod.objects.filter(
                 evaluation_type='student',
@@ -1529,9 +1551,9 @@ def unrelease_all_evaluations(request):
             peer_periods.update(is_active=False, end_date=timezone.now())
             print(f"🔍 DEBUG: Deactivated {peer_periods_count} peer evaluation period(s)")
             
-            # Process results for both
-            student_processing = process_all_evaluation_results()
-            peer_processing = process_peer_evaluation_results()
+            # Process results for both using the captured periods
+            student_processing = process_all_evaluation_results(evaluation_period=student_active_period) if student_active_period else {'success': False, 'processed_count': 0}
+            peer_processing = process_peer_evaluation_results(evaluation_period=peer_active_period) if peer_active_period else {'success': False, 'processed_count': 0}
             
             message = 'Both student and peer evaluations have been unreleased. Evaluation periods ended.'
             
@@ -3288,8 +3310,17 @@ class DeanProfileSettingsView(View):
             end_date__lte=timezone.now()  # Only past periods
         ).order_by('-end_date').first()
         
-        for section_assignment in assigned_sections:
-            section = section_assignment.section
+        # Build unified list of sections: assigned + any sections actually evaluated (from results)
+        assigned_section_objs = [a.section for a in assigned_sections]
+        dynamic_result_sections = []
+        if latest_period:
+            dynamic_result_sections = [r.section for r in EvaluationResult.objects.filter(
+                user=user,
+                evaluation_period=latest_period
+            ).select_related('section') if r.section and r.section not in assigned_section_objs]
+        sections_to_display = assigned_section_objs + dynamic_result_sections
+
+        for section in sections_to_display:
             section_code = section.code
             
             # Try to get pre-computed result from EvaluationResult table
@@ -4023,8 +4054,17 @@ class CoordinatorProfileSettingsView(View):
             end_date__lte=timezone.now()  # Only past periods
         ).order_by('-end_date').first()
         
-        for section_assignment in assigned_sections:
-            section = section_assignment.section
+        # Build unified list of sections: assigned + any sections actually evaluated (from results)
+        assigned_section_objs = [a.section for a in assigned_sections]
+        dynamic_result_sections = []
+        if latest_period:
+            dynamic_result_sections = [r.section for r in EvaluationResult.objects.filter(
+                user=user,
+                evaluation_period=latest_period
+            ).select_related('section') if r.section and r.section not in assigned_section_objs]
+        sections_to_display = assigned_section_objs + dynamic_result_sections
+
+        for section in sections_to_display:
             section_code = section.code
             
             # Try to get pre-computed result from EvaluationResult table
@@ -6288,32 +6328,31 @@ def get_rating_distribution_from_responses(responses):
     
     return [poor, unsatisfactory, satisfactory, very_satisfactory, outstanding]
 
-def process_all_evaluation_results():
+def process_all_evaluation_results(evaluation_period=None):
     """
     Process evaluation results for all staff members (Faculty, Coordinators, Deans)
     after evaluation period ends - THIS IS CALLED WHEN ADMIN UNRELEASES EVALUATION
     """
     try:
-        # Get or create the evaluation period that just ended
-        current_period = EvaluationPeriod.objects.filter(
-            evaluation_type='student',
-            is_active=True
-        ).first()
-        
+        # Use the provided evaluation period if available; otherwise try to infer
+        current_period = evaluation_period
         if not current_period:
-            # Create a new evaluation period for this cycle
-            current_period = EvaluationPeriod.objects.create(
-                name=f"Student Evaluation {timezone.now().strftime('%B %Y')}",
+            current_period = EvaluationPeriod.objects.filter(
                 evaluation_type='student',
-                start_date=timezone.now() - timezone.timedelta(days=30),  # Assuming 30-day period
-                end_date=timezone.now(),
-                is_active=False  # Mark as ended
-            )
-        else:
-            # Mark the existing period as inactive/ended
-            current_period.is_active = False
-            current_period.end_date = timezone.now()
-            current_period.save()
+                is_active=True
+            ).first()
+        if not current_period:
+            current_period = EvaluationPeriod.objects.filter(
+                evaluation_type='student',
+                is_active=False
+            ).order_by('-end_date').first()
+        if not current_period:
+            return {
+                'success': False,
+                'error': 'No student evaluation period available to process.',
+                'processed_count': 0,
+                'details': []
+            }
         
         # Get all staff members who might have been evaluated
         staff_users = User.objects.filter(
