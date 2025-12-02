@@ -933,23 +933,15 @@ def release_student_evaluation(request):
             logger.info(f"Moved {archived_count} results to evaluation history")
             
             # STEP 2: Create a new active evaluation period for this release
-            new_period, created = EvaluationPeriod.objects.get_or_create(
-                name=f"Student Evaluation {timezone.now().strftime('%B %Y')}",
+            # Always create a unique period by including timestamp
+            new_period = EvaluationPeriod.objects.create(
+                name=f"Student Evaluation {timezone.now().strftime('%B %d, %Y %H:%M')}",
                 evaluation_type='student',
-                defaults={
-                    'start_date': timezone.now(),
-                    'end_date': timezone.now() + timezone.timedelta(days=30),
-                    'is_active': True
-                }
+                start_date=timezone.now(),
+                end_date=timezone.now() + timezone.timedelta(days=30),
+                is_active=True
             )
-            if created:
-                logger.info(f"Created new evaluation period: {new_period.name}")
-            else:
-                # If period already exists, make sure it's active
-                new_period.is_active = True
-                new_period.start_date = timezone.now()
-                new_period.save()
-                logger.info(f"Activated existing evaluation period: {new_period.name}")
+            logger.info(f"Created new evaluation period: {new_period.name}")
 
             # STEP 3: Release all student evaluations that are not released
             evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='student')
@@ -1144,24 +1136,15 @@ def release_peer_evaluation(request):
             logger.info(f"Deactivated {deactivated_count} active peer period(s) - results archived to history")
 
             # Create a new active evaluation period for peer evaluation
-            evaluation_period, created = EvaluationPeriod.objects.get_or_create(
-                name=f"Peer Evaluation {timezone.now().strftime('%B %Y')}",
+            # Always create a unique period by including timestamp
+            evaluation_period = EvaluationPeriod.objects.create(
+                name=f"Peer Evaluation {timezone.now().strftime('%B %d, %Y %H:%M')}",
                 evaluation_type='peer',
-                defaults={
-                    'start_date': timezone.now(),
-                    'end_date': timezone.now() + timezone.timedelta(days=30),
-                    'is_active': True
-                }
+                start_date=timezone.now(),
+                end_date=timezone.now() + timezone.timedelta(days=30),
+                is_active=True
             )
-            if created:
-                logger.info(f"Created new peer evaluation period: {evaluation_period.name}")
-            else:
-                # If period already exists, make sure it's active
-                evaluation_period.is_active = True
-                evaluation_period.start_date = timezone.now()
-                evaluation_period.end_date = timezone.now() + timezone.timedelta(days=30)
-                evaluation_period.save()
-                logger.info(f"Activated existing peer evaluation period: {evaluation_period.name}")
+            logger.info(f"Created new peer evaluation period: {evaluation_period.name}")
 
             evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='peer')
             updated_count = evaluations.update(is_released=True, evaluation_period=evaluation_period)
