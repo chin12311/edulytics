@@ -7544,10 +7544,18 @@ def download_evaluation_history_pdf(request, period_id):
         ).order_by('-created_at')
         
         if recommendations.exists():
-            for rec in recommendations:
-                story.append(Paragraph(f"<b>Generated on:</b> {rec.created_at.strftime('%B %d, %Y at %I:%M %p')}", styles['Normal']))
-                story.append(Spacer(1, 0.05*inch))
-                story.append(Paragraph(rec.recommendation, styles['Normal']))
+            for idx, rec in enumerate(recommendations, 1):
+                # Show structured recommendation if available, otherwise show legacy field
+                if rec.title and rec.description:
+                    story.append(Paragraph(f"<b>Recommendation {idx}:</b> {rec.title}", subheading_style))
+                    story.append(Paragraph(f"<b>Priority:</b> {rec.priority or 'Not specified'}", styles['Normal']))
+                    story.append(Paragraph(f"<b>Reason:</b> {rec.reason}", styles['Normal']))
+                    story.append(Paragraph(f"<b>Description:</b> {rec.description}", styles['Normal']))
+                elif rec.recommendation:
+                    story.append(Paragraph(f"<b>Recommendation {idx}:</b>", subheading_style))
+                    story.append(Paragraph(rec.recommendation, styles['Normal']))
+                
+                story.append(Paragraph(f"<i>Generated on: {rec.created_at.strftime('%B %d, %Y at %I:%M %p')}</i>", styles['Normal']))
                 story.append(Spacer(1, 0.2*inch))
         else:
             story.append(Paragraph("No AI recommendations available for this period.", styles['Normal']))
