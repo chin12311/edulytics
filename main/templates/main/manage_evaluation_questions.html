@@ -170,7 +170,6 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         justify-content: center;
         margin-top: 25px;
         flex-wrap: wrap;
-        display: none; /* Hidden */
     }
 
     .btn-primary {
@@ -365,6 +364,11 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     </div>
                 {% endfor %}
             </div>
+            <div class="control-buttons">
+                <button class="btn-primary" onclick="location.reload()">
+                    🔄 Refresh Questions
+                </button>
+            </div>
         </div>
 
         <!-- Peer Evaluation Questions -->
@@ -387,6 +391,11 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                         No peer evaluation questions found. <a href="{% url 'main:manage_evaluation_questions' %}">Refresh</a>
                     </div>
                 {% endfor %}
+            </div>
+            <div class="control-buttons">
+                <button class="btn-primary" onclick="location.reload()">
+                    🔄 Refresh Questions
+                </button>
             </div>
         </div>
     </div>
@@ -459,19 +468,46 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             return;
         }
 
-        // Store changes locally
-        const key = `${type}-${id}`;
-        changedQuestions[key] = { type, id, questionText, isActive };
+        // Disable save button and show loading
+        const saveBtn = document.getElementById('modalSaveBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="loading-spinner"></span>Saving...';
 
-        // Update UI
-        const questionElement = document.getElementById(`${type}-${id}`);
-        if (questionElement) {
-            questionElement.querySelector('.question-text').textContent = questionText;
-            questionElement.style.background = '#fff3cd';  // Highlight as changed
-        }
-
-        closeModal();
-        alert('Question updated. Don\'t forget to save all changes!');
+        // Save directly to database
+        fetch(`/update-evaluation-question/${type}/${id}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `question_text=${encodeURIComponent(questionText)}&is_active=${isActive ? 'on' : ''}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI
+                const questionElement = document.getElementById(`${type}-${id}`);
+                if (questionElement) {
+                    questionElement.querySelector('.question-text').textContent = questionText;
+                    questionElement.style.background = '#d4edda';  // Green = saved
+                    setTimeout(() => {
+                        questionElement.style.background = '#f8f9fa';
+                    }, 2000);
+                }
+                closeModal();
+                alert('✅ Question saved successfully!');
+            } else {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+                alert('❌ Error: ' + (data.message || 'Failed to save question'));
+            }
+        })
+        .catch(e => {
+            console.error(e);
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
+            alert('❌ Error saving question. Please try again.');
+        });
     }
 
     function closeModal() {
