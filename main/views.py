@@ -2441,10 +2441,27 @@ class EvaluationFormView(View):
                     else:
                         student_section_display = "Not assigned"
 
-                # ✅ Get already evaluated instructors for this student
-                evaluated_ids = EvaluationResponse.objects.filter(
-                    evaluator=request.user
-                ).values_list('evaluatee_id', flat=True)
+                # ✅ Get already evaluated instructors for this student IN CURRENT PERIOD
+                try:
+                    current_period = EvaluationPeriod.objects.get(
+                        evaluation_type='student',
+                        is_active=True
+                    )
+                    # Get regular evaluations
+                    evaluated_ids = list(EvaluationResponse.objects.filter(
+                        evaluator=request.user,
+                        evaluation_period=current_period
+                    ).values_list('evaluatee_id', flat=True))
+                    
+                    # Also check irregular evaluations if user is irregular student
+                    if user_profile.is_irregular:
+                        irregular_evaluated_ids = list(IrregularEvaluation.objects.filter(
+                            evaluator=request.user,
+                            evaluation_period=current_period
+                        ).values_list('evaluatee_id', flat=True))
+                        evaluated_ids.extend(irregular_evaluated_ids)
+                except EvaluationPeriod.DoesNotExist:
+                    evaluated_ids = []
 
                 # ✅ Get student evaluation questions from database
                 from .models import EvaluationQuestion
@@ -2491,10 +2508,18 @@ class EvaluationFormView(View):
                     userprofile__institute=user_profile.institute
                 ).exclude(id=request.user.id)
 
-                # ✅ Get already evaluated staff for this user
-                evaluated_ids = EvaluationResponse.objects.filter(
-                    evaluator=request.user
-                ).values_list('evaluatee_id', flat=True)
+                # ✅ Get already evaluated staff for this user IN CURRENT PERIOD
+                try:
+                    current_period = EvaluationPeriod.objects.get(
+                        evaluation_type='peer',
+                        is_active=True
+                    )
+                    evaluated_ids = EvaluationResponse.objects.filter(
+                        evaluator=request.user,
+                        evaluation_period=current_period
+                    ).values_list('evaluatee_id', flat=True)
+                except EvaluationPeriod.DoesNotExist:
+                    evaluated_ids = []
 
                 context = {
                     'evaluation': evaluation,
