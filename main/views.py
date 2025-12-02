@@ -1660,10 +1660,119 @@ class CoordinatorDetailView(View):
                         'evaluation_count': 0
                     }
 
+            # Calculate PEER evaluation scores (overall, no section breakdown)
+            peer_responses = EvaluationResponse.objects.filter(
+                evaluatee=coordinator.user,
+                student_section__isnull=True  # Peer evaluations don't have sections
+            )
+            
+            peer_evaluation_count = peer_responses.count()
+            
+            if peer_evaluation_count > 0:
+                # Calculate peer scores using the same 4-category system
+                peer_scores = compute_category_scores(coordinator.user, section_code=None)
+                p_a_avg, p_b_avg, p_c_avg, p_d_avg, p_total_percentage, _, _, _, _ = peer_scores
+                
+                peer_data = {
+                    'category_scores': [p_a_avg, p_b_avg, p_c_avg, p_d_avg],
+                    'total_percentage': p_total_percentage,
+                    'has_data': True,
+                    'evaluation_count': peer_evaluation_count
+                }
+            else:
+                peer_data = {
+                    'category_scores': [0, 0, 0, 0],
+                    'total_percentage': 0,
+                    'has_data': False,
+                    'evaluation_count': 0
+                }
+
+            # Calculate IRREGULAR evaluation scores
+            irregular_responses = IrregularEvaluation.objects.filter(evaluatee=coordinator.user)
+            irregular_evaluation_count = irregular_responses.count()
+            
+            if irregular_evaluation_count > 0:
+                # Calculate irregular scores manually (same logic as compute_category_scores)
+                rating_to_numeric = {
+                    'Poor': 1,
+                    'Unsatisfactory': 2,
+                    'Satisfactory': 3,
+                    'Very Satisfactory': 4,
+                    'Outstanding': 5
+                }
+                
+                category_a_total = category_b_total = category_c_total = category_d_total = 0
+                count_a = count_b = count_c = count_d = 0
+                
+                for response in irregular_responses:
+                    # Category A: Questions 1-4 (35%)
+                    for i in range(1, 5):
+                        question_key = f'question{i}'
+                        rating_text = getattr(response, question_key, 'Poor')
+                        score = rating_to_numeric.get(rating_text, 1)
+                        category_a_total += score
+                        count_a += 1
+                    
+                    # Category B: Questions 5-8 (25%)
+                    for i in range(5, 9):
+                        question_key = f'question{i}'
+                        rating_text = getattr(response, question_key, 'Poor')
+                        score = rating_to_numeric.get(rating_text, 1)
+                        category_b_total += score
+                        count_b += 1
+                    
+                    # Category C: Questions 9-12 (20%)
+                    for i in range(9, 13):
+                        question_key = f'question{i}'
+                        rating_text = getattr(response, question_key, 'Poor')
+                        score = rating_to_numeric.get(rating_text, 1)
+                        category_c_total += score
+                        count_c += 1
+                    
+                    # Category D: Questions 13-15 (20%)
+                    for i in range(13, 16):
+                        question_key = f'question{i}'
+                        rating_text = getattr(response, question_key, 'Poor')
+                        score = rating_to_numeric.get(rating_text, 1)
+                        category_d_total += score
+                        count_d += 1
+                
+                # Calculate averages with weights
+                max_score_per_question = 5
+                a_weight, b_weight, c_weight, d_weight = 0.35, 0.25, 0.20, 0.20
+                
+                def scaled_avg(total, count, weight):
+                    if count == 0:
+                        return 0
+                    average_score = total / count
+                    return (average_score / max_score_per_question) * weight * 100
+                
+                irr_a_avg = scaled_avg(category_a_total, count_a, a_weight)
+                irr_b_avg = scaled_avg(category_b_total, count_b, b_weight)
+                irr_c_avg = scaled_avg(category_c_total, count_c, c_weight)
+                irr_d_avg = scaled_avg(category_d_total, count_d, d_weight)
+                irr_total_percentage = irr_a_avg + irr_b_avg + irr_c_avg + irr_d_avg
+                
+                irregular_data = {
+                    'category_scores': [irr_a_avg, irr_b_avg, irr_c_avg, irr_d_avg],
+                    'total_percentage': irr_total_percentage,
+                    'has_data': True,
+                    'evaluation_count': irregular_evaluation_count
+                }
+            else:
+                irregular_data = {
+                    'category_scores': [0, 0, 0, 0],
+                    'total_percentage': 0,
+                    'has_data': False,
+                    'evaluation_count': 0
+                }
+
             # Convert to JSON for JavaScript
             import json
             section_scores_json = json.dumps(section_scores)
             section_map_json = json.dumps(section_map)
+            peer_data_json = json.dumps(peer_data)
+            irregular_data_json = json.dumps(irregular_data)
             
             # Calculate overall statistics for the template
             total_sections = assigned_sections.count()
@@ -1689,6 +1798,10 @@ class CoordinatorDetailView(View):
                 'section_scores': section_scores,
                 'section_scores_json': section_scores_json,  # JSON for JavaScript
                 'section_map_json': section_map_json,        # JSON for JavaScript
+                'peer_data': peer_data,
+                'peer_data_json': peer_data_json,            # JSON for JavaScript
+                'irregular_data': irregular_data,
+                'irregular_data_json': irregular_data_json,  # JSON for JavaScript
                 'has_any_data': any(scores['has_data'] for scores in section_scores.values()),
                 'total_sections': total_sections,
                 'sections_with_data': sections_with_data,

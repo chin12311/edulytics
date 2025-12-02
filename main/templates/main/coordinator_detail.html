@@ -88,6 +88,17 @@
         color: white !important;
     }
 
+    .peer-option, .irregular-option {
+        background: linear-gradient(135deg, #f7fafc, #edf2f7);
+        font-weight: 600;
+        color: #2d3748 !important;
+    }
+
+    .peer-option:hover, .irregular-option:hover {
+        background: linear-gradient(135deg, #576d2e, #6b8c3a) !important;
+        color: white !important;
+    }
+
     .section-box {
         background: white;
         display: none;
@@ -502,7 +513,7 @@
             </button>
             <ul class="dropdown-menu" aria-labelledby="sectionDropdown">
                 <!-- Overall Option -->
-                <li><a class="dropdown-item overall-option" href="#" data-section="overall">
+                <li><a class="dropdown-item overall-option" href="#" data-section="overall" data-type="student">
                     📈 Overall Results 
                     <span class="overall-badge">All Sections</span>
                 </a></li>
@@ -512,12 +523,24 @@
                     <li><a class="dropdown-item section-item" 
                         data-section="{{ assignment.section.id }}" 
                         data-section-display="{{ assignment.section }}" 
+                        data-type="student"
                         href="#">
                         📚 {{ assignment.section }}
                     </a></li>
                 {% empty %}
                     <li><a class="dropdown-item text-muted" href="#">No sections assigned</a></li>
                 {% endfor %}
+                <li><hr class="dropdown-divider"></li>
+                <!-- Peer Evaluation Results -->
+                <li><a class="dropdown-item peer-option" href="#" data-section="peer" data-type="peer">
+                    👥 Peer Evaluation Results
+                    <span class="overall-badge">Faculty Peers</span>
+                </a></li>
+                <!-- Irregular Evaluation Results -->
+                <li><a class="dropdown-item irregular-option" href="#" data-section="irregular" data-type="irregular">
+                    🔄 Irregular Student Results
+                    <span class="overall-badge">Irregular Students</span>
+                </a></li>
             </ul>
         </div>
     </div>
@@ -602,9 +625,13 @@
     // Get data from Django template
     const sectionScores = JSON.parse('{{ section_scores_json|escapejs }}');
     const sectionMap = JSON.parse('{{ section_map_json|escapejs }}');
+    const peerData = JSON.parse('{{ peer_data_json|escapejs }}');
+    const irregularData = JSON.parse('{{ irregular_data_json|escapejs }}');
     
     console.log("Section Scores:", sectionScores);
     console.log("Section Map:", sectionMap);
+    console.log("Peer Data:", peerData);
+    console.log("Irregular Data:", irregularData);
 
     function calculateOverallResults() {
         console.log("Calculating overall results...");
@@ -654,8 +681,8 @@
         };
     }
 
-    function renderPieChart(sectionId) {
-        console.log("Rendering chart for:", sectionId);
+    function renderPieChart(sectionId, dataType = 'student') {
+        console.log("Rendering chart for:", sectionId, "Type:", dataType);
         
         const ctx = document.getElementById('evaluationPieChart').getContext('2d');
         
@@ -665,11 +692,23 @@
         }
 
         let sectionData;
+        let isOverall = false;
         
-        if (sectionId === 'overall') {
+        if (dataType === 'peer') {
+            // Peer evaluation results
+            sectionData = peerData;
+            console.log("Peer data:", sectionData);
+            document.getElementById('overallStats').style.display = 'none';
+        } else if (dataType === 'irregular') {
+            // Irregular evaluation results
+            sectionData = irregularData;
+            console.log("Irregular data:", sectionData);
+            document.getElementById('overallStats').style.display = 'none';
+        } else if (sectionId === 'overall') {
             // Calculate overall results
             sectionData = calculateOverallResults();
             console.log("Overall data:", sectionData);
+            isOverall = true;
             
             // Show overall stats
             document.getElementById('overallStats').style.display = 'flex';
@@ -688,14 +727,14 @@
 
         if (sectionData && sectionData.has_data) {
             console.log("Has data, rendering chart");
-            renderChartWithData(ctx, sectionData, sectionId === 'overall');
+            renderChartWithData(ctx, sectionData, isOverall, dataType);
         } else {
             console.log("No data available");
             showNoData();
         }
     }
 
-    function renderChartWithData(ctx, sectionData, isOverall = false) {
+    function renderChartWithData(ctx, sectionData, isOverall = false, dataType = 'student') {
         const categoryScores = sectionData.category_scores;
         const totalPercentage = sectionData.total_percentage;
 
@@ -713,10 +752,17 @@
         document.getElementById('noDataMessage').style.display = 'none';
         document.getElementById('explanationBox').style.display = 'block';
 
-        // Chart labels based on whether it's overall or individual
-        const labels = isOverall 
-            ? ['Overall Subject Mastery', 'Overall Classroom Management', 'Overall Compliance', 'Overall Personality']
-            : ['Subject Mastery', 'Classroom Management', 'Compliance to Policies', 'Personality'];
+        // Chart labels based on type
+        let labels;
+        if (dataType === 'peer') {
+            labels = ['Peer: Subject Mastery', 'Peer: Classroom Management', 'Peer: Compliance', 'Peer: Personality'];
+        } else if (dataType === 'irregular') {
+            labels = ['Irregular: Subject Mastery', 'Irregular: Classroom Management', 'Irregular: Compliance', 'Irregular: Personality'];
+        } else if (isOverall) {
+            labels = ['Overall Subject Mastery', 'Overall Classroom Management', 'Overall Compliance', 'Overall Personality'];
+        } else {
+            labels = ['Subject Mastery', 'Classroom Management', 'Compliance to Policies', 'Personality'];
+        }
 
         // Create enhanced chart with 4 CATEGORIES
         chart = new Chart(ctx, {
@@ -786,18 +832,26 @@
     }
 
     // Section dropdown event listeners
-    document.querySelectorAll('.section-item, .overall-option').forEach(item => {
+    document.querySelectorAll('.section-item, .overall-option, .peer-option, .irregular-option').forEach(item => {
         item.addEventListener('click', function (e) {
             e.preventDefault();
             
             const sectionId = this.getAttribute('data-section');
-            const displayName = this.getAttribute('data-section-display') || 'Overall Results';
+            const dataType = this.getAttribute('data-type') || 'student';
+            const displayName = this.getAttribute('data-section-display') || 
+                               (sectionId === 'overall' ? 'Overall Results' : 
+                                sectionId === 'peer' ? 'Peer Evaluation Results' : 
+                                sectionId === 'irregular' ? 'Irregular Student Results' : 'Results');
             
-            console.log("Clicked:", sectionId, "Display:", displayName);
+            console.log("Clicked:", sectionId, "Type:", dataType, "Display:", displayName);
             
             // Update dropdown text
             if (sectionId === 'overall') {
                 document.getElementById('sectionDropdown').textContent = '📈 Overall Results';
+            } else if (sectionId === 'peer') {
+                document.getElementById('sectionDropdown').textContent = '👥 Peer Evaluation Results';
+            } else if (sectionId === 'irregular') {
+                document.getElementById('sectionDropdown').textContent = '🔄 Irregular Student Results';
             } else {
                 document.getElementById('sectionDropdown').textContent = '📚 ' + displayName;
             }
@@ -809,7 +863,7 @@
             
             setTimeout(() => {
                 sectionBox.style.display = 'block';
-                renderPieChart(sectionId);
+                renderPieChart(sectionId, dataType);
                 setTimeout(() => {
                     sectionBox.style.opacity = '1';
                 }, 10);
