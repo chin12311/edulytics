@@ -5773,19 +5773,29 @@ class EvaluationHistoryView(View):
         })
         
         # Get all completed/inactive periods for this user
+        # Only show periods that actually exist in database and have responses
         from django.db import models
         completed_periods = EvaluationPeriod.objects.filter(
             is_active=False
         ).filter(
             models.Q(evaluationresponse__evaluatee=user) | 
             models.Q(irregularevaluation__evaluatee=user)
-        ).distinct().order_by('-start_date')
+        ).distinct().order_by('-created_at')  # Order by creation time to get latest first
         
         evaluation_history = []
         rating_values = {'Poor': 1, 'Unsatisfactory': 2, 'Satisfactory': 3, 'Very Satisfactory': 4, 'Outstanding': 5}
         
-        # Process each completed period - ONE entry per period combining all evaluation types
+        # Deduplicate periods by date range - only keep the most recent period for each unique date range
+        seen_date_ranges = set()
+        unique_periods = []
         for period in completed_periods:
+            date_key = (period.start_date, period.end_date)
+            if date_key not in seen_date_ranges:
+                seen_date_ranges.add(date_key)
+                unique_periods.append(period)
+        
+        # Process each completed period - ONE entry per period combining all evaluation types
+        for period in unique_periods:
             # Get ALL evaluations for this period (student, irregular, peer)
             regular_responses = EvaluationResponse.objects.filter(
                 evaluatee=user,
