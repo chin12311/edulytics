@@ -3801,7 +3801,19 @@ class DeanProfileSettingsView(View):
     
     def get_irregular_evaluation_scores(self, user):
         """Calculate irregular student evaluation scores"""
+        # Get the most recent INACTIVE student period that has ended
+        from django.utils import timezone
+        latest_student_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False,
+            end_date__lte=timezone.now()
+        ).order_by('-end_date').first()
+        
         irregular_evaluations = IrregularEvaluation.objects.filter(evaluatee=user)
+        
+        # Filter by the latest completed student period
+        if latest_student_period:
+            irregular_evaluations = irregular_evaluations.filter(evaluation_period=latest_student_period)
         
         evaluation_count = irregular_evaluations.count()
         
@@ -4607,7 +4619,19 @@ class CoordinatorProfileSettingsView(View):
     
     def get_irregular_evaluation_scores(self, user):
         """Calculate irregular student evaluation scores"""
+        # Get the most recent INACTIVE student period that has ended
+        from django.utils import timezone
+        latest_student_period = EvaluationPeriod.objects.filter(
+            evaluation_type='student',
+            is_active=False,
+            end_date__lte=timezone.now()
+        ).order_by('-end_date').first()
+        
         irregular_evaluations = IrregularEvaluation.objects.filter(evaluatee=user)
+        
+        # Filter by the latest completed student period
+        if latest_student_period:
+            irregular_evaluations = irregular_evaluations.filter(evaluation_period=latest_student_period)
         
         evaluation_count = irregular_evaluations.count()
         
@@ -7838,7 +7862,7 @@ def download_evaluation_history_pdf(request, period_id):
         story.append(PageBreak())
         story.append(Paragraph("Student Comments", heading_style))
         
-        # Get comments from regular student evaluations
+        # Get comments from regular student evaluations - ONLY from periods in all_period_ids
         regular_comments = EvaluationResponse.objects.filter(
             evaluatee=user,
             evaluation_period__id__in=all_period_ids,
@@ -7847,7 +7871,7 @@ def download_evaluation_history_pdf(request, period_id):
             evaluator__userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
         )
         
-        # Get comments from irregular evaluations
+        # Get comments from irregular evaluations - ONLY from periods in all_period_ids
         irregular_comments_qs = IrregularEvaluation.objects.filter(
             evaluatee=user,
             evaluation_period__id__in=all_period_ids,
@@ -7869,34 +7893,6 @@ def download_evaluation_history_pdf(request, period_id):
                 comment_num += 1
         else:
             story.append(Paragraph("No student comments provided.", styles['Normal']))
-        
-        story.append(Spacer(1, 0.3*inch))
-        
-        # ========== AI RECOMMENDATIONS ==========
-        story.append(Paragraph("AI-Generated Recommendations", heading_style))
-        
-        from main.models import AiRecommendation
-        recommendations = AiRecommendation.objects.filter(
-            user=user,
-            evaluation_period__id__in=all_period_ids
-        ).order_by('-created_at')
-        
-        if recommendations.exists():
-            for idx, rec in enumerate(recommendations, 1):
-                # Show structured recommendation if available, otherwise show legacy field
-                if rec.title and rec.description:
-                    story.append(Paragraph(f"<b>Recommendation {idx}:</b> {rec.title}", subheading_style))
-                    story.append(Paragraph(f"<b>Priority:</b> {rec.priority or 'Not specified'}", styles['Normal']))
-                    story.append(Paragraph(f"<b>Reason:</b> {rec.reason}", styles['Normal']))
-                    story.append(Paragraph(f"<b>Description:</b> {rec.description}", styles['Normal']))
-                elif rec.recommendation:
-                    story.append(Paragraph(f"<b>Recommendation {idx}:</b>", subheading_style))
-                    story.append(Paragraph(rec.recommendation, styles['Normal']))
-                
-                story.append(Paragraph(f"<i>Generated on: {rec.created_at.strftime('%B %d, %Y at %I:%M %p')}</i>", styles['Normal']))
-                story.append(Spacer(1, 0.2*inch))
-        else:
-            story.append(Paragraph("No AI recommendations available for this period.", styles['Normal']))
         
         # ========== FOOTER ==========
         story.append(Spacer(1, 0.5*inch))
