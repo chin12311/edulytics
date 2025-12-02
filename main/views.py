@@ -1387,37 +1387,25 @@ def release_all_evaluations(request):
             peer_deactivated_count = active_peer_periods.update(is_active=False, end_date=timezone.now())
             print(f"🔍 DEBUG: Deactivated {peer_deactivated_count} active peer periods (NOT archived yet)")
             
-            # Create new student evaluation period
-            student_period, student_created = EvaluationPeriod.objects.get_or_create(
-                name=f"Student Evaluation {timezone.now().strftime('%B %Y')}",
+            # Create new student evaluation period with unique timestamp
+            student_period = EvaluationPeriod.objects.create(
+                name=f"Student Evaluation {timezone.now().strftime('%B %d, %Y %H:%M')}",
                 evaluation_type='student',
-                defaults={
-                    'start_date': timezone.now(),
-                    'end_date': timezone.now() + timezone.timedelta(days=30),
-                    'is_active': True
-                }
+                start_date=timezone.now(),
+                end_date=timezone.now() + timezone.timedelta(days=30),
+                is_active=True
             )
-            if not student_created:
-                student_period.is_active = True
-                student_period.start_date = timezone.now()
-                student_period.save()
-            print(f"🔍 DEBUG: Student period: {student_period.name}, created: {student_created}")
+            print(f"🔍 DEBUG: Created new student period: {student_period.name}")
             
-            # Create new peer evaluation period
-            peer_period, peer_created = EvaluationPeriod.objects.get_or_create(
-                name=f"Peer Evaluation {timezone.now().strftime('%B %Y')}",
+            # Create new peer evaluation period with unique timestamp
+            peer_period = EvaluationPeriod.objects.create(
+                name=f"Peer Evaluation {timezone.now().strftime('%B %d, %Y %H:%M')}",
                 evaluation_type='peer',
-                defaults={
-                    'start_date': timezone.now(),
-                    'end_date': timezone.now() + timezone.timedelta(days=30),
-                    'is_active': True
-                }
+                start_date=timezone.now(),
+                end_date=timezone.now() + timezone.timedelta(days=30),
+                is_active=True
             )
-            if not peer_created:
-                peer_period.is_active = True
-                peer_period.start_date = timezone.now()
-                peer_period.save()
-            print(f"🔍 DEBUG: Peer period: {peer_period.name}, created: {peer_created}")
+            print(f"🔍 DEBUG: Created new peer period: {peer_period.name}")
             
             # Check if student evaluations exist, if not create them
             student_evaluations = Evaluation.objects.filter(evaluation_type='student')
