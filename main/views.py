@@ -2446,6 +2446,13 @@ class EvaluationFormView(View):
                     evaluator=request.user
                 ).values_list('evaluatee_id', flat=True)
 
+                # ✅ Get student evaluation questions from database
+                from .models import EvaluationQuestion
+                student_questions = EvaluationQuestion.objects.filter(
+                    evaluation_type='student',
+                    is_active=True
+                ).order_by('question_number')
+
                 context = {
                     'evaluation': evaluation,
                     'faculty': faculty,
@@ -2454,6 +2461,7 @@ class EvaluationFormView(View):
                     'student_number': student_number,
                     'student_section': student_section_display,
                     'evaluated_ids': list(evaluated_ids),
+                    'questions': student_questions,
                     'page_title': 'Teacher Evaluation Form',
                 }
                 return render(request, 'main/evaluationform.html', context)
@@ -2787,10 +2795,18 @@ def evaluation_form_staffs(request):
 
             # ✅ All checks passed - prepare context
             logger.info("✅ ALL CHECKS PASSED - Rendering form...")
+            
+            # ✅ Get peer evaluation questions from database
+            from .models import PeerEvaluationQuestion
+            peer_questions = PeerEvaluationQuestion.objects.filter(
+                is_active=True
+            ).order_by('question_number')
+            
             context = {
                 'evaluation': evaluation,
                 'faculty': staff_members,
                 'evaluated_ids': list(evaluated_ids),
+                'questions': peer_questions,
                 'page_title': 'Peer Evaluation Form',
             }
             return render(request, 'main/evaluationform_staffs.html', context)
