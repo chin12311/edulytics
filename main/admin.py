@@ -185,6 +185,33 @@ class EvaluationResponseAdmin(admin.ModelAdmin):
         return False  
 
 admin.site.register(EvaluationResponse, EvaluationResponseAdmin)
+
+# Register IrregularEvaluation
+@admin.register(IrregularEvaluation)
+class IrregularEvaluationAdmin(admin.ModelAdmin):
+    list_display = ['evaluator', 'evaluatee', 'get_student_number', 'evaluation_period', 'submitted_at', 'comments_preview']
+    search_fields = ['evaluator__username', 'evaluator__first_name', 'evaluator__last_name', 'comments', 'evaluatee__username', 'student_number']
+    list_filter = ['evaluator', 'evaluatee', 'evaluation_period', 'submitted_at']
+    
+    # Include comments in the fields - supports up to 19 questions
+    fields = ['evaluator', 'evaluatee', 'evaluation_period', 'student_number', 'submitted_at', 'comments'] + [f'question{i}' for i in range(1, 20)]
+    
+    # Make fields read-only as needed
+    readonly_fields = ['evaluator', 'evaluatee', 'evaluation_period', 'submitted_at'] + [f'question{i}' for i in range(1, 20)]
+
+    def comments_preview(self, obj):
+        if obj.comments:
+            return obj.comments[:50] + "..." if len(obj.comments) > 50 else obj.comments
+        return "No comments"
+    comments_preview.short_description = 'Comments Preview'
+
+    def get_student_number(self, obj):
+        return obj.student_number or f"ID: {obj.id}"
+    get_student_number.short_description = 'Student Number'
+
+    def has_add_permission(self, request):
+        return False  # Prevent manual creation
+
 admin.site.register(Section)
 admin.site.register(SectionAssignment)
 admin.site.register(AiRecommendation)
