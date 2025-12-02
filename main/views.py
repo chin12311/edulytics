@@ -2306,37 +2306,6 @@ def release_student_evaluation(request):
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
-# 🔹 Unrelease Student Evaluation
-def unrelease_student_evaluation(request):
-    if request.method == 'POST':
-        # Unrelease all student evaluations that are currently released
-        evaluations = Evaluation.objects.filter(is_released=True, evaluation_type='student')
-        updated_count = evaluations.update(is_released=False)
-
-        # Send email notifications
-        if updated_count > 0:
-            try:
-                email_result = EvaluationEmailService.send_evaluation_unreleased_notification(evaluation_type='student')
-                logger.info(f"Email notification result: {email_result}")
-            except Exception as e:
-                logger.error(f"Failed to send email notifications: {e}", exc_info=True)
-
-        # Return updated status to the frontend
-        student_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()
-        peer_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='peer').exists()
-
-        if updated_count > 0:
-            return JsonResponse({
-                'success': True,
-                'student_evaluation_released': student_evaluation_released,
-                'peer_evaluation_released': peer_evaluation_released
-            })
-        else:
-            return JsonResponse({'success': False, 'error': 'No student evaluations to unrelease.'})
-
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
-
-
 # 🔹 Release Peer Evaluation
 def release_peer_evaluation(request):
     if request.method == 'POST':
