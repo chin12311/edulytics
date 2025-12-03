@@ -204,6 +204,28 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                        style="position: relative;">
             </div>
 
+            <h3 class="text-center">Student Status</h3>
+            <div class="form-group">
+                <label for="is_irregular">Account Type:</label>
+                <div class="form-check form-switch" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: #f8f9fa; border-radius: 10px;">
+                    <input class="form-check-input" type="checkbox" role="switch" id="is_irregular" name="is_irregular" 
+                           {% if user.userprofile.is_irregular %}checked{% endif %}
+                           style="width: 3em; height: 1.5em; margin-right: 10px; cursor: pointer;">
+                    <label class="form-check-label" for="is_irregular" style="font-weight: 600; color: #47682c; cursor: pointer;">
+                        <span id="irregularStatusText">
+                            {% if user.userprofile.is_irregular %}
+                                🔄 Irregular Student
+                            {% else %}
+                                ✅ Regular Student
+                            {% endif %}
+                        </span>
+                    </label>
+                </div>
+                <small class="text-muted d-block mt-2 text-center">
+                    Toggle to change between Regular and Irregular student status
+                </small>
+            </div>
+
             <h3 class="text-center">Update Section</h3>
             <div class="form-group">
                 <label for="section">Section:</label>
@@ -407,6 +429,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize password validation
     initializePasswordValidation();
     
+    // Initialize irregular status toggle
+    initializeIrregularToggle();
+    
     // Initialize student number auto-formatting
     const studentNumberInput = document.getElementById('studentnumber');
     if (studentNumberInput) {
@@ -561,6 +586,22 @@ function initializeYearFilter() {
         filterSectionsByYear();
     } else {
         console.warn('Year filter init failed - yearSelect:', !!yearSelect, 'sectionListContainer:', !!sectionListContainer);
+    }
+}
+
+// Initialize irregular status toggle
+function initializeIrregularToggle() {
+    const irregularToggle = document.getElementById('is_irregular');
+    const irregularStatusText = document.getElementById('irregularStatusText');
+    
+    if (irregularToggle && irregularStatusText) {
+        irregularToggle.addEventListener('change', function() {
+            if (this.checked) {
+                irregularStatusText.textContent = '🔄 Irregular Student';
+            } else {
+                irregularStatusText.textContent = '✅ Regular Student';
+            }
+        });
     }
 }
 

@@ -267,6 +267,14 @@ class UpdateUser(View):
 
                 # Handle student section update
                 if profile.role == "Student":
+                    # Handle irregular status toggle
+                    is_irregular = request.POST.get("is_irregular") == "on"
+                    if profile.is_irregular != is_irregular:
+                        old_status = "Irregular" if profile.is_irregular else "Regular"
+                        new_status = "Irregular" if is_irregular else "Regular"
+                        changes.append(f"Student Status: '{old_status}' → '{new_status}'")
+                        profile.is_irregular = is_irregular
+                        profile.save()
                 
                     if section_id:
                         try:
