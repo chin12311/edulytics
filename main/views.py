@@ -942,7 +942,7 @@ def release_student_evaluation(request):
             
             # STEP 2: Create a new active evaluation period
             new_period = EvaluationPeriod.objects.create(
-                name=f"Student Evaluation {timezone.now().strftime('%B %d, %Y %H:%M')}",
+                name="Student Evaluation",
                 evaluation_type='student',
                 start_date=timezone.now(),
                 end_date=timezone.now() + timezone.timedelta(days=30),
@@ -1231,7 +1231,7 @@ def release_peer_evaluation(request):
 
             # STEP 2: Create new active evaluation period
             evaluation_period = EvaluationPeriod.objects.create(
-                name=f"Peer Evaluation {timezone.now().strftime('%B %d, %Y %H:%M')}",
+                name="Peer Evaluation",
                 evaluation_type='peer',
                 start_date=timezone.now(),
                 end_date=timezone.now() + timezone.timedelta(days=30),
