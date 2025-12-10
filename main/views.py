@@ -926,12 +926,12 @@ def release_student_evaluation(request):
         try:
             from django.utils import timezone
             
-            # Check if any student evaluation is already released
-            student_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()
-            logger.debug(f"Student evaluation already released: {student_released}")
+            # Check if there's already an active student evaluation period
+            active_period = EvaluationPeriod.objects.filter(evaluation_type='student', is_active=True).exists()
+            logger.debug(f"Active student evaluation period exists: {active_period}")
             
-            if student_released:
-                logger.info("Attempting to release already released student evaluation")
+            if active_period:
+                logger.info("Attempting to release evaluation when period is already active")
                 return JsonResponse({'success': False, 'error': "Student evaluation is already released."})
 
             # STEP 1: Deactivate any existing active periods to prevent multiple active periods
