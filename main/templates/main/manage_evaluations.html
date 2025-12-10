@@ -295,7 +295,7 @@ function releaseEvaluation(type) {
     button.disabled = true;
     button.textContent = '⏳ Releasing...';
 
-    const url = type === 'student' ? '{% url "main:release" %}' : '{% url "main:release_peer_evaluation" %}';
+    const url = type === 'student' ? '{% url "main:release_evaluation" %}' : '{% url "main:release_peer_evaluation" %}';
 
     fetch(url, {
         method: 'POST',
@@ -334,7 +334,7 @@ function unreleaseEvaluation(type) {
     button.disabled = true;
     button.textContent = '⏳ Unreleasing...';
 
-    const url = type === 'student' ? '{% url "main:unrelease" %}' : '{% url "main:unrelease_peer_evaluation" %}';
+    const url = type === 'student' ? '{% url "main:unrelease_evaluation" %}' : '{% url "main:unrelease_peer_evaluation" %}';
 
     fetch(url, {
         method: 'POST',
