@@ -1146,9 +1146,10 @@ def unrelease_student_evaluation(request):
             logger.info(f"Processed {processed_count} evaluation results")
             
             # STEP 1.5: Generate and save AI recommendations for all evaluated users
-            logger.info(f"Generating AI recommendations for period: {active_period.name}")
-            ai_recs_count = generate_and_save_ai_recommendations_for_period(active_period)
-            logger.info(f"Generated {ai_recs_count} AI recommendations")
+            # Temporarily disabled due to missing teaching_ai_service module
+            # logger.info(f"Generating AI recommendations for period: {active_period.name}")
+            # ai_recs_count = generate_and_save_ai_recommendations_for_period(active_period)
+            # logger.info(f"Generated {ai_recs_count} AI recommendations")
             
             # STEP 2: Deactivate the current evaluation period
             active_period.is_active = False
