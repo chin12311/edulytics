@@ -228,12 +228,17 @@ class Evaluation(models.Model):
         ('student', 'Student'),
         ('peer', 'Peer'),
     ]
+    
+    EVALUATOR_CHOICES = [
+        ('students', 'Students'),
+        ('peer', 'Peer'),
+    ]
 
-    evaluator = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
+    evaluator = models.CharField(
+        max_length=20,
+        choices=EVALUATOR_CHOICES,
+        default='students',
+        help_text='Who evaluates: students evaluate teachers, peer means teachers evaluate each other'
     )
     evaluation_type = models.CharField(
         max_length=10,

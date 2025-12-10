@@ -912,9 +912,9 @@ class EvaluationConfigView(View):
 def release_student_evaluation(request):
     """
     NEW FLOW: When admin clicks release (starts new evaluation):
-    1. Move old EvaluationResult records to EvaluationHistory
-    2. Clear EvaluationResult table (ready for new period)
-    3. Create and activate new evaluation period
+    1. Move old EvaluationResult records to EvaluationHistory (archive previous results)
+    2. Create new EvaluationPeriod with is_active=True
+    3. Create/update Evaluation record with evaluator='students' and link to period
     4. Students can now evaluate
     """
     logger.debug("release_student_evaluation called")
@@ -934,23 +934,13 @@ def release_student_evaluation(request):
                 logger.info("Attempting to release evaluation when period is already active")
                 return JsonResponse({'success': False, 'error': "Student evaluation is already released."})
 
-            # STEP 1: Deactivate any existing active periods to prevent multiple active periods
-            existing_active = EvaluationPeriod.objects.filter(
-                evaluation_type='student',
-                is_active=True
-            )
-            if existing_active.exists():
-                deactivated_count = existing_active.update(is_active=False, end_date=timezone.now())
-                logger.info(f"Deactivated {deactivated_count} existing active period(s)")
-            
-            # STEP 2: Move current EvaluationResult records to EvaluationHistory
-            # This preserves the results that were visible in profile settings
+            # STEP 1: Move current EvaluationResult records to EvaluationHistory
+            # This moves old results from profile settings to history when starting new evaluation
             logger.info("Moving current EvaluationResult records to history...")
             archived_count = move_current_results_to_history()
             logger.info(f"Moved {archived_count} results to evaluation history")
             
-            # STEP 3: Create a new active evaluation period for this release
-            # Always create a unique period by including timestamp
+            # STEP 2: Create a new active evaluation period
             new_period = EvaluationPeriod.objects.create(
                 name=f"Student Evaluation {timezone.now().strftime('%B %d, %Y %H:%M')}",
                 evaluation_type='student',
@@ -960,56 +950,55 @@ def release_student_evaluation(request):
             )
             logger.info(f"Created new evaluation period: {new_period.name}")
 
-            # STEP 3: Release all student evaluations that are not released
-            evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='student')
-            evaluation_count = evaluations.count()
-            logger.debug(f"Found {evaluation_count} unreleased student evaluations")
-            
-            updated_count = evaluations.update(is_released=True, evaluation_period=new_period)
-            logger.info(f"Updated {updated_count} evaluations to released status with new period")
-
-            if updated_count > 0:
-                log_admin_activity(
-                    request=request,
-                    action='release_evaluation',
-                    description=f"Started new evaluation period '{new_period.name}'. Previous results ({archived_count} records) moved to history."
-                )
-                
-                # Send email notifications asynchronously (won't block response)
-                # Emails will be sent in background, response returns immediately
-                email_notification = {'sent': 0, 'failed': 0, 'message': 'Emails are being sent in background'}
-                try:
-                    import threading
-                    def send_emails_background():
-                        try:
-                            logger.info("Background: Sending email notifications about evaluation release")
-                            email_result = EvaluationEmailService.send_evaluation_released_notification('student')
-                            logger.info(f"Background: Email notification result: {email_result}")
-                        except Exception as e:
-                            logger.error(f"Background: Email notification failed: {e}")
-                    
-                    # Start email sending in background thread
-                    email_thread = threading.Thread(target=send_emails_background, daemon=True)
-                    email_thread.start()
-                    logger.info("Email notification thread started in background")
-                except Exception as e:
-                    logger.error(f"Failed to start email thread: {e}")
-                    email_notification['message'] = 'Email notification skipped due to error'
-                
-                response_data = {
-                    'success': True,
-                    'message': f'New evaluation period started: {new_period.name}. Previous results ({archived_count} records) moved to evaluation history. Students can now evaluate.',
-                    'student_evaluation_released': True,
-                    'evaluation_period_ended': False,
-                    'results_archived': archived_count,
-                    'new_period': new_period.name,
-                    'email_notification': email_notification
+            # STEP 3: Create or update Evaluation record with evaluator='students'
+            evaluation, created = Evaluation.objects.update_or_create(
+                evaluation_type='student',
+                defaults={
+                    'is_released': True,
+                    'evaluation_period': new_period,
+                    'evaluator': 'students'  # Students evaluate teachers
                 }
-                logger.debug(f"Returning success: {response_data}")
-                return JsonResponse(response_data)
-            else:
-                logger.debug("No evaluations to release")
-                return JsonResponse({'success': False, 'error': 'No student evaluations to release.'})
+            )
+            action = "Created" if created else "Updated"
+            logger.info(f"{action} student evaluation record with evaluator='students'")
+
+            log_admin_activity(
+                request=request,
+                action='release_evaluation',
+                description=f"Started new evaluation period '{new_period.name}'. Previous results ({archived_count} records) moved to history."
+            )
+            
+            # Send email notifications asynchronously (won't block response)
+            email_notification = {'sent': 0, 'failed': 0, 'message': 'Emails are being sent in background'}
+            try:
+                import threading
+                def send_emails_background():
+                    try:
+                        logger.info("Background: Sending email notifications about evaluation release")
+                        email_result = EvaluationEmailService.send_evaluation_released_notification('student')
+                        logger.info(f"Background: Email notification result: {email_result}")
+                    except Exception as e:
+                        logger.error(f"Background: Email notification failed: {e}")
+                
+                # Start email sending in background thread
+                email_thread = threading.Thread(target=send_emails_background, daemon=True)
+                email_thread.start()
+                logger.info("Email notification thread started in background")
+            except Exception as e:
+                logger.error(f"Failed to start email thread: {e}")
+                email_notification['message'] = 'Email notification skipped due to error'
+            
+            response_data = {
+                'success': True,
+                'message': f'New evaluation period started: {new_period.name}. Previous results ({archived_count} records) moved to evaluation history. Students can now evaluate.',
+                'student_evaluation_released': True,
+                'evaluation_period_ended': False,
+                'results_archived': archived_count,
+                'new_period': new_period.name,
+                'email_notification': email_notification
+            }
+            logger.debug(f"Returning success: {response_data}")
+            return JsonResponse(response_data)
         
         except Exception as e:
             logger.error(f"Exception in release_student_evaluation: {e}", exc_info=True)
@@ -1128,13 +1117,14 @@ def generate_and_save_ai_recommendations_for_period(period):
 def unrelease_student_evaluation(request):
     """
     NEW FLOW: When admin clicks unrelease (ends evaluation):
-    1. Process current evaluation responses into EvaluationResult (these become visible in profile settings)
-    2. Deactivate the current evaluation period
-    3. Results in EvaluationResult table are now displayed in instructor profile settings
+    1. Process evaluation responses into EvaluationResult (visible in profile settings)
+    2. Set EvaluationPeriod to is_active=False
+    3. Set Evaluation.is_released=False
+    4. Results stay in EvaluationResult until next release moves them to history
     """
     if request.method == 'POST':
         try:
-            # Check if there's an active period (this is what matters, not is_released)
+            # Check if there's an active period
             active_period = EvaluationPeriod.objects.filter(
                 evaluation_type='student',
                 is_active=True
@@ -1146,9 +1136,9 @@ def unrelease_student_evaluation(request):
                     'error': 'No active student evaluation period found.'
                 })
             
-            # Unrelease the evaluation records
+            # Set Evaluation to unreleased
             evaluations = Evaluation.objects.filter(evaluation_type='student')
-            updated_count = evaluations.update(is_released=False)
+            evaluations.update(is_released=False)
 
             # Process the period
             # STEP 1: Process all evaluation responses from this period into EvaluationResult
@@ -1157,17 +1147,12 @@ def unrelease_student_evaluation(request):
             processed_count = process_evaluation_period_to_results(active_period)
             logger.info(f"Processed {processed_count} evaluation results")
             
-            # STEP 1.5: Generate and save AI recommendations for all evaluated users
-            # Temporarily disabled due to missing teaching_ai_service module
-            # logger.info(f"Generating AI recommendations for period: {active_period.name}")
-            # ai_recs_count = generate_and_save_ai_recommendations_for_period(active_period)
-            # logger.info(f"Generated {ai_recs_count} AI recommendations")
-            
-            # STEP 2: Deactivate the current evaluation period
+            # STEP 2: Deactivate the evaluation period (set is_active=False)
             active_period.is_active = False
             active_period.end_date = timezone.now()
             active_period.save()
             logger.info(f"Deactivated evaluation period: {active_period.name}")
+            logger.info(f"Results are now visible in profile settings (EvaluationResult table)")
             
             # Log admin activity
             log_admin_activity(
@@ -1220,72 +1205,31 @@ def unrelease_student_evaluation(request):
     })
 
 def release_peer_evaluation(request):
+    """
+    NEW FLOW for peer evaluation release:
+    1. Move old EvaluationResult records to EvaluationHistory
+    2. Create new EvaluationPeriod with is_active=True
+    3. Create/update Evaluation record with evaluator='peer'
+    """
     if request.method == 'POST':
         try:
             from django.utils import timezone
             
-            if Evaluation.is_evaluation_period_active('peer'):
+            # Check if there's already an active peer evaluation period
+            active_period = EvaluationPeriod.objects.filter(evaluation_type='peer', is_active=True).exists()
+            
+            if active_period:
                 return JsonResponse({
                     'success': False, 
                     'error': "Peer evaluation is already released."
                 })
 
-            # CRITICAL: Process results from previous active period BEFORE archiving
-            logger.info("Processing results from previous peer evaluation period...")
-            previous_period = EvaluationPeriod.objects.filter(
-                evaluation_type='peer',
-                is_active=True
-            ).first()
-            
-            if previous_period:
-                # Process all staff results for the period that's about to be archived
-                staff_users = User.objects.filter(
-                    userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN]
-                ).distinct()
-                
-                for staff_user in staff_users:
-                    try:
-                        # Only process if there are responses in this period
-                        responses_in_period = EvaluationResponse.objects.filter(
-                            evaluatee=staff_user,
-                            submitted_at__gte=previous_period.start_date,
-                            submitted_at__lte=previous_period.end_date
-                        )
-                        
-                        if responses_in_period.exists():
-                            result = process_evaluation_results_for_user(staff_user, previous_period)
-                            if result:
-                                logger.info(f"Processed peer results for {staff_user.username} in period {previous_period.name}")
-                    except Exception as e:
-                        logger.error(f"Error processing peer {staff_user.username}: {str(e)}")
-            
-            # ✅ CORRECT FLOW: Archive the PREVIOUS peer period's results when starting a NEW period
-            # This ensures old results move to history and new results become current
-            logger.info("Archiving previous peer evaluation period to history...")
-            
-            # Get the currently active period (this will become "previous" when we create the new one)
-            previous_active_period = EvaluationPeriod.objects.filter(
-                evaluation_type='peer',
-                is_active=True
-            ).first()
-            
-            # Archive the previous period's results to history BEFORE deactivating it
-            archived_count = 0
-            if previous_active_period:
-                logger.info(f"Archiving peer period: {previous_active_period.name}")
-                archived_count = archive_period_results_to_history(previous_active_period)
-                logger.info(f"Archived {archived_count} peer results from {previous_active_period.name} to evaluation history")
-            
-            # Now deactivate all active periods
-            previous_periods = EvaluationPeriod.objects.filter(
-                evaluation_type='peer',
-                is_active=True
-            )
-            deactivated_count = previous_periods.update(is_active=False, end_date=timezone.now())
-            logger.info(f"Deactivated {deactivated_count} active peer period(s) - results archived to history")
+            # STEP 1: Move current EvaluationResult records to EvaluationHistory
+            logger.info("Moving current peer EvaluationResult records to history...")
+            archived_count = move_current_results_to_history()
+            logger.info(f"Moved {archived_count} results to evaluation history")
 
-            # Create a new active evaluation period for peer evaluation
-            # Always create a unique period by including timestamp
+            # STEP 2: Create new active evaluation period
             evaluation_period = EvaluationPeriod.objects.create(
                 name=f"Peer Evaluation {timezone.now().strftime('%B %d, %Y %H:%M')}",
                 evaluation_type='peer',
@@ -1295,46 +1239,46 @@ def release_peer_evaluation(request):
             )
             logger.info(f"Created new peer evaluation period: {evaluation_period.name}")
 
-            evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='peer')
-            updated_count = evaluations.update(is_released=True, evaluation_period=evaluation_period)
-            logger.info(f"Updated {updated_count} peer evaluations with new period")
+            # STEP 3: Create or update Evaluation record with evaluator='peer'
+            evaluation, created = Evaluation.objects.update_or_create(
+                evaluation_type='peer',
+                defaults={
+                    'is_released': True,
+                    'evaluation_period': evaluation_period,
+                    'evaluator': 'peer'  # Peer evaluation (teachers evaluate each other)
+                }
+            )
+            action = "Created" if created else "Updated"
+            logger.info(f"{action} peer evaluation record with evaluator='peer'")
 
-            if updated_count > 0:
-                # Send email notifications asynchronously (won't block response)
-                email_notification = {'sent': 0, 'failed': 0, 'message': 'Emails are being sent in background'}
-                try:
-                    import threading
-                    def send_emails_background():
-                        try:
-                            logger.info("Background: Sending email notifications about peer evaluation release")
-                            email_result = EvaluationEmailService.send_evaluation_released_notification('peer')
-                            logger.info(f"Background: Email notification result: {email_result}")
-                        except Exception as e:
-                            logger.error(f"Background: Email notification failed: {e}")
-                    
-                    # Start email sending in background thread
-                    email_thread = threading.Thread(target=send_emails_background, daemon=True)
-                    email_thread.start()
-                    logger.info("Email notification thread started in background")
-                except Exception as e:
-                    logger.error(f"Failed to start email thread: {e}")
-                    email_notification['message'] = 'Email notification skipped due to error'
+            # Send email notifications asynchronously
+            email_notification = {'sent': 0, 'failed': 0, 'message': 'Emails are being sent in background'}
+            try:
+                import threading
+                def send_emails_background():
+                    try:
+                        logger.info("Background: Sending email notifications about peer evaluation release")
+                        email_result = EvaluationEmailService.send_evaluation_released_notification('peer')
+                        logger.info(f"Background: Email notification result: {email_result}")
+                    except Exception as e:
+                        logger.error(f"Background: Email notification failed: {e}")
                 
-                return JsonResponse({
-                    'success': True,
-                    'message': f'Peer evaluation form has been released. New period started: {evaluation_period.name}. Previous period results ({archived_count} records) archived to evaluation history.',
-                    'peer_evaluation_released': True,
-                    'evaluation_period_ended': False,
-                    'periods_archived': deactivated_count,
-                    'results_archived': archived_count,
-                    'new_period': evaluation_period.name,
-                    'email_notification': email_notification
-                })
-            else:
-                return JsonResponse({
-                    'success': False, 
-                    'error': 'No peer evaluations to release.'
-                })
+                email_thread = threading.Thread(target=send_emails_background, daemon=True)
+                email_thread.start()
+                logger.info("Email notification thread started in background")
+            except Exception as e:
+                logger.error(f"Failed to start email thread: {e}")
+                email_notification['message'] = 'Email notification skipped due to error'
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Peer evaluation period started: {evaluation_period.name}. Previous results ({archived_count} records) moved to history. Staff can now evaluate peers.',
+                'peer_evaluation_released': True,
+                'evaluation_period_ended': False,
+                'results_archived': archived_count,
+                'new_period': evaluation_period.name,
+                'email_notification': email_notification
+            })
         except Exception as e:
             logger.error(f"Exception in release_peer_evaluation: {e}", exc_info=True)
             return JsonResponse({
@@ -1347,12 +1291,15 @@ def release_peer_evaluation(request):
     })
 
 def unrelease_peer_evaluation(request):
+    """
+    NEW FLOW for peer evaluation unrelease:
+    1. Process responses into EvaluationResult (visible in profile settings)
+    2. Set EvaluationPeriod to is_active=False
+    3. Set Evaluation.is_released=False
+    """
     if request.method == 'POST':
-        evaluations = Evaluation.objects.filter(is_released=True, evaluation_type='peer')
-        updated_count = evaluations.update(is_released=False)
-
-        if updated_count > 0:
-            # Get the active peer evaluation period BEFORE deactivating
+        try:
+            # Get the active peer evaluation period
             active_period = EvaluationPeriod.objects.filter(
                 evaluation_type='peer',
                 is_active=True
@@ -1363,11 +1310,17 @@ def unrelease_peer_evaluation(request):
                     'success': False,
                     'error': 'No active peer evaluation period found.'
                 })
+            
+            # Set Evaluation to unreleased
+            evaluations = Evaluation.objects.filter(evaluation_type='peer')
+            evaluations.update(is_released=False)
 
-            # Process peer evaluation results for this period
+            # STEP 1: Process peer evaluation responses into EvaluationResult
+            logger.info(f"Processing peer evaluation results for period: {active_period.name}")
             processing_results = process_peer_evaluation_results(evaluation_period=active_period)
+            logger.info(f"Processed {processing_results.get('processed_count', 0)} peer results")
 
-            # Deactivate the current evaluation period
+            # STEP 2: Deactivate the evaluation period
             active_period.is_active = False
             active_period.end_date = timezone.now()
             active_period.save()
@@ -1409,10 +1362,11 @@ def unrelease_peer_evaluation(request):
                 'period_name': active_period.name,
                 'email_notification': email_notification
             })
-        else:
+        except Exception as e:
+            logger.error(f"Error in unrelease_peer_evaluation: {str(e)}", exc_info=True)
             return JsonResponse({
-                'success': False, 
-                'error': 'No peer evaluations to unrelease.'
+                'success': False,
+                'error': f'Server error: {str(e)}'
             })
     return JsonResponse({
         'success': False, 
