@@ -3078,19 +3078,62 @@ def evaluation_form_staffs(request):
         return redirect('/login')
 def evaluated(request):
     evaluator = request.user
+    evaluator_profile = evaluator.userprofile
 
-    # Get IDs of users this evaluator has already evaluated
-    evaluated_ids = list(  # Convert to list immediately
+    # Check for active evaluation periods
+    active_student_period = EvaluationPeriod.objects.filter(
+        evaluation_type='student',
+        is_active=True
+    ).first()
+    
+    active_peer_period = EvaluationPeriod.objects.filter(
+        evaluation_type='peer',
+        is_active=True
+    ).first()
+
+    # Determine who can be evaluated based on evaluator role and active periods
+    faculty = User.objects.none()  # Start with empty queryset
+    
+    if evaluator_profile.role == Role.STUDENT:
+        # Students can evaluate faculty during student evaluation periods
+        if active_student_period:
+            # Get faculty assigned to the student's section
+            if evaluator_profile.section:
+                faculty = User.objects.filter(
+                    userprofile__role__in=[Role.FACULTY, Role.DEAN, Role.COORDINATOR],
+                    sectionassignment__section=evaluator_profile.section
+                ).distinct()
+    
+    elif evaluator_profile.role in [Role.FACULTY, Role.DEAN, Role.COORDINATOR]:
+        # Faculty/Staff can evaluate other faculty during peer evaluation periods
+        if active_peer_period:
+            # Get all faculty except themselves
+            faculty = User.objects.filter(
+                userprofile__role__in=[Role.FACULTY, Role.DEAN, Role.COORDINATOR]
+            ).exclude(id=evaluator.id).distinct()
+
+    # Get IDs of users this evaluator has already evaluated in current period
+    evaluated_ids = list(
         EvaluationResponse.objects.filter(evaluator=evaluator)
         .values_list('evaluatee_id', flat=True)
     )
 
-    # Get all faculty users
-    faculty = User.objects.filter(userprofile__role=Role.FACULTY)
+    # Get evaluation questions
+    from .models import EvaluationQuestion
+    if evaluator_profile.role == Role.STUDENT and active_student_period:
+        questions = EvaluationQuestion.objects.filter(is_active=True).order_by('question_number')
+    elif evaluator_profile.role in [Role.FACULTY, Role.DEAN, Role.COORDINATOR] and active_peer_period:
+        questions = EvaluationQuestion.objects.filter(is_active=True).order_by('question_number')
+    else:
+        questions = EvaluationQuestion.objects.none()
 
     context = {
-        'evaluated_ids': evaluated_ids,  # Make sure this is a list for template logic
+        'evaluated_ids': evaluated_ids,
         'faculty': faculty,
+        'questions': questions,
+        'active_student_period': active_student_period,
+        'active_peer_period': active_peer_period,
+        'evaluator_role': evaluator_profile.role,
     }
 
     return render(request, 'evaluationform.html', context)
