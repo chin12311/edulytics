@@ -2378,39 +2378,6 @@ def submit_evaluation(request):
     print("Method was not POST, redirecting")
     return redirect('main:evaluationform')
     
-def release_student_evaluation(request):
-    if request.method == 'POST':
-        # Check if any student evaluation is already released
-        if Evaluation.objects.filter(is_released=True, evaluation_type='student').exists():
-            return JsonResponse({'success': False, 'error': "Student evaluation is already released."})
-
-        # Release all student evaluations that are not released
-        evaluations = Evaluation.objects.filter(is_released=False, evaluation_type='student')
-        updated_count = evaluations.update(is_released=True)
-
-        # Send email notifications
-        if updated_count > 0:
-            try:
-                email_result = EvaluationEmailService.send_evaluation_released_notification(evaluation_type='student')
-                logger.info(f"Email notification result: {email_result}")
-            except Exception as e:
-                logger.error(f"Failed to send email notifications: {e}", exc_info=True)
-
-        # Return updated status to the frontend
-        student_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='student').exists()
-        peer_evaluation_released = Evaluation.objects.filter(is_released=True, evaluation_type='peer').exists()
-
-        if updated_count > 0:
-            return JsonResponse({
-                'success': True,
-                'student_evaluation_released': student_evaluation_released,
-                'peer_evaluation_released': peer_evaluation_released
-            })
-        else:
-            return JsonResponse({'success': False, 'error': 'No student evaluations to release.'})
-
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
-
 def process_results(request):
     if request.method == 'POST':
         # ✅ FIX: Only process student evaluation results, not peer
