@@ -1122,23 +1122,24 @@ def unrelease_student_evaluation(request):
     """
     if request.method == 'POST':
         try:
-            evaluations = Evaluation.objects.filter(is_released=True, evaluation_type='student')
+            # Check if there's an active period (this is what matters, not is_released)
+            active_period = EvaluationPeriod.objects.filter(
+                evaluation_type='student',
+                is_active=True
+            ).first()
+            
+            if not active_period:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No active student evaluation period found.'
+                })
+            
+            # Unrelease the evaluation records
+            evaluations = Evaluation.objects.filter(evaluation_type='student')
             updated_count = evaluations.update(is_released=False)
 
-            if updated_count > 0:
-                # Get the active period before deactivating it
-                active_period = EvaluationPeriod.objects.filter(
-                    evaluation_type='student',
-                    is_active=True
-                ).first()
-                
-                if not active_period:
-                    return JsonResponse({
-                        'success': False,
-                        'error': 'No active evaluation period found.'
-                    })
-                
-                # STEP 1: Process all evaluation responses from this period into EvaluationResult
+            # Process the period
+            # STEP 1: Process all evaluation responses from this period into EvaluationResult
                 # This makes results visible in profile settings
                 logger.info(f"Processing evaluation results for period: {active_period.name}")
                 processed_count = process_evaluation_period_to_results(active_period)
@@ -1162,10 +1163,20 @@ def unrelease_student_evaluation(request):
                     description=f"Ended student evaluation period '{active_period.name}'. Processed {processed_count} results now visible in profile settings."
                 )
                 
-                # Send email notifications to all users
+                # Send email notifications to all users (but don't block on failure)
                 logger.info("Sending email notifications about evaluation close")
-                email_result = EvaluationEmailService.send_evaluation_unreleased_notification('student')
-                logger.info(f"Email notification result: {email_result}")
+                email_notification = {'sent': 0, 'failed': 0, 'message': 'Email notification skipped'}
+                try:
+                    email_result = EvaluationEmailService.send_evaluation_unreleased_notification('student')
+                    logger.info(f"Email notification result: {email_result}")
+                    email_notification = {
+                        'sent': email_result['sent_count'],
+                        'failed': len(email_result['failed_emails']),
+                        'message': email_result['message']
+                    }
+                except Exception as e:
+                    logger.error(f"Failed to send email notifications: {e}", exc_info=True)
+                    email_notification['message'] = 'Email notification failed but evaluation was closed successfully.'
                 
                 message = f'Student evaluation period "{active_period.name}" has ended. Results processed for {processed_count} staff members and are now visible in profile settings.'
                 
@@ -1176,16 +1187,7 @@ def unrelease_student_evaluation(request):
                     'student_evaluation_released': False,
                     'evaluation_period_ended': True,
                     'period_name': active_period.name,
-                    'email_notification': {
-                        'sent': email_result['sent_count'],
-                        'failed': len(email_result['failed_emails']),
-                        'message': email_result['message']
-                    }
-                })
-            else:
-                return JsonResponse({
-                    'success': False, 
-                    'error': 'No student evaluations to unrelease.'
+                    'email_notification': email_notification
                 })
         except Exception as e:
             logger.error(f"Error in unrelease_student_evaluation: {str(e)}", exc_info=True)
