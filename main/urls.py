@@ -48,6 +48,7 @@ urlpatterns = [
     path('api/evaluation-history/<int:history_id>/', views.api_evaluation_history_detail, name='api_evaluation_history_detail'),
     path('api/evaluation-history/period/<int:period_id>/', views.api_evaluation_history_by_period, name='api_evaluation_history_by_period'),
     path('admin-control/', views.admin_evaluation_control, name='admin_control'),
+    path('manage-evaluations/', views.manage_evaluations, name='manage_evaluations'),
     path('activity-logs/', views.admin_activity_logs, name='activity_logs'),
     path('process-results/', views.process_results, name='process_results'),
     path('reset-failures/', views.reset_failures, name='reset_failures'),

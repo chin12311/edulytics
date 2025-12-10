@@ -1,0 +1,366 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+<style>
+    .evaluation-management {
+        max-width: 1200px;
+        margin: 50px auto;
+        padding: 20px;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+
+    .page-header h1 {
+        color: #47682c;
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .page-header p {
+        color: #666;
+        font-size: 1.1rem;
+    }
+
+    .evaluation-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        gap: 30px;
+        margin-top: 40px;
+    }
+
+    .evaluation-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .evaluation-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .evaluation-card.peer {
+        border-top: 5px solid #2196F3;
+    }
+
+    .evaluation-card.student {
+        border-top: 5px solid #4CAF50;
+    }
+
+    .card-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .card-icon {
+        font-size: 4rem;
+        margin-bottom: 15px;
+    }
+
+    .card-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .card-description {
+        color: #666;
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin: 20px 0;
+    }
+
+    .status-badge.active {
+        background: #4CAF50;
+        color: white;
+    }
+
+    .status-badge.inactive {
+        background: #f44336;
+        color: white;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 25px;
+    }
+
+    .btn-action {
+        padding: 15px 30px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-release {
+        background: linear-gradient(135deg, #4CAF50, #45a049);
+        color: white;
+    }
+
+    .btn-release:hover {
+        background: linear-gradient(135deg, #45a049, #3d8b40);
+        transform: scale(1.02);
+    }
+
+    .btn-unrelease {
+        background: linear-gradient(135deg, #f44336, #da190b);
+        color: white;
+    }
+
+    .btn-unrelease:hover {
+        background: linear-gradient(135deg, #da190b, #c41700);
+        transform: scale(1.02);
+    }
+
+    .btn-action:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    .back-button {
+        text-align: center;
+        margin-top: 40px;
+    }
+
+    .btn-back {
+        background: #666;
+        color: white;
+        padding: 12px 30px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.3s ease;
+    }
+
+    .btn-back:hover {
+        background: #555;
+        color: white;
+    }
+
+    .period-info {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+        font-size: 0.9rem;
+        color: #555;
+    }
+
+    @media (max-width: 768px) {
+        .evaluation-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+<div class="evaluation-management">
+    <div class="page-header">
+        <h1>📊 Evaluation Management</h1>
+        <p>Release or unrelease evaluation periods for students and faculty</p>
+    </div>
+
+    <div class="evaluation-grid">
+        <!-- Student Evaluation Card -->
+        <div class="evaluation-card student">
+            <div class="card-header">
+                <div class="card-icon">👨‍🎓</div>
+                <h2 class="card-title">Student Evaluation</h2>
+                <p class="card-description">
+                    Students evaluate faculty members on their teaching performance, 
+                    classroom management, and professionalism (19 questions).
+                </p>
+            </div>
+
+            <div style="text-align: center;">
+                <span class="status-badge {% if student_active %}active{% else %}inactive{% endif %}">
+                    {% if student_active %}
+                        ✅ Currently Active
+                    {% else %}
+                        ⛔ Currently Inactive
+                    {% endif %}
+                </span>
+
+                {% if student_active and student_period_name %}
+                <div class="period-info">
+                    <strong>Active Period:</strong> {{ student_period_name }}<br>
+                    <strong>Started:</strong> {{ student_period_start|date:"M d, Y - g:i A" }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-action btn-release" 
+                        onclick="releaseEvaluation('student')"
+                        {% if student_active %}disabled{% endif %}>
+                    🚀 Release Student Evaluation
+                </button>
+                <button class="btn-action btn-unrelease" 
+                        onclick="unreleaseEvaluation('student')"
+                        {% if not student_active %}disabled{% endif %}>
+                    ⛔ Unrelease Student Evaluation
+                </button>
+            </div>
+        </div>
+
+        <!-- Peer Evaluation Card -->
+        <div class="evaluation-card peer">
+            <div class="card-header">
+                <div class="card-icon">👥</div>
+                <h2 class="card-title">Peer Evaluation</h2>
+                <p class="card-description">
+                    Faculty members evaluate their colleagues on communication, 
+                    collaboration, professionalism, and work ethic (15 questions).
+                </p>
+            </div>
+
+            <div style="text-align: center;">
+                <span class="status-badge {% if peer_active %}active{% else %}inactive{% endif %}">
+                    {% if peer_active %}
+                        ✅ Currently Active
+                    {% else %}
+                        ⛔ Currently Inactive
+                    {% endif %}
+                </span>
+
+                {% if peer_active and peer_period_name %}
+                <div class="period-info">
+                    <strong>Active Period:</strong> {{ peer_period_name }}<br>
+                    <strong>Started:</strong> {{ peer_period_start|date:"M d, Y - g:i A" }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-action btn-release" 
+                        onclick="releaseEvaluation('peer')"
+                        {% if peer_active %}disabled{% endif %}>
+                    🚀 Release Peer Evaluation
+                </button>
+                <button class="btn-action btn-unrelease" 
+                        onclick="unreleaseEvaluation('peer')"
+                        {% if not peer_active %}disabled{% endif %}>
+                    ⛔ Unrelease Peer Evaluation
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="back-button">
+        <a href="{% url 'main:admin_control' %}" class="btn-back">
+            ← Back to Admin Control Panel
+        </a>
+    </div>
+</div>
+
+<script>
+function releaseEvaluation(type) {
+    const typeName = type === 'student' ? 'Student' : 'Peer';
+    
+    if (!confirm(`Are you sure you want to release ${typeName} Evaluation?\n\nThis will:\n- Create a new evaluation period\n- Allow ${type === 'student' ? 'students' : 'faculty'} to submit evaluations\n- Archive previous period results (if any)`)) {
+        return;
+    }
+
+    const button = event.target;
+    button.disabled = true;
+    button.textContent = '⏳ Releasing...';
+
+    const url = type === 'student' ? '{% url "main:release" %}' : '{% url "main:release_peer_evaluation" %}';
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ ${typeName} Evaluation has been released successfully!\n\n${data.message}`);
+            window.location.reload();
+        } else {
+            alert(`❌ Error: ${data.error || 'Failed to release evaluation'}`);
+            button.disabled = false;
+            button.textContent = `🚀 Release ${typeName} Evaluation`;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ An error occurred while releasing the evaluation.');
+        button.disabled = false;
+        button.textContent = `🚀 Release ${typeName} Evaluation`;
+    });
+}
+
+function unreleaseEvaluation(type) {
+    const typeName = type === 'student' ? 'Student' : 'Peer';
+    
+    if (!confirm(`Are you sure you want to unrelease ${typeName} Evaluation?\n\nThis will:\n- Close the current evaluation period\n- Process and archive all submitted evaluations\n- Prevent new evaluation submissions`)) {
+        return;
+    }
+
+    const button = event.target;
+    button.disabled = true;
+    button.textContent = '⏳ Unreleasing...';
+
+    const url = type === 'student' ? '{% url "main:unrelease" %}' : '{% url "main:unrelease_peer_evaluation" %}';
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ ${typeName} Evaluation has been unreleased successfully!\n\n${data.message}`);
+            window.location.reload();
+        } else {
+            alert(`❌ Error: ${data.error || 'Failed to unrelease evaluation'}`);
+            button.disabled = false;
+            button.textContent = `⛔ Unrelease ${typeName} Evaluation`;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ An error occurred while unreleasing the evaluation.');
+        button.disabled = false;
+        button.textContent = `⛔ Unrelease ${typeName} Evaluation`;
+    });
+}
+</script>
+
+{% endblock %}

@@ -5883,6 +5883,37 @@ def admin_evaluation_control(request):
     return render(request, 'main/admin_control.html', context)
 
 @login_required
+def manage_evaluations(request):
+    """View for managing evaluation periods - release/unrelease student and peer evaluations"""
+    if not request.user.is_superuser:
+        return redirect('main:index')
+    
+    from django.utils import timezone
+    
+    # Check for active student evaluation period
+    student_period = EvaluationPeriod.objects.filter(
+        evaluation_type='student',
+        is_active=True
+    ).first()
+    
+    # Check for active peer evaluation period
+    peer_period = EvaluationPeriod.objects.filter(
+        evaluation_type='peer',
+        is_active=True
+    ).first()
+    
+    context = {
+        'student_active': student_period is not None,
+        'student_period_name': student_period.name if student_period else None,
+        'student_period_start': student_period.start_date if student_period else None,
+        'peer_active': peer_period is not None,
+        'peer_period_name': peer_period.name if peer_period else None,
+        'peer_period_start': peer_period.start_date if peer_period else None,
+    }
+    
+    return render(request, 'main/manage_evaluations.html', context)
+
+@login_required
 def admin_activity_logs(request):
     """Dedicated view for admin activity logs"""
     if not request.user.is_superuser:

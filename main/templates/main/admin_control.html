@@ -394,12 +394,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             <div class="card-body">
                 <h5 class="text-center">Evaluation Controls</h5>
                 <div class="control-buttons">
-                    <button class="btn btn-success" onclick="releaseAllEvaluations()" id="releaseBtn">
-                        Release All Evaluations
-                    </button>
-                    <button class="btn btn-warning" onclick="unreleaseAllEvaluations()" id="unreleaseBtn">
-                        Unrelease All Evaluations
-                    </button>
+                    <a href="{% url 'main:manage_evaluations' %}" class="btn btn-success">
+                        📊 Manage Evaluations
+                    </a>
                     <button class="btn btn-info" onclick="processResults()" id="processBtn">
                         Process Results
                     </button>
@@ -784,14 +781,6 @@ async function makeRequest(url, buttonId, confirmMessage = null) {
         button.innerHTML = originalText;
         button.disabled = false;
     }
-}
-
-function releaseAllEvaluations() {
-    makeRequest('/release-all-evaluations/', 'releaseBtn', 'Release BOTH student and peer evaluations?');
-}
-
-function unreleaseAllEvaluations() {
-    makeRequest('/unrelease-all-evaluations/', 'unreleaseBtn', 'Unrelease BOTH student and peer evaluations? This will process results for both.');
 }
 
 function processResults() {
