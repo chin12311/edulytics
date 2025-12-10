@@ -1140,55 +1140,55 @@ def unrelease_student_evaluation(request):
 
             # Process the period
             # STEP 1: Process all evaluation responses from this period into EvaluationResult
-                # This makes results visible in profile settings
-                logger.info(f"Processing evaluation results for period: {active_period.name}")
-                processed_count = process_evaluation_period_to_results(active_period)
-                logger.info(f"Processed {processed_count} evaluation results")
-                
-                # STEP 1.5: Generate and save AI recommendations for all evaluated users
-                logger.info(f"Generating AI recommendations for period: {active_period.name}")
-                ai_recs_count = generate_and_save_ai_recommendations_for_period(active_period)
-                logger.info(f"Generated {ai_recs_count} AI recommendations")
-                
-                # STEP 2: Deactivate the current evaluation period
-                active_period.is_active = False
-                active_period.end_date = timezone.now()
-                active_period.save()
-                logger.info(f"Deactivated evaluation period: {active_period.name}")
-                
-                # Log admin activity
-                log_admin_activity(
-                    request=request,
-                    action='unrelease_evaluation',
-                    description=f"Ended student evaluation period '{active_period.name}'. Processed {processed_count} results now visible in profile settings."
-                )
-                
-                # Send email notifications to all users (but don't block on failure)
-                logger.info("Sending email notifications about evaluation close")
-                email_notification = {'sent': 0, 'failed': 0, 'message': 'Email notification skipped'}
-                try:
-                    email_result = EvaluationEmailService.send_evaluation_unreleased_notification('student')
-                    logger.info(f"Email notification result: {email_result}")
-                    email_notification = {
-                        'sent': email_result['sent_count'],
-                        'failed': len(email_result['failed_emails']),
-                        'message': email_result['message']
-                    }
-                except Exception as e:
-                    logger.error(f"Failed to send email notifications: {e}", exc_info=True)
-                    email_notification['message'] = 'Email notification failed but evaluation was closed successfully.'
-                
-                message = f'Student evaluation period "{active_period.name}" has ended. Results processed for {processed_count} staff members and are now visible in profile settings.'
-                
-                return JsonResponse({
-                    'success': True,
-                    'message': message,
-                    'processed_count': processed_count,
-                    'student_evaluation_released': False,
-                    'evaluation_period_ended': True,
-                    'period_name': active_period.name,
-                    'email_notification': email_notification
-                })
+            # This makes results visible in profile settings
+            logger.info(f"Processing evaluation results for period: {active_period.name}")
+            processed_count = process_evaluation_period_to_results(active_period)
+            logger.info(f"Processed {processed_count} evaluation results")
+            
+            # STEP 1.5: Generate and save AI recommendations for all evaluated users
+            logger.info(f"Generating AI recommendations for period: {active_period.name}")
+            ai_recs_count = generate_and_save_ai_recommendations_for_period(active_period)
+            logger.info(f"Generated {ai_recs_count} AI recommendations")
+            
+            # STEP 2: Deactivate the current evaluation period
+            active_period.is_active = False
+            active_period.end_date = timezone.now()
+            active_period.save()
+            logger.info(f"Deactivated evaluation period: {active_period.name}")
+            
+            # Log admin activity
+            log_admin_activity(
+                request=request,
+                action='unrelease_evaluation',
+                description=f"Ended student evaluation period '{active_period.name}'. Processed {processed_count} results now visible in profile settings."
+            )
+            
+            # Send email notifications to all users (but don't block on failure)
+            logger.info("Sending email notifications about evaluation close")
+            email_notification = {'sent': 0, 'failed': 0, 'message': 'Email notification skipped'}
+            try:
+                email_result = EvaluationEmailService.send_evaluation_unreleased_notification('student')
+                logger.info(f"Email notification result: {email_result}")
+                email_notification = {
+                    'sent': email_result['sent_count'],
+                    'failed': len(email_result['failed_emails']),
+                    'message': email_result['message']
+                }
+            except Exception as e:
+                logger.error(f"Failed to send email notifications: {e}", exc_info=True)
+                email_notification['message'] = 'Email notification failed but evaluation was closed successfully.'
+            
+            message = f'Student evaluation period "{active_period.name}" has ended. Results processed for {processed_count} staff members and are now visible in profile settings.'
+            
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'processed_count': processed_count,
+                'student_evaluation_released': False,
+                'evaluation_period_ended': True,
+                'period_name': active_period.name,
+                'email_notification': email_notification
+            })
         except Exception as e:
             logger.error(f"Error in unrelease_student_evaluation: {str(e)}", exc_info=True)
             return JsonResponse({
