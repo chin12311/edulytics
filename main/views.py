@@ -975,10 +975,8 @@ def release_student_evaluation(request):
                     description=f"Started new evaluation period '{new_period.name}'. Previous results ({archived_count} records) moved to history."
                 )
                 
-                # Send email notifications to all users
-                logger.info("Sending email notifications about evaluation release")
-                email_result = EvaluationEmailService.send_evaluation_released_notification('student')
-                logger.info(f"Email notification result: {email_result}")
+                # Email notifications disabled (SMTP not configured)
+                logger.info("Email notifications skipped (SMTP not configured)")
                 
                 response_data = {
                     'success': True,
@@ -988,9 +986,9 @@ def release_student_evaluation(request):
                     'results_archived': archived_count,
                     'new_period': new_period.name,
                     'email_notification': {
-                        'sent': email_result['sent_count'],
-                        'failed': len(email_result['failed_emails']),
-                        'message': email_result['message']
+                        'sent': 0,
+                        'failed': 0,
+                        'message': 'Email notifications disabled'
                     }
                 }
                 logger.debug(f"Returning success: {response_data}")
@@ -1164,20 +1162,10 @@ def unrelease_student_evaluation(request):
                 description=f"Ended student evaluation period '{active_period.name}'. Processed {processed_count} results now visible in profile settings."
             )
             
-            # Send email notifications to all users (but don't block on failure)
-            logger.info("Sending email notifications about evaluation close")
-            email_notification = {'sent': 0, 'failed': 0, 'message': 'Email notification skipped'}
-            try:
-                email_result = EvaluationEmailService.send_evaluation_unreleased_notification('student')
-                logger.info(f"Email notification result: {email_result}")
-                email_notification = {
-                    'sent': email_result['sent_count'],
-                    'failed': len(email_result['failed_emails']),
-                    'message': email_result['message']
-                }
-            except Exception as e:
-                logger.error(f"Failed to send email notifications: {e}", exc_info=True)
-                email_notification['message'] = 'Email notification failed but evaluation was closed successfully.'
+            # Send email notifications - DISABLED due to SMTP timeout issues
+            # Email functionality requires proper SMTP server configuration
+            logger.info("Email notifications skipped (SMTP not configured)")
+            email_notification = {'sent': 0, 'failed': 0, 'message': 'Email notifications disabled'}
             
             message = f'Student evaluation period "{active_period.name}" has ended. Results processed for {processed_count} staff members and are now visible in profile settings.'
             
@@ -1283,23 +1271,13 @@ def release_peer_evaluation(request):
             logger.info(f"Updated {updated_count} peer evaluations with new period")
 
             if updated_count > 0:
-                # Send email notifications to all users (but don't block on failure)
-                logger.info("Sending email notifications about peer evaluation release")
-                try:
-                    email_result = EvaluationEmailService.send_evaluation_released_notification('peer')
-                    logger.info(f"Email notification result: {email_result}")
-                    email_notification = {
-                        'sent': email_result['sent_count'],
-                        'failed': len(email_result['failed_emails']),
-                        'message': email_result['message']
-                    }
-                except Exception as e:
-                    logger.error(f"Failed to send email notifications: {e}", exc_info=True)
-                    email_notification = {
-                        'sent': 0,
-                        'failed': 0,
-                        'message': 'Email notification failed but evaluation was released successfully.'
-                    }
+                # Email notifications disabled (SMTP not configured)
+                logger.info("Email notifications skipped (SMTP not configured)")
+                email_notification = {
+                    'sent': 0,
+                    'failed': 0,
+                    'message': 'Email notifications disabled'
+                }
                 
                 return JsonResponse({
                     'success': True,
@@ -1354,23 +1332,13 @@ def unrelease_peer_evaluation(request):
             active_period.save()
             logger.info(f"Deactivated peer evaluation period: {active_period.name}")
 
-            # Send email notifications to all users (but don't block on failure)
-            logger.info("Sending email notifications about peer evaluation close")
-            try:
-                email_result = EvaluationEmailService.send_evaluation_unreleased_notification('peer')
-                logger.info(f"Email notification result: {email_result}")
-                email_notification = {
-                    'sent': email_result['sent_count'],
-                    'failed': len(email_result['failed_emails']),
-                    'message': email_result['message']
-                }
-            except Exception as e:
-                logger.error(f"Failed to send email notifications: {e}", exc_info=True)
-                email_notification = {
-                    'sent': 0,
-                    'failed': 0,
-                    'message': 'Email notification failed but evaluation was closed successfully.'
-                }
+            # Email notifications disabled (SMTP not configured)
+            logger.info("Email notifications skipped (SMTP not configured)")
+            email_notification = {
+                'sent': 0,
+                'failed': 0,
+                'message': 'Email notifications disabled'
+            }
 
             message = f'Peer evaluation period "{active_period.name}" has ended.'
 
