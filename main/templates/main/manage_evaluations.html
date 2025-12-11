@@ -213,7 +213,6 @@
 
                 {% if student_active and student_period_name %}
                 <div class="period-info">
-                    <strong>Active Period:</strong> {{ student_period_name }}<br>
                     <strong>Started:</strong> {{ student_period_start|date:"M d, Y - g:i A" }}
                 </div>
                 {% endif %}
@@ -255,7 +254,6 @@
 
                 {% if peer_active and peer_period_name %}
                 <div class="period-info">
-                    <strong>Active Period:</strong> {{ peer_period_name }}<br>
                     <strong>Started:</strong> {{ peer_period_start|date:"M d, Y - g:i A" }}
                 </div>
                 {% endif %}
