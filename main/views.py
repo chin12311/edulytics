@@ -3434,24 +3434,26 @@ def evaluation_form_upward(request):
                 'page_title': 'Configuration Required',
             })
         
-        # Get Institute object from the institute string
-        from main.models import Institute
+        # Get coordinator from the same institute
         try:
-            institute_obj = Institute.objects.get(name=user_profile.institute)
-            coordinator = institute_obj.coordinator
-        except Institute.DoesNotExist:
-            logger.warning(f"❌ Institute '{user_profile.institute}' not found in database!")
-            return render(request, 'main/no_active_evaluation.html', {
-                'message': 'Your institute information is invalid. Please contact administrator.',
-                'page_title': 'Configuration Required',
-            })
-        
-        if not coordinator:
-            logger.warning(f"❌ Institute {user_profile.institute} has no coordinator assigned!")
+            coordinator_profile = UserProfile.objects.get(
+                role=Role.COORDINATOR,
+                institute=user_profile.institute
+            )
+            coordinator = coordinator_profile.user
+        except UserProfile.DoesNotExist:
+            logger.warning(f"❌ No coordinator found for institute '{user_profile.institute}'!")
             return render(request, 'main/no_active_evaluation.html', {
                 'message': 'Your institute has no coordinator assigned. Please contact administrator.',
                 'page_title': 'Configuration Required',
             })
+        except UserProfile.MultipleObjectsReturned:
+            # If multiple coordinators, get the first one
+            coordinator_profile = UserProfile.objects.filter(
+                role=Role.COORDINATOR,
+                institute=user_profile.institute
+            ).first()
+            coordinator = coordinator_profile.user
         
         logger.info(f"✅ Coordinator found: {coordinator.get_full_name() or coordinator.username}")
 
