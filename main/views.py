@@ -2596,18 +2596,22 @@ class EvaluationFormView(View):
                 # For staff peer evaluation, show appropriate colleagues based on user role
                 # Faculty should only see other faculty members
                 # Coordinators and Deans can see all staff (Faculty, Coordinators, Deans)
+                logger.info(f"Peer evaluation - User: {request.user.username}, Role: {user_profile.role}, Institute: {user_profile.institute}")
+                
                 if user_profile.role == Role.FACULTY:
                     # Faculty users only see other faculty from same institute
                     staff_members = User.objects.filter(
                         userprofile__role=Role.FACULTY,
                         userprofile__institute=user_profile.institute
                     ).exclude(id=request.user.id)
+                    logger.info(f"Faculty filtering - Found {staff_members.count()} colleagues")
                 else:
                     # Coordinators and Deans see all staff from same institute
                     staff_members = User.objects.filter(
                         userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN],
                         userprofile__institute=user_profile.institute
                     ).exclude(id=request.user.id)
+                    logger.info(f"Dean/Coordinator filtering - Found {staff_members.count()} colleagues")
 
                 # ✅ Get already evaluated staff for this user IN CURRENT PERIOD
                 try:
