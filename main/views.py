@@ -2593,12 +2593,21 @@ class EvaluationFormView(View):
                         'page_title': 'Evaluation Unavailable',
                     })
 
-                # For staff peer evaluation, show staff from same institute (excluding themselves)
-                # Include Faculty, Coordinators, and Deans from the same institute
-                staff_members = User.objects.filter(
-                    userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN],
-                    userprofile__institute=user_profile.institute
-                ).exclude(id=request.user.id)
+                # For staff peer evaluation, show appropriate colleagues based on user role
+                # Faculty should only see other faculty members
+                # Coordinators and Deans can see all staff (Faculty, Coordinators, Deans)
+                if user_profile.role == Role.FACULTY:
+                    # Faculty users only see other faculty from same institute
+                    staff_members = User.objects.filter(
+                        userprofile__role=Role.FACULTY,
+                        userprofile__institute=user_profile.institute
+                    ).exclude(id=request.user.id)
+                else:
+                    # Coordinators and Deans see all staff from same institute
+                    staff_members = User.objects.filter(
+                        userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN],
+                        userprofile__institute=user_profile.institute
+                    ).exclude(id=request.user.id)
 
                 # ✅ Get already evaluated staff for this user IN CURRENT PERIOD
                 try:
