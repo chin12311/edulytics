@@ -1419,6 +1419,149 @@ def unrelease_peer_evaluation(request):
         'error': 'Invalid request'
     })
 
+
+def release_upward_evaluation(request):
+    """
+    Release upward evaluation (Faculty → Coordinator):
+    1. Move old EvaluationResult records to EvaluationHistory
+    2. Create new EvaluationPeriod with is_active=True
+    3. Create/update Evaluation record with evaluator='upward'
+    """
+    if request.method == 'POST':
+        try:
+            from django.utils import timezone
+            
+            # Check if there's already an active upward evaluation period
+            active_period = EvaluationPeriod.objects.filter(evaluation_type='upward', is_active=True).exists()
+            
+            if active_period:
+                return JsonResponse({
+                    'success': False, 
+                    'error': "Upward evaluation is already released."
+                })
+
+            # STEP 1: Move current EvaluationResult records to EvaluationHistory
+            logger.info("Moving current upward EvaluationResult records to history...")
+            archived_count = move_current_results_to_history()
+            logger.info(f"Moved {archived_count} results to evaluation history")
+
+            # STEP 2: Create new active evaluation period
+            evaluation_period = EvaluationPeriod.objects.create(
+                name="Upward Evaluation",
+                evaluation_type='upward',
+                start_date=timezone.now(),
+                end_date=timezone.now() + timezone.timedelta(days=30),
+                is_active=True
+            )
+            logger.info(f"Created new upward evaluation period: {evaluation_period.name}")
+
+            # STEP 3: Create or update Evaluation record with evaluator='upward'
+            evaluation, created = Evaluation.objects.update_or_create(
+                evaluation_type='upward',
+                defaults={
+                    'is_released': True,
+                    'evaluation_period': evaluation_period,
+                    'evaluator': 'upward'  # Faculty evaluate coordinators
+                }
+            )
+            action = "Created" if created else "Updated"
+            logger.info(f"{action} upward evaluation record with evaluator='upward'")
+
+            log_admin_activity(
+                request=request,
+                action='release_evaluation',
+                description=f"Started upward evaluation period '{evaluation_period.name}'. Previous results ({archived_count} records) moved to history."
+            )
+
+            return JsonResponse({
+                'success': True,
+                'message': f'Upward evaluation period started: {evaluation_period.name}. Previous results ({archived_count} records) moved to history. Faculty can now evaluate coordinators.',
+                'upward_evaluation_released': True,
+                'evaluation_period_ended': False,
+                'results_archived': archived_count,
+                'new_period': evaluation_period.name
+            })
+        except Exception as e:
+            logger.error(f"Exception in release_upward_evaluation: {e}", exc_info=True)
+            return JsonResponse({
+                'success': False,
+                'error': f'Server error: {str(e)}'
+            })
+    return JsonResponse({
+        'success': False, 
+        'error': 'Invalid request'
+    })
+
+
+def unrelease_upward_evaluation(request):
+    """
+    Unrelease upward evaluation:
+    1. Process responses into EvaluationResult (visible to admin only)
+    2. Set EvaluationPeriod to is_active=False
+    3. Set Evaluation.is_released=False
+    """
+    if request.method == 'POST':
+        try:
+            # Get the active upward evaluation period
+            active_period = EvaluationPeriod.objects.filter(
+                evaluation_type='upward',
+                is_active=True
+            ).first()
+
+            if not active_period:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No active upward evaluation period found.'
+                })
+            
+            # Set Evaluation to unreleased
+            evaluations = Evaluation.objects.filter(evaluation_type='upward')
+            evaluations.update(is_released=False)
+
+            # STEP 1: Process upward evaluation responses into EvaluationResult
+            logger.info(f"Processing upward evaluation results for period: {active_period.name}")
+            processing_results = process_upward_evaluation_results(evaluation_period=active_period)
+            logger.info(f"Processed {processing_results.get('processed_count', 0)} upward results")
+
+            # STEP 2: Deactivate the evaluation period
+            active_period.is_active = False
+            active_period.end_date = timezone.now()
+            active_period.save()
+            logger.info(f"Deactivated upward evaluation period: {active_period.name}")
+
+            log_admin_activity(
+                request=request,
+                action='unrelease_evaluation',
+                description=f"Ended upward evaluation period '{active_period.name}'. Processed {processing_results.get('processed_count', 0)} coordinator evaluations."
+            )
+
+            message = f'Upward evaluation period "{active_period.name}" has ended.'
+
+            if processing_results['success']:
+                processed_count = processing_results['processed_count']
+                message += f' Successfully processed evaluation results for {processed_count} coordinators (visible to admin only).'
+            else:
+                message += ' But evaluation processing failed. Please check the logs.'
+
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'upward_evaluation_released': False,
+                'evaluation_period_ended': True,
+                'period_name': active_period.name
+            })
+        except Exception as e:
+            logger.error(f"Error in unrelease_upward_evaluation: {str(e)}", exc_info=True)
+            return JsonResponse({
+                'success': False,
+                'error': f'Server error: {str(e)}'
+            })
+    return JsonResponse({
+        'success': False, 
+        'error': 'Invalid request'
+    })
+
+
 def process_peer_evaluation_results(evaluation_period=None):
     """
     Process peer evaluation results for all staff members after evaluation period ends
@@ -1495,6 +1638,127 @@ def process_peer_evaluation_results(evaluation_period=None):
             'details': [f"❌ System error: {str(e)}"]
         }
     
+
+def process_upward_evaluation_results(evaluation_period=None):
+    """
+    Process upward evaluation results (Faculty → Coordinator) after evaluation period ends
+    """
+    try:
+        from main.models import UpwardEvaluationResponse
+        
+        # Use the provided evaluation period if given; otherwise try to infer
+        current_period = evaluation_period
+        if not current_period:
+            # Fallback: use latest active upward period
+            current_period = EvaluationPeriod.objects.filter(
+                evaluation_type='upward',
+                is_active=True
+            ).first()
+        if not current_period:
+            # As a last resort, use the latest completed upward period
+            current_period = EvaluationPeriod.objects.filter(
+                evaluation_type='upward',
+                is_active=False
+            ).order_by('-end_date').first()
+        if not current_period:
+            return {
+                'success': False,
+                'error': 'No upward evaluation period available to process.',
+                'processed_count': 0,
+                'details': []
+            }
+        
+        # Get all coordinators who were evaluated
+        coordinator_ids = UpwardEvaluationResponse.objects.filter(
+            evaluation_period=current_period
+        ).values_list('evaluatee', flat=True).distinct()
+        
+        processed_count = 0
+        processing_details = []
+        
+        for coordinator_id in coordinator_ids:
+            try:
+                coordinator = User.objects.get(id=coordinator_id)
+                
+                # Get all upward evaluations for this coordinator in this period
+                responses = UpwardEvaluationResponse.objects.filter(
+                    evaluatee=coordinator,
+                    evaluation_period=current_period
+                )
+                
+                if responses.exists():
+                    # Calculate average scores for 15 questions
+                    total_score = 0
+                    response_count = responses.count()
+                    
+                    for i in range(1, 16):  # 15 questions
+                        question_field = f'question{i}'
+                        question_scores = []
+                        
+                        for response in responses:
+                            rating = getattr(response, question_field)
+                            score = {
+                                'Strongly Disagree': 1,
+                                'Disagree': 2,
+                                'Neutral': 3,
+                                'Agree': 4,
+                                'Strongly Agree': 5,
+                                'Poor': 1,
+                                'Fair': 2,
+                                'Satisfactory': 3,
+                                'Very Satisfactory': 4,
+                                'Outstanding': 5
+                            }.get(rating, 3)
+                            question_scores.append(score)
+                        
+                        avg_score = sum(question_scores) / len(question_scores) if question_scores else 0
+                        total_score += avg_score
+                    
+                    # Calculate percentage (15 questions, max 5 points each = 75 total)
+                    overall_percentage = (total_score / 75) * 100
+                    
+                    # Create or update EvaluationResult
+                    result, created = EvaluationResult.objects.update_or_create(
+                        user=coordinator,
+                        evaluation_period=current_period,
+                        defaults={
+                            'evaluation_type': 'upward',
+                            'total_percentage': overall_percentage,
+                            'total_responses': response_count,
+                            'last_updated': timezone.now()
+                        }
+                    )
+                    
+                    processed_count += 1
+                    processing_details.append(f"✅ Processed {coordinator.get_full_name() or coordinator.username}: {overall_percentage:.1f}% ({response_count} faculty evaluations)")
+                else:
+                    processing_details.append(f"➖ No upward evaluations for {coordinator.get_full_name() or coordinator.username}")
+                    
+            except User.DoesNotExist:
+                processing_details.append(f"❌ Coordinator ID {coordinator_id} not found")
+            except Exception as e:
+                processing_details.append(f"❌ Error processing coordinator ID {coordinator_id}: {str(e)}")
+        
+        return {
+            'success': True,
+            'processed_count': processed_count,
+            'total_coordinators': len(coordinator_ids),
+            'details': processing_details,
+            'evaluation_period': current_period.name
+        }
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        return {
+            'success': False,
+            'error': str(e),
+            'error_details': error_details,
+            'processed_count': 0,
+            'details': [f"❌ System error: {str(e)}"]
+        }
+
+
 def release_all_evaluations(request):
     print("🔍 DEBUG: release_all_evaluations called")
     
@@ -2423,7 +2687,137 @@ def submit_evaluation(request):
 
     print("Method was not POST, redirecting")
     return redirect('main:evaluationform')
+
+
+def submit_upward_evaluation(request):
+    """
+    Handle submission of upward evaluation (Faculty → Coordinator)
+    """
+    print("=" * 80)
+    print(f"SUBMIT UPWARD EVALUATION CALLED - Method: {request.method}")
+    print("=" * 80)
     
+    if request.method == 'POST':
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            print("ERROR: User not authenticated")
+            messages.error(request, 'You must be logged in to submit an evaluation.')
+            return redirect('main:login')
+
+        try:
+            evaluator_profile = request.user.userprofile
+            
+            # ✅ ONLY FACULTY can submit upward evaluation
+            if evaluator_profile.role != Role.FACULTY:
+                messages.error(request, 'Only faculty members can submit upward evaluations.')
+                return redirect('main:index')
+            
+            print(f"User: {request.user.username} (Faculty)")
+            logger.info(f"🔍 Upward evaluation submission by {request.user.username}")
+            
+            # Get the coordinator being evaluated
+            coordinator_id = request.POST.get('coordinator_id')
+            print(f"Coordinator ID: {coordinator_id}")
+            
+            if not coordinator_id:
+                messages.error(request, 'No coordinator selected.')
+                return redirect('main:evaluation_form_upward')
+            
+            try:
+                coordinator = User.objects.get(id=coordinator_id)
+                coordinator_profile = coordinator.userprofile
+            except User.DoesNotExist:
+                messages.error(request, 'Selected coordinator does not exist.')
+                return redirect('main:evaluation_form_upward')
+            
+            # Validate coordinator role
+            if coordinator_profile.role != Role.COORDINATOR:
+                messages.error(request, 'You can only evaluate coordinators.')
+                return redirect('main:evaluation_form_upward')
+            
+            # Validate same institute
+            if evaluator_profile.institute != coordinator_profile.institute:
+                messages.error(request, 'You can only evaluate your own institute coordinator.')
+                return redirect('main:evaluation_form_upward')
+
+            # Get the current active upward evaluation period
+            try:
+                current_period = EvaluationPeriod.objects.get(
+                    evaluation_type='upward',
+                    is_active=True
+                )
+            except EvaluationPeriod.DoesNotExist:
+                messages.error(request, 'No active upward evaluation period found.')
+                return redirect('main:evaluation_form_upward')
+
+            # Check for duplicate evaluation in this period
+            from main.models import UpwardEvaluationResponse
+            if UpwardEvaluationResponse.objects.filter(
+                evaluator=request.user,
+                evaluatee=coordinator,
+                evaluation_period=current_period
+            ).exists():
+                messages.error(request, 'You have already evaluated this coordinator in this evaluation period.')
+                return redirect('main:evaluation_form_upward')
+
+            # Convert numeric values to text ratings
+            rating_map = {
+                '1': 'Strongly Disagree',
+                '2': 'Disagree', 
+                '3': 'Neutral',
+                '4': 'Agree',
+                '5': 'Strongly Agree'
+            }
+            
+            # Validate all 15 questions and convert to text
+            questions = {}
+            for i in range(1, 16):  # 15 questions for upward evaluation
+                question_key = f'question{i}'
+                question_value = request.POST.get(question_key)
+                
+                if not question_value:
+                    messages.error(request, f'All questions must be answered. Missing: Question {i}')
+                    return redirect('main:evaluation_form_upward')
+                
+                if question_value not in rating_map:
+                    messages.error(request, f'Invalid rating for question {i}.')
+                    return redirect('main:evaluation_form_upward')
+                    
+                questions[question_key] = rating_map[question_value]
+
+            # Get comments
+            comments = request.POST.get('comments', '')
+
+            # Create and save the upward evaluation response
+            logger.info(f"🔍 Creating upward evaluation with 15 questions")
+            
+            evaluation_response = UpwardEvaluationResponse(
+                evaluator=request.user,
+                evaluatee=coordinator,
+                evaluation_period=current_period,
+                comments=comments,
+                **questions
+            )
+            evaluation_response.save()
+            logger.info(f"✅ Upward evaluation saved successfully! ID: {evaluation_response.id}")
+
+            messages.success(request, 'Upward evaluation submitted successfully!')
+            return redirect('main:evaluation_form_upward')
+
+        except Exception as e:
+            print("=" * 80)
+            print(f"EXCEPTION OCCURRED: {str(e)}")
+            print("=" * 80)
+            import traceback
+            traceback.print_exc()
+            
+            messages.error(request, f'An error occurred: {str(e)}')
+            return redirect('main:evaluation_form_upward')
+
+    print("Method was not POST, redirecting")
+    return redirect('main:evaluation_form_upward')
+    
+
 def process_results(request):
     if request.method == 'POST':
         # ✅ FIX: Only process student evaluation results, not peer
@@ -2969,6 +3363,131 @@ def evaluation_form_staffs(request):
     except UserProfile.DoesNotExist:
         messages.error(request, "User profile not found. Please contact administrator.")
         return redirect('/login')
+
+
+def evaluation_form_upward(request):
+    """
+    Display the upward evaluation form (Faculty → Coordinator).
+    Only faculty can access this form.
+    Faculty evaluates their coordinator only.
+    """
+    if not request.user.is_authenticated:
+        return redirect('/login')
+
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+
+        # ✅ ONLY FACULTY can access upward evaluation form
+        if user_profile.role != Role.FACULTY:
+            return render(request, 'main/no_permission.html', {
+                'message': 'Only faculty members can access the upward evaluation form.',
+                'page_title': 'Access Denied',
+            })
+        
+        logger.info(f"🔍 evaluation_form_upward accessed by {request.user.username} (Faculty)")
+        
+        # STEP 1: Get the current active upward evaluation period
+        logger.info("📍 STEP 1: Looking for active upward evaluation period...")
+        try:
+            current_upward_period = EvaluationPeriod.objects.get(
+                evaluation_type='upward',
+                is_active=True
+            )
+            logger.info(f"✅ Found active upward period: ID={current_upward_period.id}, Name={current_upward_period.name}")
+        except EvaluationPeriod.DoesNotExist:
+            logger.warning("❌ No active upward evaluation period found!")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'No active upward evaluation period found.',
+                'page_title': 'Evaluation Unavailable',
+            })
+        except Exception as e:
+            logger.error(f"❌ Error getting active upward period: {e}")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'Error retrieving evaluation period.',
+                'page_title': 'Evaluation Unavailable',
+            })
+
+        # STEP 2: Check if upward evaluation is released and linked to this period
+        logger.info("📍 STEP 2: Looking for released upward evaluation linked to active period...")
+        evaluation = Evaluation.objects.filter(
+            is_released=True,
+            evaluation_type='upward',
+            evaluation_period=current_upward_period
+        ).first()
+
+        if not evaluation:
+            logger.warning(f"❌ No released upward evaluation linked to active period!")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'No active upward evaluation is currently available.',
+                'page_title': 'Evaluation Unavailable',
+            })
+        
+        logger.info(f"✅ Found released upward evaluation: ID={evaluation.id}, Period={evaluation.evaluation_period_id}")
+
+        # STEP 3: Get the coordinator of the faculty's institute
+        logger.info("📍 STEP 3: Getting coordinator...")
+        
+        if not user_profile.institute_obj:
+            logger.warning(f"❌ Faculty {request.user.username} has no institute assigned!")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'Your institute information is not set up. Please contact administrator.',
+                'page_title': 'Configuration Required',
+            })
+        
+        coordinator = user_profile.institute_obj.coordinator
+        
+        if not coordinator:
+            logger.warning(f"❌ Institute {user_profile.institute} has no coordinator assigned!")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'Your institute has no coordinator assigned. Please contact administrator.',
+                'page_title': 'Configuration Required',
+            })
+        
+        logger.info(f"✅ Coordinator found: {coordinator.get_full_name() or coordinator.username}")
+
+        # STEP 4: Check if faculty has already evaluated their coordinator in this period
+        logger.info("📍 STEP 4: Checking if already evaluated...")
+        from main.models import UpwardEvaluationResponse
+        
+        already_evaluated = UpwardEvaluationResponse.objects.filter(
+            evaluator=request.user,
+            evaluatee=coordinator,
+            evaluation_period=current_upward_period
+        ).exists()
+
+        if already_evaluated:
+            logger.info(f"✅ User has already evaluated coordinator in this period")
+        else:
+            logger.info(f"✅ User has NOT evaluated coordinator yet")
+
+        # ✅ All checks passed - prepare context
+        logger.info("✅ ALL CHECKS PASSED - Rendering form...")
+        
+        # ✅ Get upward evaluation questions from database
+        from main.models import UpwardEvaluationQuestion
+        upward_questions = UpwardEvaluationQuestion.objects.filter(
+            is_active=True
+        ).order_by('question_number')
+        
+        context = {
+            'evaluation': evaluation,
+            'coordinator': coordinator,
+            'already_evaluated': already_evaluated,
+            'questions': upward_questions,
+            'page_title': 'Upward Evaluation Form',
+        }
+        response = render(request, 'main/evaluationform_upward.html', context)
+        # Prevent browser caching
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
+
+    except UserProfile.DoesNotExist:
+        messages.error(request, "User profile not found. Please contact administrator.")
+        return redirect('/login')
+
+
 def evaluated(request):
     evaluator = request.user
     evaluator_profile = evaluator.userprofile
@@ -5777,7 +6296,7 @@ def admin_evaluation_control(request):
 
 @login_required
 def manage_evaluations(request):
-    """View for managing evaluation periods - release/unrelease student and peer evaluations"""
+    """View for managing evaluation periods - release/unrelease student, peer, and upward evaluations"""
     if not request.user.is_superuser:
         return redirect('main:index')
     
@@ -5795,6 +6314,12 @@ def manage_evaluations(request):
         is_active=True
     ).first()
     
+    # Check for active upward evaluation period
+    upward_period = EvaluationPeriod.objects.filter(
+        evaluation_type='upward',
+        is_active=True
+    ).first()
+    
     context = {
         'student_active': student_period is not None,
         'student_period_name': student_period.name if student_period else None,
@@ -5802,6 +6327,9 @@ def manage_evaluations(request):
         'peer_active': peer_period is not None,
         'peer_period_name': peer_period.name if peer_period else None,
         'peer_period_start': peer_period.start_date if peer_period else None,
+        'upward_active': upward_period is not None,
+        'upward_period_name': upward_period.name if upward_period else None,
+        'upward_period_start': upward_period.start_date if upward_period else None,
     }
     
     return render(request, 'main/manage_evaluations.html', context)

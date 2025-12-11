@@ -569,6 +569,13 @@
         Evaluation
     </a>
 
+    {% if upward_evaluation_active %}
+    <a href="{% url 'main:evaluation_form_upward' %}" class="nav-link-custom {% if request.path == '/evaluation-upward/' %}active{% endif %}">
+        <span class="nav-icon" style="background-image: url('{% static 'img/eval.png' %}');"></span>
+        🎯 Upward Evaluation
+    </a>
+    {% endif %}
+
 {% elif request.user.userprofile.role == 'Coordinator' %}
     <a href="{% url 'main:faculty' %}" class="nav-link-custom {% if request.path == '/faculty/' %}active{% endif %}">
         <span class="nav-icon" style="background-image: url('{% static 'img/fac.png' %}');"></span>

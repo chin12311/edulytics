@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from main.models import EvaluationQuestion, PeerEvaluationQuestion
+from main.models import EvaluationQuestion, PeerEvaluationQuestion, UpwardEvaluationQuestion
 
 class Command(BaseCommand):
     help = 'Initialize evaluation questions in the database'
@@ -43,6 +43,25 @@ class Command(BaseCommand):
             "Exhibits leadership potentials and abilities",
         ]
         
+        # Upward evaluation questions (15 questions) - Faculty → Coordinator
+        upward_questions = [
+            "Provides clear direction and vision for the department/program",
+            "Makes informed decisions that benefit faculty and students",
+            "Demonstrates effective leadership in managing department initiatives",
+            "Encourages innovation and continuous improvement in teaching practices",
+            "Builds a collaborative team environment among faculty members",
+            "Provides adequate resources and support for teaching effectiveness",
+            "Facilitates professional development opportunities for faculty growth",
+            "Offers constructive feedback and mentorship when needed",
+            "Advocates for faculty interests and welfare with higher administration",
+            "Communicates policies, decisions, and expectations clearly and transparently",
+            "Is accessible and approachable for faculty concerns and questions",
+            "Listens actively and responds appropriately to faculty input and feedback",
+            "Manages workload distribution fairly and equitably among faculty",
+            "Handles conflicts and problems in a timely and professional manner",
+            "Demonstrates efficiency in administrative tasks and departmental operations",
+        ]
+        
         # Create or update student evaluation questions
         created_count = 0
         updated_count = 0
@@ -79,6 +98,25 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f'Peer Questions: {created_count} created, {updated_count} updated'
+            )
+        )
+        
+        # Create or update upward evaluation questions
+        created_count = 0
+        updated_count = 0
+        for i, question in enumerate(upward_questions, 1):
+            obj, created = UpwardEvaluationQuestion.objects.update_or_create(
+                question_number=i,
+                defaults={'question_text': question, 'is_active': True}
+            )
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+        
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Upward Questions: {created_count} created, {updated_count} updated'
             )
         )
         

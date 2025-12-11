@@ -764,3 +764,55 @@ class PeerEvaluationQuestion(models.Model):
     
     def __str__(self):
         return f"Peer Q{self.question_number}: {self.question_text[:50]}..."
+
+
+class UpwardEvaluationQuestion(models.Model):
+    """Store upward evaluation questions (Faculty → Coordinator, 15 questions)"""
+    question_number = models.IntegerField(primary_key=True)  # 1-15
+    question_text = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['question_number']
+    
+    def __str__(self):
+        return f"Upward Q{self.question_number}: {self.question_text[:50]}..."
+
+
+class UpwardEvaluationResponse(models.Model):
+    """Store faculty responses when evaluating their coordinator"""
+    evaluator = models.ForeignKey(User, related_name='upward_evaluations', on_delete=models.CASCADE, db_index=True)
+    evaluatee = models.ForeignKey(User, related_name='upward_evaluated_by', on_delete=models.CASCADE, db_index=True)
+    evaluation_period = models.ForeignKey(EvaluationPeriod, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    
+    # Timestamp
+    submitted_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    # 15 questions for upward evaluation
+    question1 = models.CharField(max_length=50, default='Poor')
+    question2 = models.CharField(max_length=50, default='Poor')
+    question3 = models.CharField(max_length=50, default='Poor')
+    question4 = models.CharField(max_length=50, default='Poor')
+    question5 = models.CharField(max_length=50, default='Poor')
+    question6 = models.CharField(max_length=50, default='Poor')
+    question7 = models.CharField(max_length=50, default='Poor')
+    question8 = models.CharField(max_length=50, default='Poor')
+    question9 = models.CharField(max_length=50, default='Poor')
+    question10 = models.CharField(max_length=50, default='Poor')
+    question11 = models.CharField(max_length=50, default='Poor')
+    question12 = models.CharField(max_length=50, default='Poor')
+    question13 = models.CharField(max_length=50, default='Poor')
+    question14 = models.CharField(max_length=50, default='Poor')
+    question15 = models.CharField(max_length=50, default='Poor')
+
+    # Comments field
+    comments = models.TextField(blank=True, null=True, verbose_name="Additional Comments/Suggestions")
+
+    class Meta:
+        # Prevent duplicate evaluation within the same period
+        unique_together = ('evaluator', 'evaluatee', 'evaluation_period')
+
+    def __str__(self):
+        return f"{self.evaluator.get_full_name() or self.evaluator.username}'s Upward Evaluation for {self.evaluatee.get_full_name() or self.evaluatee.username}"

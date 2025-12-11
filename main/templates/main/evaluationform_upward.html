@@ -1,0 +1,549 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upward Evaluation - Faculty to Coordinator</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    
+<style>
+    :root {
+        --primary-color: #673ab7;
+        --primary-light: #d7c5f3;
+        --secondary-color: #1a73e8;
+        --text-dark: #202124;
+        --text-light: #5f6368;
+        --border-color: #dadce0;
+        --background-light: #f8f9fa;
+        --success-color: #34a853;
+        --warning-color: #f9ab00;
+        --danger-color: #ea4335;
+    }
+
+    body {
+        background: linear-gradient(135deg, #f0ebf8 0%, #e8f0fe 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
+        padding: 20px 0;
+    }
+
+    .evaluation-container {
+        max-width: 900px;
+        margin: 30px auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .form-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .form-header h1 {
+        margin: 0 0 10px 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .form-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 16px;
+    }
+
+    .form-content {
+        padding: 40px;
+    }
+
+    .info-card {
+        background: var(--background-light);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 15px;
+    }
+
+    .info-item label {
+        font-weight: 600;
+        color: var(--text-light);
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+
+    .info-item .value {
+        font-weight: 500;
+        color: var(--text-dark);
+        font-size: 16px;
+    }
+
+    .form-section {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .form-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid var(--primary-light);
+    }
+
+    .section-number {
+        font-size: 32px;
+        margin-right: 15px;
+    }
+
+    .section-header h4 {
+        margin: 0;
+        color: var(--text-dark);
+        font-weight: 600;
+        font-size: 20px;
+    }
+
+    .question-group {
+        margin-bottom: 30px;
+        padding: 20px;
+        border-radius: 8px;
+        background: #fafafa;
+        transition: all 0.3s ease;
+    }
+
+    .question-group:hover {
+        background: #f0f0f0;
+    }
+
+    .question-text {
+        font-weight: 500;
+        color: var(--text-dark);
+        margin-bottom: 15px;
+        font-size: 16px;
+        line-height: 1.5;
+    }
+
+    .rating-options {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .rating-option {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .rating-option input[type="radio"] {
+        display: none;
+    }
+
+    .rating-label {
+        display: block;
+        padding: 12px 8px;
+        text-align: center;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .rating-label:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border-color: var(--primary-color);
+    }
+
+    .rating-option input[type="radio"]:checked + .rating-label {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        transform: scale(1.05);
+    }
+
+    .rating-value {
+        display: block;
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .rating-text {
+        display: block;
+        font-size: 12px;
+    }
+
+    .scale-guide {
+        background: linear-gradient(135deg, #f0ebf8 0%, #e8f0fe 100%);
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
+
+    .scale-guide h5 {
+        margin: 0 0 15px 0;
+        color: var(--text-dark);
+        font-weight: 600;
+    }
+
+    .scale-items {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .scale-item {
+        text-align: center;
+        padding: 10px 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .scale-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: var(--primary-color);
+        margin-bottom: 5px;
+    }
+
+    .scale-description {
+        font-size: 14px;
+        color: var(--text-dark);
+    }
+
+    .submit-section {
+        text-align: center;
+        padding: 30px 0;
+    }
+
+    .submit-btn {
+        background: linear-gradient(135deg, var(--success-color) 0%, #2d7d3e 100%);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 18px;
+        font-weight: 600;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(52, 168, 83, 0.3);
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(52, 168, 83, 0.4);
+    }
+
+    .submit-btn:active {
+        transform: translateY(0);
+    }
+
+    .already-evaluated-badge {
+        display: inline-block;
+        background: var(--success-color);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        margin-top: 10px;
+    }
+
+    .comments-section {
+        margin-top: 20px;
+    }
+
+    .comments-section textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 12px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        transition: border-color 0.3s ease;
+    }
+
+    .comments-section textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translate(-50%, -100%);
+            opacity: 0;
+        }
+        to {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+        to {
+            transform: translate(-50%, -100%);
+            opacity: 0;
+        }
+    }
+</style>
+</head>
+<body>
+<div class="evaluation-container">
+    <div class="form-header">
+        <h1>🎯 Upward Evaluation</h1>
+        <p>Faculty to Coordinator Evaluation</p>
+    </div>
+
+    <div class="form-content">
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="info-card">
+            <div class="info-item">
+                <label>Evaluating:</label>
+                <div class="value">{{ coordinator.get_full_name|default:coordinator.username }} (Coordinator)</div>
+            </div>
+            <div class="info-item">
+                <label>Your Role:</label>
+                <div class="value">Faculty Member</div>
+            </div>
+            <div class="info-item">
+                <label>Institute:</label>
+                <div class="value">{{ request.user.userprofile.institute }}</div>
+            </div>
+            {% if already_evaluated %}
+            <div class="already-evaluated-badge">
+                ✅ You have already evaluated this coordinator
+            </div>
+            {% endif %}
+        </div>
+
+        {% if already_evaluated %}
+        <div class="alert alert-info" style="text-align: center; padding: 30px;">
+            <h4>✅ Evaluation Already Submitted</h4>
+            <p>You have already submitted your evaluation for this coordinator in this evaluation period.</p>
+            <p>Thank you for your feedback!</p>
+            <a href="{% url 'main:index' %}" class="btn btn-primary">Return to Dashboard</a>
+        </div>
+        {% else %}
+        <!-- FORM STARTS HERE -->
+        <form method="POST" action="{% url 'main:submit_upward_evaluation' %}">
+            {% csrf_token %}
+
+            <!-- Hidden field for coordinator ID -->
+            <input type="hidden" name="coordinator_id" value="{{ coordinator.id }}">
+
+            <!-- Rating Scale Guide -->
+            <div class="scale-guide">
+                <h5>📊 Rating Scale Guide</h5>
+                <div class="scale-items">
+                    <div class="scale-item">
+                        <div class="scale-value">5</div>
+                        <div class="scale-description">Strongly Agree</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-value">4</div>
+                        <div class="scale-description">Agree</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-value">3</div>
+                        <div class="scale-description">Neutral</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-value">2</div>
+                        <div class="scale-description">Disagree</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-value">1</div>
+                        <div class="scale-description">Strongly Disagree</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Upward Evaluation Questions (Dynamic from Database) -->
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-number">📋</div>
+                    <h4>Leadership & Management Evaluation</h4>
+                </div>
+
+                {% for question in questions %}
+                <div class="question-group">
+                    <div class="question-text">{{ forloop.counter }}. {{ question.question_text }}</div>
+                    <div class="rating-options">
+                        {% for i in "54321" %}
+                        <div class="rating-option">
+                            <input type="radio" name="question{{ question.question_number }}" value="{{ i }}" id="q{{ question.question_number }}_{{ i }}" required>
+                            <label class="rating-label" for="q{{ question.question_number }}_{{ i }}">
+                                <span class="rating-value">{{ i }}</span>
+                                <span class="rating-text">
+                                    {% if i == "5" %}Strongly Agree
+                                    {% elif i == "4" %}Agree
+                                    {% elif i == "3" %}Neutral
+                                    {% elif i == "2" %}Disagree
+                                    {% else %}Strongly Disagree{% endif %}
+                                </span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Comments Section -->
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-number">💬</div>
+                    <h4>Additional Comments (Optional)</h4>
+                </div>
+                <div class="comments-section">
+                    <textarea name="comments" placeholder="Please provide any additional feedback or suggestions for improvement..."></textarea>
+                    <small style="color: var(--text-light); display: block; margin-top: 10px;">
+                        💡 Your feedback will help improve leadership and departmental operations
+                    </small>
+                </div>
+            </div>
+
+            <div class="submit-section">
+                <button type="submit" class="submit-btn">
+                    🚀 Submit Evaluation
+                </button>
+                <p style="color: var(--text-light); margin-top: 15px; font-size: 14px;">
+                    Your responses are confidential and will be used for professional development
+                </p>
+            </div>
+        </form>
+        <!-- FORM ENDS HERE -->
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Add smooth interaction to rating options
+    document.querySelectorAll('.rating-label').forEach(label => {
+        label.addEventListener('click', function() {
+            this.closest('.question-group').style.backgroundColor = '#e8f0fe';
+            setTimeout(() => {
+                this.closest('.question-group').style.backgroundColor = '#fafafa';
+            }, 300);
+        });
+    });
+
+    // Form validation
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Remove any existing error messages
+            const existingError = document.querySelector('.validation-error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Remove highlighting from all questions
+            document.querySelectorAll('.question-group').forEach(q => {
+                q.style.border = '';
+                q.style.backgroundColor = '#fafafa';
+            });
+
+            // Check if all questions are answered
+            const unansweredQuestions = [];
+            for (let i = 1; i <= 15; i++) {
+                const questionName = `question${i}`;
+                const questionElement = document.querySelector(`input[name="${questionName}"]:checked`);
+                if (!questionElement) {
+                    unansweredQuestions.push(i);
+                }
+            }
+
+            if (unansweredQuestions.length > 0) {
+                e.preventDefault();
+                
+                // Highlight unanswered questions
+                unansweredQuestions.forEach(qNum => {
+                    const questionGroup = document.getElementById(`q${qNum}_5`).closest('.question-group');
+                    if (questionGroup) {
+                        questionGroup.style.border = '2px solid #ea4335';
+                        questionGroup.style.backgroundColor = '#fff3f3';
+                    }
+                });
+                
+                // Show error message
+                const questionText = unansweredQuestions.length === 1 
+                    ? `Question ${unansweredQuestions[0]}` 
+                    : `${unansweredQuestions.length} questions (${unansweredQuestions.slice(0, 5).join(', ')}${unansweredQuestions.length > 5 ? '...' : ''})`;
+                
+                showErrorMessage(`⚠️ Please answer all questions before submitting. You missed: ${questionText}`);
+                
+                // Scroll to first unanswered question
+                const firstQuestion = document.getElementById(`q${unansweredQuestions[0]}_5`);
+                if (firstQuestion) {
+                    firstQuestion.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        });
+    }
+    
+    // Function to show styled error message
+    function showErrorMessage(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'validation-error-message';
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ea4335;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-size: 16px;
+            font-weight: 500;
+            max-width: 90%;
+            text-align: center;
+            animation: slideDown 0.3s ease;
+        `;
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            errorDiv.style.animation = 'slideUp 0.3s ease';
+            setTimeout(() => errorDiv.remove(), 300);
+        }, 5000);
+    }
+</script>
+</body>
+</html>

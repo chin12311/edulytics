@@ -53,6 +53,10 @@
         border-top: 5px solid #4CAF50;
     }
 
+    .evaluation-card.upward {
+        border-top: 5px solid #FF9800;
+    }
+
     .card-header {
         text-align: center;
         margin-bottom: 30px;
@@ -272,6 +276,47 @@
                 </button>
             </div>
         </div>
+
+        <!-- Upward Evaluation Card -->
+        <div class="evaluation-card upward">
+            <div class="card-header">
+                <div class="card-icon">🎯</div>
+                <h2 class="card-title">Upward Evaluation</h2>
+                <p class="card-description">
+                    Faculty members evaluate their coordinators on leadership, 
+                    communication, support, and administrative effectiveness (15 questions).
+                </p>
+            </div>
+
+            <div style="text-align: center;">
+                <span class="status-badge {% if upward_active %}active{% else %}inactive{% endif %}">
+                    {% if upward_active %}
+                        ✅ Currently Active
+                    {% else %}
+                        ⛔ Currently Inactive
+                    {% endif %}
+                </span>
+
+                {% if upward_active and upward_period_name %}
+                <div class="period-info">
+                    <strong>Started:</strong> {{ upward_period_start|date:"M d, Y - g:i A" }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-action btn-release" 
+                        onclick="releaseEvaluation('upward')"
+                        {% if upward_active %}disabled{% endif %}>
+                    🚀 Release Upward Evaluation
+                </button>
+                <button class="btn-action btn-unrelease" 
+                        onclick="unreleaseEvaluation('upward')"
+                        {% if not upward_active %}disabled{% endif %}>
+                    ⛔ Unrelease Upward Evaluation
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="back-button">
@@ -283,9 +328,15 @@
 
 <script>
 function releaseEvaluation(type) {
-    const typeName = type === 'student' ? 'Student' : 'Peer';
+    const typeNames = {
+        'student': 'Student',
+        'peer': 'Peer',
+        'upward': 'Upward'
+    };
+    const typeName = typeNames[type];
+    const targetUsers = type === 'student' ? 'students' : type === 'peer' ? 'faculty' : 'faculty (to evaluate coordinators)';
     
-    if (!confirm(`Are you sure you want to release ${typeName} Evaluation?\n\nThis will:\n- Create a new evaluation period\n- Allow ${type === 'student' ? 'students' : 'faculty'} to submit evaluations\n- Archive previous period results (if any)`)) {
+    if (!confirm(`Are you sure you want to release ${typeName} Evaluation?\n\nThis will:\n- Create a new evaluation period\n- Allow ${targetUsers} to submit evaluations\n- Archive previous period results (if any)`)) {
         return;
     }
 
@@ -293,7 +344,12 @@ function releaseEvaluation(type) {
     button.disabled = true;
     button.textContent = '⏳ Releasing...';
 
-    const url = type === 'student' ? '{% url "main:release_evaluation" %}' : '{% url "main:release_peer_evaluation" %}';
+    const urls = {
+        'student': '{% url "main:release_evaluation" %}',
+        'peer': '{% url "main:release_peer_evaluation" %}',
+        'upward': '{% url "main:release_upward_evaluation" %}'
+    };
+    const url = urls[type];
 
     fetch(url, {
         method: 'POST',
@@ -322,7 +378,12 @@ function releaseEvaluation(type) {
 }
 
 function unreleaseEvaluation(type) {
-    const typeName = type === 'student' ? 'Student' : 'Peer';
+    const typeNames = {
+        'student': 'Student',
+        'peer': 'Peer',
+        'upward': 'Upward'
+    };
+    const typeName = typeNames[type];
     
     if (!confirm(`Are you sure you want to unrelease ${typeName} Evaluation?\n\nThis will:\n- Close the current evaluation period\n- Process and archive all submitted evaluations\n- Prevent new evaluation submissions`)) {
         return;
@@ -332,7 +393,12 @@ function unreleaseEvaluation(type) {
     button.disabled = true;
     button.textContent = '⏳ Unreleasing...';
 
-    const url = type === 'student' ? '{% url "main:unrelease_evaluation" %}' : '{% url "main:unrelease_peer_evaluation" %}';
+    const urls = {
+        'student': '{% url "main:unrelease_evaluation" %}',
+        'peer': '{% url "main:unrelease_peer_evaluation" %}',
+        'upward': '{% url "main:unrelease_upward_evaluation" %}'
+    };
+    const url = urls[type];
 
     fetch(url, {
         method: 'POST',
