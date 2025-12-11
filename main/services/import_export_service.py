@@ -361,10 +361,17 @@ class AccountImportExportService:
                             result['updated'] += 1
                         else:
                             # Create new user
+                            # Split display_name into first_name and last_name
+                            name_parts = display_name.strip().split(None, 1)
+                            first_name = name_parts[0] if name_parts else display_name
+                            last_name = name_parts[1] if len(name_parts) > 1 else ''
+                            
                             user = User.objects.create_user(
                                 username=username,
                                 email=email,
-                                password=password
+                                password=password,
+                                first_name=first_name,
+                                last_name=last_name
                             )
                             
                             profile = user.userprofile

@@ -252,11 +252,18 @@ class RegisterForm(forms.Form):
         # Get the display name from the form (this is what user entered with spaces)
         display_name = self.cleaned_data['display_name']
         
-        # Create user with generated username
+        # Split display_name into first_name and last_name for User model
+        name_parts = display_name.strip().split(None, 1)  # Split on first space
+        first_name = name_parts[0] if name_parts else display_name
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        # Create user with generated username and set first_name/last_name
         user = User.objects.create_user(
             username=username,  # This is the technical username (no spaces)
             email=self.cleaned_data['email'].lower(),  # Normalize email to lowercase
-            password=self.cleaned_data['password1']
+            password=self.cleaned_data['password1'],
+            first_name=first_name,
+            last_name=last_name
         )
         
         # Handle student fields based on role
