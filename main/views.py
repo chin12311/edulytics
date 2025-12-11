@@ -2912,12 +2912,21 @@ def evaluation_form_staffs(request):
 
             # STEP 3: Fetch the list of staff members (Faculty, Coordinators, Deans), excluding the currently logged-in user
             logger.info("📍 STEP 3: Getting available staff members...")
-            staff_members = User.objects.filter(
-                userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN],
-                userprofile__institute=user_profile.institute
-            ).exclude(id=request.user.id)
             
-            logger.info(f"✅ Found {staff_members.count()} staff members available for evaluation")
+            # Faculty should only see other faculty members
+            # Coordinators and Deans can see all staff
+            if user_profile.role == Role.FACULTY:
+                staff_members = User.objects.filter(
+                    userprofile__role=Role.FACULTY,
+                    userprofile__institute=user_profile.institute
+                ).exclude(id=request.user.id)
+                logger.info(f"✅ Faculty user - showing only faculty colleagues: {staff_members.count()} members")
+            else:
+                staff_members = User.objects.filter(
+                    userprofile__role__in=[Role.FACULTY, Role.COORDINATOR, Role.DEAN],
+                    userprofile__institute=user_profile.institute
+                ).exclude(id=request.user.id)
+                logger.info(f"✅ Dean/Coordinator user - showing all staff: {staff_members.count()} members")
 
             # STEP 4: Get already evaluated staff members FOR THIS PERIOD ONLY
             logger.info("📍 STEP 4: Getting already-evaluated staff list...")
