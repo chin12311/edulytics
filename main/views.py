@@ -1057,8 +1057,54 @@ def generate_and_save_ai_recommendations_for_period(period):
                         'evaluation_count': result.total_responses,
                         'positive_comments': [],
                         'negative_comments': [],
-                        'mixed_comments': []
+                        'mixed_comments': [],
+                        'question_scores': []
                     }
+                    
+                    # Calculate individual question scores from responses
+                    responses = EvaluationResponse.objects.filter(
+                        evaluatee=user,
+                        student_section=section_code,
+                        evaluation_period=period
+                    )
+                    
+                    if responses.exists():
+                        # Get all question fields (q1 through q19)
+                        question_fields = [f'q{i}' for i in range(1, 20)]
+                        question_texts = {
+                            'q1': 'Demonstrates mastery of the subject matter',
+                            'q2': 'Draws and shares conclusions from relevant experiences',
+                            'q3': 'Integrates subject with relevant disciplines',
+                            'q4': 'Organizes subject matter effectively',
+                            'q5': 'Provides relevant and updated references',
+                            'q6': 'Maintains discipline in the classroom',
+                            'q7': 'Holds interest of students throughout the period',
+                            'q8': 'Manages classroom interactions effectively',
+                            'q9': 'Starts and ends class on time',
+                            'q10': 'Demonstrates leadership and professionalism',
+                            'q11': 'Comes to class prepared',
+                            'q12': 'Complies with course requirements',
+                            'q13': 'Returns checked tests/assignments on time',
+                            'q14': 'Shows mastery in using educational technology',
+                            'q15': 'Explains concepts clearly',
+                            'q16': 'Shows enthusiasm in teaching',
+                            'q17': 'Encourages participation and discussion',
+                            'q18': 'Demonstrates fairness in grading',
+                            'q19': 'Overall teaching effectiveness'
+                        }
+                        
+                        for field in question_fields:
+                            # Calculate average for this question
+                            scores = responses.values_list(field, flat=True)
+                            valid_scores = [s for s in scores if s is not None and s > 0]
+                            if valid_scores:
+                                avg_score = sum(valid_scores) / len(valid_scores)
+                                percentage = (avg_score / 5.0) * 100
+                                section_data['question_scores'].append({
+                                    'question': question_texts.get(field, field),
+                                    'score': round(avg_score, 2),
+                                    'percentage': round(percentage, 1)
+                                })
                     
                     # Get comments for this section
                     comments = EvaluationResponse.objects.filter(

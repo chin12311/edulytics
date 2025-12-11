@@ -89,12 +89,21 @@ class TeachingAIRecommendationService:
 
 {context}
 
-Focus on the WEAKEST areas. Provide recommendations that are SPECIFIC to these exact scores and this {evaluation_type} evaluation context.
+REQUIRED FORMAT FOR EACH RECOMMENDATION:
+1. **Student Quote (Negative):** Include 1 actual negative/critical student comment
+2. **Student Quote (Positive):** Include 1 actual positive student comment that shows their strength
+3. **Question Analysis:** Reference specific evaluation questions that scored low (e.g., "Your score on 'explains concepts clearly' was 65%")
+4. **What to do:** Provide 3-5 concrete action steps to improve
 
-IMPORTANT: Provide recommendations that are SPECIFIC to {evaluation_type} evaluation data.
-Do NOT provide generic advice.
+Focus on the WEAKEST areas first. Make it PERSONAL by showing real student voices.
 
-Provide 3 SPECIFIC recommendations tied directly to these scores and evaluation type."""
+IMPORTANT: 
+- MUST include actual student quotes from the feedback provided
+- MUST reference specific evaluation question results
+- Make it engaging so the teacher actually wants to read it
+- Balance criticism with recognition of strengths
+
+Provide 3 SPECIFIC recommendations following this format."""
                     }
                 ],
                 max_tokens=1200,
@@ -149,20 +158,28 @@ Analyze the category scores and provide recommendations that:
 
 Format: 3 specific recommendations with clear priorities based on the actual PEER evaluation data."""
         else:
-            return """You are an expert educational consultant. Provide SPECIFIC, DATA-DRIVEN recommendations based EXACTLY on the STUDENT evaluation scores provided.
+            return """You are an expert educational consultant. Provide SPECIFIC, DATA-DRIVEN recommendations based EXACTLY on the STUDENT evaluation scores and feedback provided.
 
-CRITICAL: Do NOT give generic advice like "active learning" or "formative assessment" unless the scores specifically indicate they're needed.
+CRITICAL FORMAT FOR EACH RECOMMENDATION:
+1. Start with actual student quote (if available): "Student said: [exact quote]"
+2. Follow with what this means: "This indicates..."
+3. Provide specific actions: "What to do: [concrete steps]"
+4. Reference specific evaluation questions that scored low
 
-Pay special attention to MIXED/CONSTRUCTIVE feedback - these often contain the most valuable insights as they highlight both strengths and specific areas for improvement.
+IMPORTANT RULES:
+- ALWAYS include at least 1 negative student comment quote and 1 positive student comment quote
+- Make recommendations personal and hard to ignore by using real student voices
+- Do NOT give generic advice - be specific to the actual scores and comments
+- Reference specific evaluation questions (e.g., "Students rated 'explains concepts clearly' at 65%")
+- Balance is key: Show what they're doing well AND what needs improvement
 
-Analyze the category scores and student comments to provide recommendations that:
-- Address the LOWEST scoring categories first
-- Are specific to the actual percentage gaps  
-- Reference specific student feedback when provided
-- Suggest concrete actions for the exact teaching context
-- Are tailored to the specific section being analyzed
+Analyze:
+- Category scores (which teaching areas are weakest)
+- Individual question scores (specific teaching behaviors)
+- Student comments (actual student voices and concerns)
+- Provide concrete, actionable steps tied to this specific data
 
-Format: 3 specific recommendations with clear priorities based on the actual evaluation data."""
+Format: 3 specific recommendations, each including student quotes and question-based analysis."""
 
     def _prepare_ai_context(self, user, section_data, section_code, role, evaluation_type):
         """Prepare context with evaluation type support"""
@@ -183,6 +200,16 @@ Format: 3 specific recommendations with clear priorities based on the actual eva
             context_parts.append("\n📊 EVALUATION RESULTS:")
             context_parts.append(f"Overall Score: {section_data.get('total_percentage', 0)}%")
             context_parts.append(f"Total Evaluations: {section_data.get('evaluation_count', section_data.get('total_responses', 0))}")
+            
+            # Add individual question scores if available
+            question_scores = section_data.get('question_scores', [])
+            if question_scores:
+                context_parts.append("\n📋 INDIVIDUAL QUESTION SCORES:")
+                for q in question_scores:
+                    question_text = q.get('question', 'Unknown')
+                    score = q.get('score', 0)
+                    percentage = q.get('percentage', 0)
+                    context_parts.append(f"  • {question_text}: {percentage:.1f}% (Score: {score:.2f}/5)")
             
             # Different category names and descriptions based on evaluation type
             if evaluation_type == "peer":
