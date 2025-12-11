@@ -3434,7 +3434,17 @@ def evaluation_form_upward(request):
                 'page_title': 'Configuration Required',
             })
         
-        coordinator = user_profile.institute.coordinator
+        # Get Institute object from the institute string
+        from main.models import Institute
+        try:
+            institute_obj = Institute.objects.get(name=user_profile.institute)
+            coordinator = institute_obj.coordinator
+        except Institute.DoesNotExist:
+            logger.warning(f"❌ Institute '{user_profile.institute}' not found in database!")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'Your institute information is invalid. Please contact administrator.',
+                'page_title': 'Configuration Required',
+            })
         
         if not coordinator:
             logger.warning(f"❌ Institute {user_profile.institute} has no coordinator assigned!")
