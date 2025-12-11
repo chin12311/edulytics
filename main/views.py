@@ -3427,14 +3427,14 @@ def evaluation_form_upward(request):
         # STEP 3: Get the coordinator of the faculty's institute
         logger.info("📍 STEP 3: Getting coordinator...")
         
-        if not user_profile.institute_obj:
+        if not user_profile.institute:
             logger.warning(f"❌ Faculty {request.user.username} has no institute assigned!")
             return render(request, 'main/no_active_evaluation.html', {
                 'message': 'Your institute information is not set up. Please contact administrator.',
                 'page_title': 'Configuration Required',
             })
         
-        coordinator = user_profile.institute_obj.coordinator
+        coordinator = user_profile.institute.coordinator
         
         if not coordinator:
             logger.warning(f"❌ Institute {user_profile.institute} has no coordinator assigned!")
