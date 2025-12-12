@@ -205,7 +205,7 @@ function validateAgreement() {
             case 'Coordinator':
             case 'Faculty':
                 // All staff go to peer evaluation form
-                window.location.href = "{% url 'main:evaluationform_staffs' %}";
+                window.location.href = "{% url 'main:evaluationform_upward' %}";
                 break;
             case 'Student':
             default:
