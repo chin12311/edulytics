@@ -642,6 +642,9 @@ function initializeIrregularToggle() {
 
 // Real-time password validation
 function initializePasswordValidation() {
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const passwordError = document.getElementById('passwordError');
     const confirmPasswordError = document.getElementById('confirmPasswordError');
     
     if (password && confirmPassword && passwordError && confirmPasswordError) {
@@ -726,10 +729,7 @@ function initializePasswordValidation() {
                 confirmPassword.style.borderColor = '#dc3545';
             } else if (pass && confirmPass && pass === confirmPass) {
                 // Passwords match - show success
-                confirmPe if (pass && confirmPass && pass === confirmPass) {
-                // Passwords match - show success
                 confirmPassword.style.borderColor = '#47682c';
-                password.style.borderColor = '#47682c';
             }
         });
     }
