@@ -240,6 +240,72 @@
     .privacy-content::-webkit-scrollbar-thumb:hover {
         background: #555;
     }
+
+    /* Rating Scale Guide Styling */
+    .scale-guide {
+        background: linear-gradient(135deg, #fff9e6 0%, #ffe6f0 100%);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        border: 3px solid var(--accent-color);
+        box-shadow: 0 4px 15px rgba(255, 64, 129, 0.2);
+    }
+
+    .scale-guide h5 {
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 25px;
+        text-align: center;
+    }
+
+    .scale-items {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .scale-item {
+        flex: 1;
+        min-width: 120px;
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .scale-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        border-color: var(--primary-color);
+    }
+
+    .scale-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 10px;
+    }
+
+    .scale-description {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    @media (max-width: 768px) {
+        .scale-items {
+            flex-direction: column;
+        }
+        
+        .scale-item {
+            min-width: 100%;
+        }
+    }
 </style>
 
 <div class="container">
@@ -306,6 +372,33 @@
                     <strong>Your Rights:</strong> You have the right to know how your data is used. Contact the administration for questions about data handling.
                 </li>
             </ol>
+        </div>
+
+        <!-- Rating Scale Guide -->
+        <div class="scale-guide">
+            <h5>📊 Rating Scale Guide</h5>
+            <div class="scale-items">
+                <div class="scale-item">
+                    <div class="scale-value">5</div>
+                    <div class="scale-description">Outstanding</div>
+                </div>
+                <div class="scale-item">
+                    <div class="scale-value">4</div>
+                    <div class="scale-description">Very Satisfactory</div>
+                </div>
+                <div class="scale-item">
+                    <div class="scale-value">3</div>
+                    <div class="scale-description">Satisfactory</div>
+                </div>
+                <div class="scale-item">
+                    <div class="scale-value">2</div>
+                    <div class="scale-description">Unsatisfactory</div>
+                </div>
+                <div class="scale-item">
+                    <div class="scale-value">1</div>
+                    <div class="scale-description">Poor</div>
+                </div>
+            </div>
         </div>
 
         <!-- Agreement Section -->
