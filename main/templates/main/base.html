@@ -569,12 +569,10 @@
         Evaluation
     </a>
 
-    {% if upward_evaluation_active %}
     <a href="{% url 'main:upward_evaluation_terms' %}" class="nav-link-custom {% if request.path == '/upward-evaluation-terms/' or request.path == '/evaluation-upward/' %}active{% endif %}">
         <span class="nav-icon" style="background-image: url('{% static 'img/eval.png' %}');"></span>
         🎯 Upward Evaluation
     </a>
-    {% endif %}
 
 {% elif request.user.userprofile.role == 'Coordinator' %}
     <a href="{% url 'main:faculty' %}" class="nav-link-custom {% if request.path == '/faculty/' %}active{% endif %}">
