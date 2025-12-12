@@ -153,23 +153,6 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         <div class="form-card col-md-6 col-12">
         <h2 class="text-center">Create an Account</h2>
 
-        <!-- Display form errors at the top -->
-        {% if form.errors %}
-            <div class="alert alert-danger">
-                <strong>Please fix the following errors:</strong>
-                <ul>
-                {% for field in form %}
-                    {% for error in field.errors %}
-                        <li>{{ field.label }}: {{ error }}</li>
-                    {% endfor %}
-                {% endfor %}
-                {% for error in form.non_field_errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-
         <form method="POST" id="registerForm">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next_url }}">
@@ -694,6 +677,106 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 password2Field.focus();
                 return false;
+            }
+        });
+    }
+    
+    // Real-time password validation on blur
+    const password1Field = document.getElementById('id_password1');
+    const password2Field = document.getElementById('id_password2');
+    const passwordError = document.getElementById('passwordStrengthError');
+    const confirmPasswordError = document.getElementById('confirmPasswordStrengthError');
+    
+    if (password1Field && passwordError) {
+        password1Field.addEventListener('blur', function() {
+            const pass = password1Field.value;
+            const displayName = document.getElementById('id_display_name').value.trim();
+            const email = document.getElementById('id_email').value.trim();
+            
+            // Clear previous error
+            passwordError.textContent = '';
+            passwordError.style.display = 'none';
+            password1Field.style.borderColor = '';
+            
+            // Only validate if user has entered something
+            if (!pass) {
+                return;
+            }
+            
+            // Check if password matches or contains display name
+            if (displayName) {
+                const cleanDisplayName = displayName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const cleanPassword = pass.toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                if (pass.toLowerCase() === displayName.toLowerCase() || cleanPassword.includes(cleanDisplayName)) {
+                    passwordError.textContent = 'Password cannot be the same as or contain your name.';
+                    passwordError.style.display = 'block';
+                    password1Field.style.borderColor = '#dc3545';
+                    return;
+                }
+            }
+            
+            // Check if password matches or contains email or email username
+            if (email) {
+                const emailUsername = email.split('@')[0];
+                const cleanEmail = email.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const cleanEmailUsername = emailUsername.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const cleanPassword = pass.toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                if (pass.toLowerCase() === email.toLowerCase() || 
+                    pass.toLowerCase() === emailUsername.toLowerCase() ||
+                    cleanPassword.includes(cleanEmail) ||
+                    cleanPassword.includes(cleanEmailUsername)) {
+                    passwordError.textContent = 'Password cannot be the same as or contain your email or username.';
+                    passwordError.style.display = 'block';
+                    password1Field.style.borderColor = '#dc3545';
+                    return;
+                }
+            }
+            
+            // Check password length requirements
+            if (pass.length < 8) {
+                passwordError.textContent = 'Password must be at least 8 characters long.';
+                passwordError.style.display = 'block';
+                password1Field.style.borderColor = '#dc3545';
+                return;
+            }
+            
+            if (pass.length > 16) {
+                passwordError.textContent = 'Password must not exceed 16 characters.';
+                passwordError.style.display = 'block';
+                password1Field.style.borderColor = '#dc3545';
+                return;
+            }
+            
+            // Password is valid - show success
+            password1Field.style.borderColor = '#47682c';
+        });
+    }
+    
+    if (password2Field && confirmPasswordError) {
+        password2Field.addEventListener('blur', function() {
+            const pass = password1Field.value;
+            const confirmPass = password2Field.value;
+            
+            // Clear previous error
+            confirmPasswordError.textContent = '';
+            confirmPasswordError.style.display = 'none';
+            password2Field.style.borderColor = '';
+            
+            // Only validate if user has entered something
+            if (!confirmPass) {
+                return;
+            }
+            
+            // Check if passwords match
+            if (pass && confirmPass && pass !== confirmPass) {
+                confirmPasswordError.textContent = 'Passwords do not match.';
+                confirmPasswordError.style.display = 'block';
+                password2Field.style.borderColor = '#dc3545';
+            } else if (pass && confirmPass && pass === confirmPass) {
+                // Passwords match - show success
+                password2Field.style.borderColor = '#47682c';
             }
         });
     }
