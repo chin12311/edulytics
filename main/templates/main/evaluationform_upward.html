@@ -815,10 +815,6 @@
 
         <div class="info-card">
             <div class="info-item">
-                <label>Evaluating:</label>
-                <div class="value">{{ coordinator.get_full_name|default:coordinator.username }} (Coordinator)</div>
-            </div>
-            <div class="info-item">
                 <label>Your Role:</label>
                 <div class="value">Faculty Member</div>
             </div>
@@ -826,27 +822,38 @@
                 <label>Institute:</label>
                 <div class="value">{{ request.user.userprofile.institute }}</div>
             </div>
-            {% if already_evaluated %}
-            <div class="already-evaluated-badge">
-                ✅ You have already evaluated this coordinator
-            </div>
-            {% endif %}
+            <small style="color: var(--text-light); font-style: italic;">
+                💡 Your information is pre-filled from your account profile
+            </small>
         </div>
 
-        {% if already_evaluated %}
-        <div class="alert alert-info" style="text-align: center; padding: 30px;">
-            <h4>✅ Evaluation Already Submitted</h4>
-            <p>You have already submitted your evaluation for this coordinator in this evaluation period.</p>
-            <p>Thank you for your feedback!</p>
-            <a href="{% url 'main:index' %}" class="btn btn-primary">Return to Dashboard</a>
-        </div>
-        {% else %}
         <!-- FORM STARTS HERE -->
         <form method="POST" action="{% url 'main:submit_upward_evaluation' %}">
             {% csrf_token %}
 
-            <!-- Hidden field for coordinator ID -->
-            <input type="hidden" name="coordinator_id" value="{{ coordinator.id }}">
+            <!-- Coordinator Selection -->
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-number">👨‍💼</div>
+                    <h4>Select Coordinator</h4>
+                </div>
+                <div class="question-group">
+                    <label for="coordinator_id" class="question-text">Choose the coordinator you want to evaluate:</label>
+                    <select class="form-control" name="coordinator_id" id="coordinator_id" required>
+                        <option value="">-- Select a Coordinator --</option>
+                        {% for coordinator in coordinators %}
+                            <option value="{{ coordinator.id }}" {% if coordinator.id in evaluated_ids %}disabled{% endif %}>
+                                {{ coordinator.get_full_name|default:coordinator.username }} - 
+                                {{ coordinator.userprofile.role }}
+                                {% if coordinator.id in evaluated_ids %} (Already Evaluated){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">
+                        You can only evaluate each coordinator once per evaluation period.
+                    </small>
+                </div>
+            </div>
 
             <!-- Rating Scale Guide -->
             <div class="scale-guide">
@@ -920,6 +927,10 @@
                 </div>
             </div>
 
+            <div class="warning-message" id="already-evaluated-msg">
+                ⚠️ You have already evaluated this coordinator. Please select a different coordinator.
+            </div>
+
             <div class="submit-section">
                 <button type="submit" class="submit-btn">
                     🚀 Submit Evaluation
@@ -930,17 +941,29 @@
             </div>
         </form>
         <!-- FORM ENDS HERE -->
-        {% endif %}
     </div>
 </div>
 
 <script>
+    const evaluatedIds = {{ evaluated_ids|safe }};
+    const coordinatorSelect = document.getElementById("coordinator_id");
+    const warningMsg = document.getElementById("already-evaluated-msg");
+
+    coordinatorSelect.addEventListener("change", function() {
+        const selectedId = parseInt(this.value);
+        if (evaluatedIds.includes(selectedId)) {
+            warningMsg.style.display = "block";
+        } else {
+            warningMsg.style.display = "none";
+        }
+    });
+
     // Add smooth interaction to rating options
     document.querySelectorAll('.rating-label').forEach(label => {
         label.addEventListener('click', function() {
             this.closest('.question-group').style.backgroundColor = '#e8f0fe';
             setTimeout(() => {
-                this.closest('.question-group').style.backgroundColor = '#fafafa';
+                this.closest('.question-group').style.backgroundColor = 'var(--background-light)';
             }, 300);
         });
     });
@@ -958,8 +981,25 @@
             // Remove highlighting from all questions
             document.querySelectorAll('.question-group').forEach(q => {
                 q.style.border = '';
-                q.style.backgroundColor = '#fafafa';
+                q.style.backgroundColor = 'var(--background-light)';
             });
+
+            // Check if coordinator is selected
+            const selectedCoordinator = coordinatorSelect.value;
+            if (!selectedCoordinator) {
+                e.preventDefault();
+                showErrorMessage('⚠️ Please select a coordinator to evaluate before submitting.');
+                coordinatorSelect.focus();
+                coordinatorSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+
+            // Check if already evaluated
+            if (evaluatedIds.includes(parseInt(selectedCoordinator))) {
+                e.preventDefault();
+                showErrorMessage('⚠️ You have already evaluated this coordinator. Please select a different coordinator.');
+                return false;
+            }
 
             // Check if all questions are answered
             const unansweredQuestions = [];

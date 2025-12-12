@@ -3424,8 +3424,8 @@ def evaluation_form_upward(request):
         
         logger.info(f"✅ Found released upward evaluation: ID={evaluation.id}, Period={evaluation.evaluation_period_id}")
 
-        # STEP 3: Get the coordinator of the faculty's institute
-        logger.info("📍 STEP 3: Getting coordinator...")
+        # STEP 3: Get all coordinators from the faculty's institute
+        logger.info("📍 STEP 3: Getting coordinators...")
         
         if not user_profile.institute:
             logger.warning(f"❌ Faculty {request.user.username} has no institute assigned!")
@@ -3434,47 +3434,33 @@ def evaluation_form_upward(request):
                 'page_title': 'Configuration Required',
             })
         
-        # Get coordinator from the same institute
-        try:
-            coordinator_profile = UserProfile.objects.get(
-                role=Role.COORDINATOR,
-                institute=user_profile.institute
-            )
-            coordinator = coordinator_profile.user
-        except UserProfile.DoesNotExist:
+        # Get all coordinators from the same institute
+        coordinator_profiles = UserProfile.objects.filter(
+            role=Role.COORDINATOR,
+            institute=user_profile.institute
+        )
+        
+        if not coordinator_profiles.exists():
             logger.warning(f"❌ No coordinator found for institute '{user_profile.institute}'!")
             return render(request, 'main/no_active_evaluation.html', {
                 'message': 'Your institute has no coordinator assigned. Please contact administrator.',
                 'page_title': 'Configuration Required',
             })
-        except UserProfile.MultipleObjectsReturned:
-            # If multiple coordinators, get the first one
-            coordinator_profile = UserProfile.objects.filter(
-                role=Role.COORDINATOR,
-                institute=user_profile.institute
-            ).first()
-            coordinator = coordinator_profile.user
         
-        logger.info(f"✅ Coordinator found: {coordinator.get_full_name() or coordinator.username}")
+        coordinators = User.objects.filter(userprofile__in=coordinator_profiles)
+        logger.info(f"✅ Found {coordinators.count()} coordinator(s)")
 
-        # STEP 4: Check if faculty has already evaluated their coordinator in this period
-        logger.info("📍 STEP 4: Checking if already evaluated...")
+        # STEP 4: Get list of already evaluated coordinators in this period
+        logger.info("📍 STEP 4: Checking evaluated coordinators...")
         from main.models import UpwardEvaluationResponse
         
-        already_evaluated = UpwardEvaluationResponse.objects.filter(
+        evaluated_ids = list(UpwardEvaluationResponse.objects.filter(
             evaluator=request.user,
-            evaluatee=coordinator,
             evaluation_period=current_upward_period
-        ).exists()
+        ).values_list('evaluatee_id', flat=True))
 
-        if already_evaluated:
-            logger.info(f"✅ User has already evaluated coordinator in this period")
-        else:
-            logger.info(f"✅ User has NOT evaluated coordinator yet")
+        logger.info(f"✅ User has evaluated {len(evaluated_ids)} coordinator(s) in this period")
 
-        # ✅ All checks passed - prepare context
-        logger.info("✅ ALL CHECKS PASSED - Rendering form...")
-        
         # ✅ Get upward evaluation questions from database
         from main.models import UpwardEvaluationQuestion
         upward_questions = UpwardEvaluationQuestion.objects.filter(
@@ -3483,8 +3469,8 @@ def evaluation_form_upward(request):
         
         context = {
             'evaluation': evaluation,
-            'coordinator': coordinator,
-            'already_evaluated': already_evaluated,
+            'coordinators': coordinators,
+            'evaluated_ids': evaluated_ids,
             'questions': upward_questions,
             'page_title': 'Upward Evaluation Form',
         }
