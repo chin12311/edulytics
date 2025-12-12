@@ -898,32 +898,31 @@
                     </div>
                 </div>
 
-                <!-- Rating Scale Guide -->
                 <div class="scale-guide">
-                    <h5>📊 Rating Scale Guide</h5>
-                    <div class="scale-items">
-                        <div class="scale-item">
-                            <div class="scale-value">5</div>
-                            <div class="scale-description">Strongly Agree</div>
-                        </div>
-                        <div class="scale-item">
-                            <div class="scale-value">4</div>
-                            <div class="scale-description">Agree</div>
-                        </div>
-                        <div class="scale-item">
-                            <div class="scale-value">3</div>
-                            <div class="scale-description">Neutral</div>
-                        </div>
-                        <div class="scale-item">
-                            <div class="scale-value">2</div>
-                            <div class="scale-description">Disagree</div>
-                        </div>
-                        <div class="scale-item">
-                            <div class="scale-value">1</div>
-                            <div class="scale-description">Strongly Disagree</div>
-                        </div>
+                <h5>📊 Rating Scale Guide</h5>
+                <div class="scale-items">
+                    <div class="scale-item">
+                        <div class="scale-value">5</div>
+                        <div class="scale-description">Outstanding</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-value">4</div>
+                        <div class="scale-description">Very Satisfactory</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-value">3</div>
+                        <div class="scale-description">Satisfactory</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-value">2</div>
+                        <div class="scale-description">Unsatisfactory</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-value">1</div>
+                        <div class="scale-description">Poor</div>
                     </div>
                 </div>
+            </div>
 
                 <!-- All Upward Evaluation Questions (Dynamic from Database) -->
                 <div class="form-section">
@@ -942,11 +941,11 @@
                                 <label class="rating-label" for="q{{ question.question_number }}_{{ i }}">
                                     <span class="rating-value">{{ i }}</span>
                                     <span class="rating-text">
-                                        {% if i == "5" %}Strongly Agree
-                                        {% elif i == "4" %}Agree
-                                        {% elif i == "3" %}Neutral
-                                        {% elif i == "2" %}Disagree
-                                        {% else %}Strongly Disagree{% endif %}
+                                        {% if i == "5" %}Outstanding
+                                        {% elif i == "4" %}Very Satisfactory
+                                        {% elif i == "3" %}Satisfactory
+                                        {% elif i == "2" %}Unsatisfactory
+                                        {% else %}Poor{% endif %}
                                     </span>
                                 </label>
                             </div>
