@@ -118,7 +118,6 @@
                 <p>{{ evaluation.description }}</p>
                 
                 <!-- Simplified User Agreement Section -->
-                {% if request.user.userprofile.role == 'Student' or user.userprofile.role == "Coordinator" or user.userprofile.role == "Faculty" or user.userprofile.role == "Dean" %}
                 <div class="agreement-section mb-4">
                     <div class="card border-primary">
                         <div class="card-header bg-primary text-white py-2">
@@ -153,23 +152,15 @@
                         </div>
                     </div>
                 </div>
-                {% endif %}
                 
                 <form method="POST" action="">
                     {% csrf_token %}
-                    <p class="mb-3">Please fill out this evaluation form to assess the teaching quality.</p>
+                    <p class="mb-3">Please review the terms and conditions above before starting the upward evaluation.</p>
 
-                    {% if request.user.userprofile.role == 'Student' or user.userprofile.role == "Coordinator" or user.userprofile.role == "Faculty" or user.userprofile.role == "Dean" %}
-                        <!-- Link for Student (with agreement validation) - INITIALLY DISABLED -->
-                        <button type="button" id="evaluationBtn" class="btn btn-primary btn-lg" onclick="validateAgreement()" disabled>
-                            <i class="fas fa-edit me-2"></i> Start Evaluation
-                        </button>
-                    {% else %}
-                        <!-- Link for Dean, Coordinator, Faculty, or other roles -->
-                        <a href="{% url 'main:evaluationform_upward' %}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-edit me-2"></i> Start Evaluation
-                        </a>
-                    {% endif %}
+                    <!-- Start Evaluation Button (with agreement validation) - INITIALLY DISABLED -->
+                    <button type="button" id="evaluationBtn" class="btn btn-primary btn-lg" onclick="validateAgreement()" disabled>
+                        <i class="fas fa-edit me-2"></i> Start Evaluation
+                    </button>
                 </form>
             {% else %}
                 <div class="alert alert-warning text-center" role="alert">
@@ -197,22 +188,26 @@ function validateAgreement() {
     } else {
         agreementError.style.display = 'none';
         
-        const userRole = "{{ request.user.userprofile.role }}";
-        
-        // Redirect to appropriate evaluation form based on role
-        switch(userRole) {
-            case 'Dean':
-            case 'Coordinator':
-            case 'Faculty':
-                // All staff go to peer evaluation form
-                window.location.href = "{% url 'main:evaluationform_upward' %}";
-                break;
-            case 'Student':
-            default:
-                // Students go to student evaluation form
-                window.location.href = "{% url 'main:evaluationform' %}";
-                break;
-        }
+        // Store agreement in session and redirect to upward evaluation form
+        fetch('{% url "main:upward_terms_agree" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ agreed: true })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '{% url "main:evaluation_form_upward" %}';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Still redirect even if session storage fails
+            window.location.href = '{% url "main:evaluation_form_upward" %}';
+        });
         
         return true;
     }

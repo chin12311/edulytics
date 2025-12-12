@@ -3383,7 +3383,29 @@ def upward_evaluation_terms(request):
                 'page_title': 'Access Denied',
             })
         
-        return render(request, 'main/evaluationform_upward_terms.html')
+        # Check if there's an active upward evaluation period
+        try:
+            current_upward_period = EvaluationPeriod.objects.get(
+                evaluation_type='upward',
+                is_active=True
+            )
+            
+            # Check if upward evaluation is released and linked to this period
+            evaluation = Evaluation.objects.filter(
+                is_released=True,
+                evaluation_type='upward',
+                evaluation_period=current_upward_period
+            ).first()
+            
+        except EvaluationPeriod.DoesNotExist:
+            evaluation = None
+        
+        context = {
+            'evaluation': evaluation,
+            'page_title': 'Upward Evaluation Agreement'
+        }
+        
+        return render(request, 'main/evaluationform_upward_terms.html', context)
     
     except UserProfile.DoesNotExist:
         return redirect('/login')
