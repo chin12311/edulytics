@@ -350,6 +350,430 @@
         font-weight: 500;
     }
 
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        body {
+            padding: 10px 0;
+        }
+        
+        .evaluation-container {
+            margin: 10px;
+            border-radius: 12px;
+        }
+
+        .form-content {
+            padding: 15px;
+        }
+
+        .form-header {
+            padding: 20px 15px;
+        }
+
+        .form-header h1 {
+            font-size: 22px;
+        }
+
+        .form-header p {
+            font-size: 14px;
+        }
+
+        .info-card {
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item label {
+            font-size: 13px;
+        }
+
+        .info-item .value {
+            font-size: 15px;
+        }
+
+        .form-section {
+            padding: 20px 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        .section-header {
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+        }
+
+        .section-number {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+            margin-right: 12px;
+        }
+
+        .section-header h4 {
+            font-size: 18px;
+        }
+
+        .question-group {
+            margin-bottom: 25px;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .question-text {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 15px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .question-group > .question-text:first-of-type {
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .rating-options {
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .rating-label {
+            min-width: 65px;
+            padding: 10px 8px;
+            font-size: 13px;
+        }
+
+        .rating-value {
+            font-size: 22px;
+        }
+
+        .rating-text {
+            font-size: 10px;
+        }
+
+        .scale-guide {
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .scale-guide h5 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+        }
+
+        .scale-items {
+            gap: 10px;
+            padding: 8px 0;
+        }
+
+        .scale-item {
+            padding: 10px;
+        }
+
+        .scale-value {
+            font-size: 20px;
+        }
+
+        .scale-description {
+            font-size: 12px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 16px;
+        }
+
+        .comments-section {
+            padding: 20px 15px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+
+        .comments-section h5 {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .comments-section textarea {
+            min-height: 100px;
+            font-size: 14px;
+            padding: 12px;
+        }
+
+        .form-control {
+            padding: 12px;
+            font-size: 15px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .evaluation-container {
+            margin: 5px;
+            border-radius: 10px;
+        }
+
+        .form-content {
+            padding: 12px;
+        }
+
+        .form-header {
+            padding: 15px 12px;
+        }
+
+        .form-header h1 {
+            font-size: 20px;
+            margin: 0 0 8px 0;
+        }
+
+        .form-header p {
+            font-size: 13px;
+            opacity: 0.95;
+        }
+
+        .info-card {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        .info-item label {
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .info-item .value {
+            font-size: 14px;
+        }
+
+        .form-section {
+            padding: 15px 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        .section-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+        }
+
+        .section-number {
+            width: 26px;
+            height: 26px;
+            font-size: 11px;
+            margin-right: 10px;
+        }
+
+        .section-header h4 {
+            font-size: 16px;
+        }
+
+        .question-group {
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .question-text {
+            font-size: 17px;
+            margin-bottom: 15px;
+            line-height: 1.7;
+            font-weight: 600;
+        }
+
+        .question-group > .question-text:first-of-type {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .rating-options {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .rating-option {
+            position: relative;
+        }
+
+        .rating-label {
+            width: 100%;
+            max-width: 100%;
+            flex-direction: row;
+            justify-content: space-between;
+            padding: 14px 18px;
+            font-size: 13px;
+            border-radius: 8px;
+        }
+
+        .rating-value {
+            font-size: 24px;
+            margin-bottom: 0;
+        }
+
+        .rating-text {
+            font-size: 13px;
+            text-align: right;
+        }
+
+        .scale-guide {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        .scale-guide h5 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        .scale-items {
+            flex-direction: column;
+            gap: 8px;
+            padding: 5px 0;
+        }
+
+        .scale-item {
+            padding: 8px;
+        }
+
+        .scale-value {
+            font-size: 20px;
+            margin-bottom: 3px;
+        }
+
+        .scale-description {
+            font-size: 11px;
+        }
+
+        .submit-section {
+            padding: 20px 0 10px 0;
+            text-align: center;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 15px;
+            border-radius: 8px;
+        }
+
+        .submit-section p {
+            font-size: 12px;
+            margin-top: 12px;
+        }
+
+        .comments-section {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 2px solid #1a73e8;
+        }
+
+        .comments-section h5 {
+            font-size: 15px;
+            margin-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .comments-section textarea {
+            width: 100%;
+            min-height: 90px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .comments-note {
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .form-control {
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .warning-message {
+            padding: 12px;
+            margin: 12px 0;
+            font-size: 13px;
+            border-radius: 6px;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .evaluation-container {
+            margin: 5px;
+        }
+
+        .form-content {
+            padding: 12px;
+        }
+
+        .form-header {
+            padding: 12px;
+        }
+
+        .form-header h1 {
+            font-size: 18px;
+        }
+
+        .section-number {
+            width: 24px;
+            height: 24px;
+            font-size: 10px;
+            margin-right: 8px;
+        }
+
+        .section-header h4 {
+            font-size: 15px;
+        }
+
+        .question-text {
+            font-size: 13px;
+        }
+
+        .rating-label {
+            min-width: 45px;
+            padding: 8px 8px;
+            font-size: 11px;
+        }
+
+        .scale-item {
+            min-width: 50px;
+        }
+    }
+
+    /* Animation for form sections */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .form-section {
+        animation: fadeInUp 0.5s ease forwards;
+    }
+
+    .form-section:nth-child(2) { animation-delay: 0.1s; }
+    .form-section:nth-child(3) { animation-delay: 0.2s; }
+    .form-section:nth-child(4) { animation-delay: 0.3s; }
+    .form-section:nth-child(5) { animation-delay: 0.4s; }
+
     @keyframes slideDown {
         from {
             transform: translate(-50%, -100%);
