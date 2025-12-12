@@ -162,9 +162,13 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 <label for="id_display_name">Full Name:</label>
                 <input type="text" name="display_name" id="id_display_name" 
                        value="{{ form.display_name.value|default:'' }}" 
-                       class="form-control mb-3 custom-input-width text-center" 
+                       class="form-control mb-1 custom-input-width text-center {% if form.display_name.errors %}border-danger{% endif %}" 
                        placeholder="Enter your full name" required>
-                
+                {% if form.display_name.errors %}
+                    {% for error in form.display_name.errors %}
+                        <small class="text-danger d-block mt-1">{{ error }}</small>
+                    {% endfor %}
+                {% endif %}
             </div>
             
             <!-- Email -->
@@ -172,7 +176,14 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 <label for="id_email">Email:</label>
                 <input type="email" name="email" id="id_email" 
                        value="{{ form.email.value|default:'' }}" 
-                       class="form-control mb-3 custom-input-width text-center" 
+                       class="form-control mb-1 custom-input-width text-center {% if form.email.errors %}border-danger{% endif %}" 
+                       placeholder="your@email.com" required>
+                {% if form.email.errors %}
+                    {% for error in form.email.errors %}
+                        <small class="text-danger d-block mt-1">{{ error }}</small>
+                    {% endfor %}
+                {% endif %}
+            </div> 
                        placeholder="your@email.com" required>
             </div>
             
