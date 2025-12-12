@@ -178,7 +178,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <i class="fas fa-eye" id="togglePassword" 
                        style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
                 </div>
-                <small class="text-muted d-block mt-2">Leave blank to keep current password</small>
+                <small id="passwordError" class="text-danger d-block mt-1" style="display: none;"></small>
+                <small id="passwordHint" class="text-muted d-block mt-1">Leave blank to keep current password</small>
             </div>
 
             <div class="form-group">
@@ -189,7 +190,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <i class="fas fa-eye" id="toggleConfirmPassword" 
                        style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
                 </div>
-                <small id="passwordError" class="text-danger d-block mt-2"></small>
+                <small id="confirmPasswordError" class="text-danger d-block mt-1" style="display: none;"></small>
             </div>
 
             {% if user.userprofile.role == "Student" %}
@@ -477,67 +478,77 @@ document.addEventListener('DOMContentLoaded', function() {
         profileForm.addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
+            const passwordField = document.getElementById('password');
+            const confirmPasswordField = document.getElementById('confirm_password');
             const passwordError = document.getElementById('passwordError');
+            const confirmPasswordError = document.getElementById('confirmPasswordError');
             
-            // Reset error display
+            // Reset error displays
             passwordError.style.display = 'none';
+            confirmPasswordError.style.display = 'none';
+            passwordField.style.borderColor = '';
+            confirmPasswordField.style.borderColor = '';
             
             // Only validate if user entered a new password
             if (password || confirmPassword) {
                 const username = document.querySelector('input[name="username"]').value.trim();
                 const email = document.querySelector('input[name="email"]').value.trim();
                 
-                // Check if password matches username
-                if (username && password.toLowerCase() === username.toLowerCase()) {
-                    e.preventDefault();
-                    passwordError.textContent = 'Password cannot be the same as your username. Please choose a different password.';
-                    passwordError.style.display = 'block';
-                    document.getElementById('password').focus();
-                    return false;
-                }
-                
-                // Check if password matches email or email username
-                if (email) {
-                    const emailUsername = email.split('@')[0];
-                    if (password.toLowerCase() === emailUsername.toLowerCase() || password.toLowerCase() === email.toLowerCase()) {
+                // Check if password matches or contains username
+                if (username && password) {
+                    const cleanUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const cleanPassword = password.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    
+                    if (password.toLowerCase() === username.toLowerCase() || cleanPassword.includes(cleanUsername)) {
                         e.preventDefault();
-                        passwordError.textContent = 'Password cannot be the same as your email or username. Please choose a different password.';
+                        passwordField.style.borderColor = '#dc3545';
+                        passwordError.textContent = 'Password cannot be the same as or contain your username.';
                         passwordError.style.display = 'block';
-                        document.getElementById('password').focus();
+                        passwordField.focus();
                         return false;
                     }
                 }
                 
-                // Check if passwords match
-                if (password !== confirmPassword) {
-                    e.preventDefault();
-                    passwordError.textContent = 'Passwords do not match. Please ensure both password fields are identical.';
-                    passwordError.style.display = 'block';
-                    
-                    // Scroll to password field
-                    document.getElementById('password').focus();
-                    return false;
+                // Check if password matches email or email username
+                if (email && password) {
+                    const emailUsername = email.split('@')[0];
+                    if (password.toLowerCase() === emailUsername.toLowerCase() || password.toLowerCase() === email.toLowerCase()) {
+                        e.preventDefault();
+                        passwordField.style.borderColor = '#dc3545';
+                        passwordError.textContent = 'Password cannot be the same as your email or username.';
+                        passwordError.style.display = 'block';
+                        passwordField.focus();
+                        return false;
+                    }
                 }
                 
                 // Check minimum length (8 characters)
-                if (password.length < 8) {
+                if (password.length > 0 && password.length < 8) {
                     e.preventDefault();
+                    passwordField.style.borderColor = '#dc3545';
                     passwordError.textContent = 'Password must be at least 8 characters long.';
                     passwordError.style.display = 'block';
-                    
-                    // Scroll to password field
-                    document.getElementById('password').focus();
+                    passwordField.focus();
                     return false;
                 }
                 
                 // Check maximum length (16 characters)
                 if (password.length > 16) {
                     e.preventDefault();
+                    passwordField.style.borderColor = '#dc3545';
                     passwordError.textContent = 'Password must not exceed 16 characters.';
                     passwordError.style.display = 'block';
-                    
-                    // Scroll to password field
-                    document.getElementById('password').focus();
+                    passwordField.focus();
+                    return false;
+                }
+                
+                // Check if passwords match
+                if (password !== confirmPassword) {
+                    e.preventDefault();
+                    confirmPasswordField.style.borderColor = '#dc3545';
+                    confirmPasswordError.textContent = 'Passwords do not match.';
+                    confirmPasswordError.style.display = 'block';
+                    confirmPasswordField.focus();
                     return false;
                 }
             }
@@ -631,42 +642,43 @@ function initializeIrregularToggle() {
 
 // Real-time password validation
 function initializePasswordValidation() {
-    const password = document.getElementById('password');
-    const confirmPassword = document.getElementById('confirm_password');
-    const passwordError = document.getElementById('passwordError');
+    const confirmPasswordError = document.getElementById('confirmPasswordError');
     
-    if (password && confirmPassword && passwordError) {
-        // Validate when user clicks away from confirm password field
-        confirmPassword.addEventListener('blur', function() {
+    if (password && confirmPassword && passwordError && confirmPasswordError) {
+        // Validate password field on blur
+        password.addEventListener('blur', function() {
             const pass = password.value;
-            const confirmPass = confirmPassword.value;
             const username = document.querySelector('input[name="username"]').value.trim();
             const email = document.querySelector('input[name="email"]').value.trim();
 
             // Clear previous error
             passwordError.textContent = '';
             passwordError.style.display = 'none';
-            confirmPassword.style.borderColor = '';
             password.style.borderColor = '';
 
-            // Only validate if user has entered something in password fields
-            if (!pass && !confirmPass) {
+            // Only validate if user has entered something
+            if (!pass) {
                 return;
             }
 
-            // Check if password matches username
-            if (pass && username && pass.toLowerCase() === username.toLowerCase()) {
-                passwordError.textContent = 'Password cannot be the same as your username. Please choose a different password.';
-                passwordError.style.display = 'block';
-                password.style.borderColor = '#dc3545';
-                return;
+            // Check if password matches or contains username
+            if (username) {
+                const cleanUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const cleanPassword = pass.toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                if (pass.toLowerCase() === username.toLowerCase() || cleanPassword.includes(cleanUsername)) {
+                    passwordError.textContent = 'Password cannot be the same as or contain your username.';
+                    passwordError.style.display = 'block';
+                    password.style.borderColor = '#dc3545';
+                    return;
+                }
             }
 
             // Check if password matches email or email username
-            if (pass && email) {
+            if (email) {
                 const emailUsername = email.split('@')[0];
                 if (pass.toLowerCase() === emailUsername.toLowerCase() || pass.toLowerCase() === email.toLowerCase()) {
-                    passwordError.textContent = 'Password cannot be the same as your email or username. Please choose a different password.';
+                    passwordError.textContent = 'Password cannot be the same as your email or username.';
                     passwordError.style.display = 'block';
                     password.style.borderColor = '#dc3545';
                     return;
@@ -674,26 +686,47 @@ function initializePasswordValidation() {
             }
 
             // Check password length requirements
-            if (pass && pass.length < 8) {
+            if (pass.length < 8) {
                 passwordError.textContent = 'Password must be at least 8 characters long.';
                 passwordError.style.display = 'block';
                 password.style.borderColor = '#dc3545';
                 return;
             }
 
-            if (pass && pass.length > 16) {
+            if (pass.length > 16) {
                 passwordError.textContent = 'Password must not exceed 16 characters.';
                 passwordError.style.display = 'block';
                 password.style.borderColor = '#dc3545';
                 return;
             }
 
+            // Password is valid - show success
+            password.style.borderColor = '#47682c';
+        });
+
+        // Validate confirm password field on blur
+        confirmPassword.addEventListener('blur', function() {
+            const pass = password.value;
+            const confirmPass = confirmPassword.value;
+
+            // Clear previous error
+            confirmPasswordError.textContent = '';
+            confirmPasswordError.style.display = 'none';
+            confirmPassword.style.borderColor = '';
+
+            // Only validate if user has entered something
+            if (!confirmPass) {
+                return;
+            }
+
             // Check if passwords match
             if (pass && confirmPass && pass !== confirmPass) {
-                passwordError.textContent = 'Passwords do not match. Please ensure both password fields are identical.';
-                passwordError.style.display = 'block';
+                confirmPasswordError.textContent = 'Passwords do not match.';
+                confirmPasswordError.style.display = 'block';
                 confirmPassword.style.borderColor = '#dc3545';
             } else if (pass && confirmPass && pass === confirmPass) {
+                // Passwords match - show success
+                confirmPe if (pass && confirmPass && pass === confirmPass) {
                 // Passwords match - show success
                 confirmPassword.style.borderColor = '#47682c';
                 password.style.borderColor = '#47682c';

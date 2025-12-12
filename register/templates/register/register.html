@@ -317,27 +317,28 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 <label for="id_password1">Password (8-16 characters):</label>
                 <div style="position: relative;">
                     <input type="password" name="password1" id="id_password1" 
-                           class="form-control mb-3 custom-input-width text-center" 
+                           class="form-control mb-1 custom-input-width text-center" 
                            placeholder="Enter password" required
                            minlength="8" maxlength="16"
                            style="padding-right: 40px;">
                     <i class="fas fa-eye" id="togglePassword1" 
                        style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
                 </div>
-                <small id="passwordStrengthError" class="text-danger d-block mt-2" style="display: none;"></small>
+                <small id="passwordStrengthError" class="text-danger d-block mt-1" style="display: none;"></small>
             </div>
             
             <div class="form-group">
                 <label for="id_password2">Confirm Password:</label>
                 <div style="position: relative;">
                     <input type="password" name="password2" id="id_password2" 
-                           class="form-control mb-3 custom-input-width text-center" 
+                           class="form-control mb-1 custom-input-width text-center" 
                            placeholder="Confirm password" required
                            minlength="8" maxlength="16"
                            style="padding-right: 40px;">
                     <i class="fas fa-eye" id="togglePassword2" 
                        style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
                 </div>
+                <small id="confirmPasswordStrengthError" class="text-danger d-block mt-1" style="display: none;"></small>
             </div>
             
             <button type="submit" class="btn btn-success w-100 fw-bold">Create Account</button>
@@ -627,35 +628,58 @@ document.addEventListener('DOMContentLoaded', function() {
             const email = document.getElementById('id_email').value.trim();
             const password1 = document.getElementById('id_password1').value;
             const password2 = document.getElementById('id_password2').value;
+            const password1Field = document.getElementById('id_password1');
+            const password2Field = document.getElementById('id_password2');
             const passwordError = document.getElementById('passwordStrengthError');
+            const confirmPasswordError = document.getElementById('confirmPasswordStrengthError');
             
-            // Reset error
+            // Reset errors
             if (passwordError) {
                 passwordError.style.display = 'none';
                 passwordError.textContent = '';
+                password1Field.style.borderColor = '';
+            }
+            if (confirmPasswordError) {
+                confirmPasswordError.style.display = 'none';
+                confirmPasswordError.textContent = '';
+                password2Field.style.borderColor = '';
             }
             
-            // Check if password matches display name
-            if (displayName && password1.toLowerCase() === displayName.toLowerCase()) {
-                e.preventDefault();
-                if (passwordError) {
-                    passwordError.textContent = 'Password cannot be the same as your name. Please choose a different password.';
-                    passwordError.style.display = 'block';
-                }
-                document.getElementById('id_password1').focus();
-                return false;
-            }
-            
-            // Check if password matches email (before @)
-            if (email) {
-                const emailUsername = email.split('@')[0];
-                if (password1.toLowerCase() === emailUsername.toLowerCase() || password1.toLowerCase() === email.toLowerCase()) {
+            // Check if password matches or contains display name
+            if (displayName && password1) {
+                const cleanDisplayName = displayName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const cleanPassword = password1.toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                if (password1.toLowerCase() === displayName.toLowerCase() || cleanPassword.includes(cleanDisplayName)) {
                     e.preventDefault();
                     if (passwordError) {
-                        passwordError.textContent = 'Password cannot be the same as your email or username. Please choose a different password.';
+                        password1Field.style.borderColor = '#dc3545';
+                        passwordError.textContent = 'Password cannot be the same as or contain your name.';
                         passwordError.style.display = 'block';
                     }
-                    document.getElementById('id_password1').focus();
+                    password1Field.focus();
+                    return false;
+                }
+            }
+            
+            // Check if password matches or contains email or email username
+            if (email && password1) {
+                const emailUsername = email.split('@')[0];
+                const cleanEmail = email.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const cleanEmailUsername = emailUsername.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const cleanPassword = password1.toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                if (password1.toLowerCase() === email.toLowerCase() || 
+                    password1.toLowerCase() === emailUsername.toLowerCase() ||
+                    cleanPassword.includes(cleanEmail) ||
+                    cleanPassword.includes(cleanEmailUsername)) {
+                    e.preventDefault();
+                    if (passwordError) {
+                        password1Field.style.borderColor = '#dc3545';
+                        passwordError.textContent = 'Password cannot be the same as or contain your email or username.';
+                        passwordError.style.display = 'block';
+                    }
+                    password1Field.focus();
                     return false;
                 }
             }
@@ -663,11 +687,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Check if passwords match
             if (password1 !== password2) {
                 e.preventDefault();
-                if (passwordError) {
-                    passwordError.textContent = 'Passwords do not match. Please ensure both password fields are identical.';
-                    passwordError.style.display = 'block';
+                if (confirmPasswordError) {
+                    password2Field.style.borderColor = '#dc3545';
+                    confirmPasswordError.textContent = 'Passwords do not match.';
+                    confirmPasswordError.style.display = 'block';
                 }
-                document.getElementById('id_password2').focus();
+                password2Field.focus();
                 return false;
             }
         });
