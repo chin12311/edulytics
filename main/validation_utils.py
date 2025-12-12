@@ -89,13 +89,16 @@ class AccountValidator:
         return True, ""
     
     @staticmethod
-    def validate_password(password, confirm_password=None):
+    def validate_password(password, confirm_password=None, username=None, email=None, display_name=None):
         """
         Validate password complexity.
         
         Args:
             password: Password to validate
             confirm_password: Confirmation password (optional)
+            username: Username to check against (optional)
+            email: Email to check against (optional)
+            display_name: Display name to check against (optional)
             
         Returns:
             tuple: (is_valid, error_message)
@@ -109,8 +112,38 @@ class AccountValidator:
         if len(password) < AccountValidator.MIN_PASSWORD_LENGTH:
             return False, f"Password must be at least {AccountValidator.MIN_PASSWORD_LENGTH} characters long"
         
-        if len(password) > 128:
-            return False, "Password is too long (max 128 characters)"
+        if len(password) > 16:
+            return False, "Password must not exceed 16 characters"
+        
+        # Check if password contains or matches username
+        if username:
+            clean_username = ''.join(c.lower() for c in str(username) if c.isalnum())
+            clean_password = ''.join(c.lower() for c in password if c.isalnum())
+            
+            if password.lower() == str(username).lower() or clean_username in clean_password:
+                return False, "Password cannot be the same as or contain your username"
+        
+        # Check if password contains or matches display name
+        if display_name:
+            clean_display_name = ''.join(c.lower() for c in str(display_name) if c.isalnum())
+            clean_password = ''.join(c.lower() for c in password if c.isalnum())
+            
+            if password.lower() == str(display_name).lower() or clean_display_name in clean_password:
+                return False, "Password cannot be the same as or contain your name"
+        
+        # Check if password contains or matches email or email username
+        if email:
+            email_str = str(email)
+            email_username = email_str.split('@')[0] if '@' in email_str else email_str
+            clean_email = ''.join(c.lower() for c in email_str if c.isalnum())
+            clean_email_username = ''.join(c.lower() for c in email_username if c.isalnum())
+            clean_password = ''.join(c.lower() for c in password if c.isalnum())
+            
+            if (password.lower() == email_str.lower() or 
+                password.lower() == email_username.lower() or
+                clean_email in clean_password or
+                clean_email_username in clean_password):
+                return False, "Password cannot be the same as or contain your email or username"
         
         # Check complexity
         has_upper = any(c.isupper() for c in password)
@@ -374,7 +407,10 @@ class AccountValidator:
         if data.get('password'):
             valid, msg = AccountValidator.validate_password(
                 data.get('password'),
-                data.get('confirm_password')
+                data.get('confirm_password'),
+                username=data.get('username'),
+                email=data.get('email'),
+                display_name=data.get('display_name')
             )
             if not valid:
                 errors['password'] = msg

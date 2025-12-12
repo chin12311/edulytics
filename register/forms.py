@@ -93,6 +93,8 @@ class RegisterForm(forms.Form):
     def clean_password1(self):
         """Validate password1 has minimum requirements"""
         password = self.cleaned_data.get("password1")
+        display_name = self.cleaned_data.get("display_name", "")
+        email = self.cleaned_data.get("email", "")
         
         # Null/empty check
         if not password:
@@ -101,6 +103,31 @@ class RegisterForm(forms.Form):
         # Minimum length
         if len(password) < 8:
             raise ValidationError("Password must be at least 8 characters long.")
+        
+        # Maximum length
+        if len(password) > 16:
+            raise ValidationError("Password must not exceed 16 characters.")
+        
+        # Check if password contains or matches display name
+        if display_name:
+            clean_display_name = ''.join(c.lower() for c in display_name if c.isalnum())
+            clean_password = ''.join(c.lower() for c in password if c.isalnum())
+            
+            if password.lower() == display_name.lower() or clean_display_name in clean_password:
+                raise ValidationError("Password cannot be the same as or contain your name.")
+        
+        # Check if password contains or matches email or email username
+        if email:
+            email_username = email.split('@')[0] if '@' in email else email
+            clean_email = ''.join(c.lower() for c in email if c.isalnum())
+            clean_email_username = ''.join(c.lower() for c in email_username if c.isalnum())
+            clean_password = ''.join(c.lower() for c in password if c.isalnum())
+            
+            if (password.lower() == email.lower() or 
+                password.lower() == email_username.lower() or
+                clean_email in clean_password or
+                clean_email_username in clean_password):
+                raise ValidationError("Password cannot be the same as or contain your email or username.")
         
         # Check complexity requirements
         has_upper = any(c.isupper() for c in password)
