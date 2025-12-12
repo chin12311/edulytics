@@ -1,0 +1,384 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-color: #673ab7;
+        --secondary-color: #9c27b0;
+        --accent-color: #ff4081;
+        --success-color: #4caf50;
+        --warning-color: #ff9800;
+        --danger-color: #f44336;
+        --text-primary: #2c3e50;
+        --text-secondary: #7f8c8d;
+        --background-light: #f8f9fa;
+        --border-color: #e0e0e0;
+    }
+
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .terms-container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 50px;
+        margin: 40px auto;
+        max-width: 900px;
+        animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .terms-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .terms-header h1 {
+        color: var(--primary-color);
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .terms-header p {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    .terms-content {
+        background: var(--background-light);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        max-height: 500px;
+        overflow-y: auto;
+        border: 2px solid var(--border-color);
+    }
+
+    .terms-content h6 {
+        color: var(--primary-color);
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    .terms-content ol {
+        padding-left: 20px;
+    }
+
+    .terms-content li {
+        margin-bottom: 15px;
+        line-height: 1.8;
+        color: var(--text-primary);
+    }
+
+    .terms-content li strong {
+        color: var(--primary-color);
+    }
+
+    .privacy-content {
+        background: #e3f2fd;
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        max-height: 400px;
+        overflow-y: auto;
+        border: 2px solid #90caf9;
+    }
+
+    .privacy-content h6 {
+        color: #1976d2;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    .privacy-content ol {
+        padding-left: 20px;
+    }
+
+    .privacy-content li {
+        margin-bottom: 15px;
+        line-height: 1.8;
+        color: var(--text-primary);
+    }
+
+    .privacy-content li strong {
+        color: #1976d2;
+    }
+
+    .agreement-section {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        border: 3px solid var(--primary-color);
+    }
+
+    .agreement-checkbox {
+        display: flex;
+        align-items: center;
+        font-size: 1.1rem;
+        color: var(--text-primary);
+    }
+
+    .agreement-checkbox input[type="checkbox"] {
+        width: 25px;
+        height: 25px;
+        margin-right: 15px;
+        cursor: pointer;
+        accent-color: var(--primary-color);
+    }
+
+    .agreement-checkbox label {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .error-message {
+        display: none;
+        color: var(--danger-color);
+        font-size: 0.95rem;
+        margin-top: 10px;
+        padding: 10px 15px;
+        background: #ffebee;
+        border-radius: 8px;
+        border-left: 4px solid var(--danger-color);
+    }
+
+    .error-message i {
+        margin-right: 8px;
+    }
+
+    .button-container {
+        text-align: center;
+        margin-top: 40px;
+    }
+
+    .start-btn {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: white;
+        border: none;
+        padding: 18px 50px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 6px 20px rgba(103, 58, 183, 0.4);
+    }
+
+    .start-btn:disabled {
+        background: #9e9e9e;
+        cursor: not-allowed;
+        opacity: 0.6;
+        box-shadow: none;
+    }
+
+    .start-btn:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(103, 58, 183, 0.5);
+    }
+
+    .start-btn:active:not(:disabled) {
+        transform: translateY(0);
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        75% { transform: translateX(10px); }
+    }
+
+    .shake {
+        animation: shake 0.5s ease-in-out;
+    }
+
+    .icon-header {
+        font-size: 3rem;
+        color: var(--primary-color);
+        margin-bottom: 20px;
+    }
+
+    /* Scrollbar styling */
+    .terms-content::-webkit-scrollbar,
+    .privacy-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .terms-content::-webkit-scrollbar-track,
+    .privacy-content::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .terms-content::-webkit-scrollbar-thumb {
+        background: var(--primary-color);
+        border-radius: 10px;
+    }
+
+    .privacy-content::-webkit-scrollbar-thumb {
+        background: #1976d2;
+        border-radius: 10px;
+    }
+
+    .terms-content::-webkit-scrollbar-thumb:hover,
+    .privacy-content::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+</style>
+
+<div class="container">
+    <div class="terms-container">
+        <div class="terms-header">
+            <div class="icon-header">
+                <i class="fas fa-file-contract"></i>
+            </div>
+            <h1>Upward Evaluation Agreement</h1>
+            <p>Please review the terms and conditions before proceeding with the evaluation</p>
+        </div>
+
+        <!-- Terms & Conditions Section -->
+        <div class="terms-content">
+            <h6><i class="fas fa-file-contract me-2"></i>Terms & Conditions</h6>
+            <ol>
+                <li>
+                    <strong>Purpose:</strong> This upward evaluation system collects feedback from faculty members to improve coordination effectiveness and institutional management.
+                </li>
+                <li>
+                    <strong>Professional Conduct:</strong> Provide honest, constructive, and professional feedback. Avoid personal attacks or inappropriate comments. Evaluations should focus on professional performance and leadership effectiveness.
+                </li>
+                <li>
+                    <strong>Academic Integrity:</strong> Your evaluation should reflect your genuine experience and observations working with the coordinator.
+                </li>
+                <li>
+                    <strong>One Submission:</strong> You can only submit one evaluation per coordinator. Once submitted, evaluations are final and cannot be modified.
+                </li>
+                <li>
+                    <strong>Data Usage:</strong> Feedback is used for coordinator development, administrative improvement, and institutional research. Results may be shared with relevant administrators.
+                </li>
+                <li>
+                    <strong>Confidentiality:</strong> While responses are treated confidentially, administrators may be able to identify responses based on context. Be professional in all feedback.
+                </li>
+                <li>
+                    <strong>Consequences:</strong> Misuse of the system, including providing false information or inappropriate feedback, may result in disciplinary action.
+                </li>
+            </ol>
+        </div>
+
+        <!-- Privacy Policy Section -->
+        <div class="privacy-content">
+            <h6><i class="fas fa-shield-alt me-2"></i>Privacy Policy</h6>
+            <ol>
+                <li>
+                    <strong>Data Collection:</strong> We collect evaluation responses, coordinator information, faculty information, and submission timestamps.
+                </li>
+                <li>
+                    <strong>Confidentiality:</strong> Your responses are kept confidential and used solely for professional development and administrative improvement.
+                </li>
+                <li>
+                    <strong>Anonymity Limitations:</strong> Individual responses may be identifiable to administrators, especially in small departments. Responses are aggregated for coordinator reports when possible.
+                </li>
+                <li>
+                    <strong>Data Storage:</strong> Data is stored securely in encrypted databases and accessed only by authorized personnel (administrators and system managers).
+                </li>
+                <li>
+                    <strong>Data Retention:</strong> Evaluation data is retained for institutional research, performance reviews, and accreditation purposes.
+                </li>
+                <li>
+                    <strong>No Sharing:</strong> Your evaluation data will not be shared with third parties without proper authorization or legal requirement.
+                </li>
+                <li>
+                    <strong>Your Rights:</strong> You have the right to know how your data is used. Contact the administration for questions about data handling.
+                </li>
+            </ol>
+        </div>
+
+        <!-- Agreement Section -->
+        <div class="agreement-section">
+            <div class="agreement-checkbox">
+                <input type="checkbox" id="agreementCheckbox" name="agreement">
+                <label for="agreementCheckbox">
+                    <strong>I have read and agree to the Terms & Conditions and Privacy Policy</strong>
+                </label>
+            </div>
+            <div class="error-message" id="agreementError">
+                <i class="fas fa-exclamation-circle"></i>
+                You must agree to the terms and conditions before proceeding.
+            </div>
+        </div>
+
+        <!-- Start Evaluation Button -->
+        <div class="button-container">
+            <button type="button" class="start-btn" id="startEvaluationBtn" disabled>
+                <i class="fas fa-play-circle me-2"></i>Start Evaluation
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const agreementCheckbox = document.getElementById('agreementCheckbox');
+        const startBtn = document.getElementById('startEvaluationBtn');
+        const errorMessage = document.getElementById('agreementError');
+        const agreementSection = document.querySelector('.agreement-section');
+
+        // Enable/disable button based on checkbox
+        agreementCheckbox.addEventListener('change', function() {
+            startBtn.disabled = !this.checked;
+            if (this.checked) {
+                errorMessage.style.display = 'none';
+                agreementSection.classList.remove('shake');
+            }
+        });
+
+        // Handle button click
+        startBtn.addEventListener('click', function() {
+            if (agreementCheckbox.checked) {
+                // Store agreement in session and redirect to evaluation form
+                fetch('{% url "upward_terms_agree" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ agreed: true })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '{% url "evaluation_form_upward" %}';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Still redirect even if session storage fails
+                    window.location.href = '{% url "evaluation_form_upward" %}';
+                });
+            } else {
+                errorMessage.style.display = 'block';
+                agreementSection.classList.add('shake');
+                setTimeout(() => {
+                    agreementSection.classList.remove('shake');
+                }, 500);
+            }
+        });
+    });
+</script>
+
+{% endblock %}

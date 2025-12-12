@@ -3365,6 +3365,40 @@ def evaluation_form_staffs(request):
         return redirect('/login')
 
 
+def upward_evaluation_terms(request):
+    """
+    Display terms & conditions page before upward evaluation.
+    Only faculty can access this page.
+    """
+    if not request.user.is_authenticated:
+        return redirect('/login')
+    
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+        
+        # Only faculty can access upward evaluation
+        if user_profile.role != Role.FACULTY:
+            return render(request, 'main/no_permission.html', {
+                'message': 'Only faculty members can access the upward evaluation.',
+                'page_title': 'Access Denied',
+            })
+        
+        return render(request, 'main/evaluationform_upward_terms.html')
+    
+    except UserProfile.DoesNotExist:
+        return redirect('/login')
+
+
+def upward_terms_agree(request):
+    """
+    Handle terms agreement and store in session.
+    """
+    if request.method == 'POST':
+        request.session['upward_terms_agreed'] = True
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
+
+
 def evaluation_form_upward(request):
     """
     Display the upward evaluation form (Faculty → Coordinator).
@@ -3373,6 +3407,10 @@ def evaluation_form_upward(request):
     """
     if not request.user.is_authenticated:
         return redirect('/login')
+    
+    # Check if user has agreed to terms
+    if not request.session.get('upward_terms_agreed'):
+        return redirect('upward_evaluation_terms')
 
     try:
         user_profile = UserProfile.objects.get(user=request.user)

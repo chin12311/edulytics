@@ -8,7 +8,7 @@ from .views import (
     release_peer_evaluation, unrelease_peer_evaluation,
     release_upward_evaluation, unrelease_upward_evaluation,
     submit_evaluation, submit_upward_evaluation, evaluated, evaluation_form_staffs, evaluation_form_upward,
-    assign_section, remove_section_assignment
+    assign_section, remove_section_assignment, upward_evaluation_terms, upward_terms_agree
 )
 from .decorators import evaluation_results_required
 
@@ -36,6 +36,8 @@ urlpatterns = [
     path('unrelease/upward/', views.unrelease_upward_evaluation, name='unrelease_upward_evaluation'),
     path('evaluationform/', views.EvaluationFormView.as_view(), name='evaluationform'),
     path('submit_evaluation/', views.submit_evaluation, name='submit_evaluation'),
+    path('upward-evaluation-terms/', views.upward_evaluation_terms, name='upward_evaluation_terms'),
+    path('upward-terms-agree/', views.upward_terms_agree, name='upward_terms_agree'),
     path('evaluation-upward/', views.evaluation_form_upward, name='evaluation_form_upward'),
     path('submit-upward-evaluation/', views.submit_upward_evaluation, name='submit_upward_evaluation'),
     path('evaluate/', views.evaluated, name='evaluate'),

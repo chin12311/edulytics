@@ -570,7 +570,7 @@
     </a>
 
     {% if upward_evaluation_active %}
-    <a href="{% url 'main:evaluation_form_upward' %}" class="nav-link-custom {% if request.path == '/evaluation-upward/' %}active{% endif %}">
+    <a href="{% url 'main:upward_evaluation_terms' %}" class="nav-link-custom {% if request.path == '/upward-evaluation-terms/' or request.path == '/evaluation-upward/' %}active{% endif %}">
         <span class="nav-icon" style="background-image: url('{% static 'img/eval.png' %}');"></span>
         🎯 Upward Evaluation
     </a>
