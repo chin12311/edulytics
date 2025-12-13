@@ -940,9 +940,10 @@ def release_student_evaluation(request):
             archived_count = move_current_results_to_history()
             logger.info(f"Moved {archived_count} results to evaluation history")
             
-            # STEP 2: Create a new active evaluation period
+            # STEP 2: Create a new active evaluation period with unique name
+            period_timestamp = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
             new_period = EvaluationPeriod.objects.create(
-                name="Student Evaluation",
+                name=f"Student Evaluation {period_timestamp}",
                 evaluation_type='student',
                 start_date=timezone.now(),
                 end_date=timezone.now() + timezone.timedelta(days=30),
@@ -1275,9 +1276,10 @@ def release_peer_evaluation(request):
             archived_count = move_current_results_to_history()
             logger.info(f"Moved {archived_count} results to evaluation history")
 
-            # STEP 2: Create new active evaluation period
+            # STEP 2: Create new active evaluation period with unique name
+            period_timestamp = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
             evaluation_period = EvaluationPeriod.objects.create(
-                name="Peer Evaluation",
+                name=f"Peer Evaluation {period_timestamp}",
                 evaluation_type='peer',
                 start_date=timezone.now(),
                 end_date=timezone.now() + timezone.timedelta(days=30),
@@ -1445,9 +1447,10 @@ def release_upward_evaluation(request):
             archived_count = move_current_results_to_history()
             logger.info(f"Moved {archived_count} results to evaluation history")
 
-            # STEP 2: Create new active evaluation period
+            # STEP 2: Create new active evaluation period with unique name
+            period_timestamp = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
             evaluation_period = EvaluationPeriod.objects.create(
-                name="Upward Evaluation",
+                name=f"Upward Evaluation {period_timestamp}",
                 evaluation_type='upward',
                 start_date=timezone.now(),
                 end_date=timezone.now() + timezone.timedelta(days=30),
