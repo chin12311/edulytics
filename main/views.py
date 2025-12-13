@@ -843,7 +843,7 @@ class EvaluationView(View):
                         is_released=True,
                         evaluation_type='peer'
                     ).order_by('-created_at').first()
-                    page_title = "Staff Evaluation"
+                    page_title = "Evaluation"
 
                 # Check if this is a redirect after successful submission
                 submitted = request.GET.get('submitted', False)
