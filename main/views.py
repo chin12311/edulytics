@@ -1467,6 +1467,11 @@ def release_upward_evaluation(request):
             action = "Created" if created else "Updated"
             logger.info(f"{action} upward evaluation record with evaluator='upward'")
 
+            # Send email notifications to Faculty only
+            logger.info("Background: Sending email notifications about upward evaluation release")
+            email_result = EvaluationEmailService.send_evaluation_released_notification('upward')
+            logger.info(f"Email notification result: {email_result.get('message', 'Unknown')}")
+
             log_admin_activity(
                 request=request,
                 action='release_evaluation',
@@ -1479,7 +1484,8 @@ def release_upward_evaluation(request):
                 'upward_evaluation_released': True,
                 'evaluation_period_ended': False,
                 'results_archived': archived_count,
-                'new_period': evaluation_period.name
+                'new_period': evaluation_period.name,
+                'emails_sent': email_result.get('sent_count', 0)
             })
         except Exception as e:
             logger.error(f"Exception in release_upward_evaluation: {e}", exc_info=True)
@@ -1529,6 +1535,11 @@ def unrelease_upward_evaluation(request):
             active_period.save()
             logger.info(f"Deactivated upward evaluation period: {active_period.name}")
 
+            # Send email notifications to Faculty only
+            logger.info("Background: Sending email notifications about upward evaluation closure")
+            email_result = EvaluationEmailService.send_evaluation_unreleased_notification('upward')
+            logger.info(f"Email notification result: {email_result.get('message', 'Unknown')}")
+
             log_admin_activity(
                 request=request,
                 action='unrelease_evaluation',
@@ -1548,7 +1559,8 @@ def unrelease_upward_evaluation(request):
                 'message': message,
                 'upward_evaluation_released': False,
                 'evaluation_period_ended': True,
-                'period_name': active_period.name
+                'period_name': active_period.name,
+                'emails_sent': email_result.get('sent_count', 0)
             })
         except Exception as e:
             logger.error(f"Error in unrelease_upward_evaluation: {str(e)}", exc_info=True)

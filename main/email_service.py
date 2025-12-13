@@ -20,10 +20,10 @@ class EvaluationEmailService:
     @staticmethod
     def send_evaluation_released_notification(evaluation_type='student'):
         """
-        Send email notification to all users that an evaluation has been released
+        Send email notification to users that an evaluation has been released
         
         Args:
-            evaluation_type (str): Type of evaluation ('student' or 'peer')
+            evaluation_type (str): Type of evaluation ('student', 'peer', or 'upward')
         
         Returns:
             dict: {
@@ -32,11 +32,30 @@ class EvaluationEmailService:
                 'failed_emails': list,
                 'message': str
             }
+        
+        Email Recipients by Evaluation Type:
+        - student: Students only
+        - peer: Dean, Coordinator, Faculty (NOT Students)
+        - upward: Faculty only
         """
         try:
             # Get all active users with valid email addresses
             # Exclude the school head admin account (cibituonon@cca.edu.ph)
-            users = User.objects.filter(is_active=True).exclude(email='').exclude(email='cibituonon@cca.edu.ph')
+            base_users = User.objects.filter(is_active=True).exclude(email='').exclude(email='cibituonon@cca.edu.ph')
+            
+            # Filter users based on evaluation type
+            if evaluation_type == 'student':
+                # Only send to Students
+                users = base_users.filter(userprofile__role='Student')
+            elif evaluation_type == 'peer':
+                # Send to Dean, Coordinator, and Faculty (NOT Students)
+                users = base_users.filter(userprofile__role__in=['Dean', 'Coordinator', 'Faculty'])
+            elif evaluation_type == 'upward':
+                # Only send to Faculty
+                users = base_users.filter(userprofile__role='Faculty')
+            else:
+                # Default: all users (shouldn't happen)
+                users = base_users
             
             if not users.exists():
                 logger.warning(f"No active users to notify about {evaluation_type} evaluation release")
@@ -97,10 +116,10 @@ class EvaluationEmailService:
     @staticmethod
     def send_evaluation_unreleased_notification(evaluation_type='student'):
         """
-        Send email notification to all users that an evaluation has been unreleased/closed
+        Send email notification to users that an evaluation has been unreleased/closed
         
         Args:
-            evaluation_type (str): Type of evaluation ('student' or 'peer')
+            evaluation_type (str): Type of evaluation ('student', 'peer', or 'upward')
         
         Returns:
             dict: {
@@ -109,9 +128,28 @@ class EvaluationEmailService:
                 'failed_emails': list,
                 'message': str
             }
+        
+        Email Recipients by Evaluation Type:
+        - student: Students only
+        - peer: Dean, Coordinator, Faculty (NOT Students)
+        - upward: Faculty only
         """
         try:
-            users = User.objects.filter(is_active=True).exclude(email='').exclude(email='cibituonon@cca.edu.ph')
+            base_users = User.objects.filter(is_active=True).exclude(email='').exclude(email='cibituonon@cca.edu.ph')
+            
+            # Filter users based on evaluation type
+            if evaluation_type == 'student':
+                # Only send to Students
+                users = base_users.filter(userprofile__role='Student')
+            elif evaluation_type == 'peer':
+                # Send to Dean, Coordinator, and Faculty (NOT Students)
+                users = base_users.filter(userprofile__role__in=['Dean', 'Coordinator', 'Faculty'])
+            elif evaluation_type == 'upward':
+                # Only send to Faculty
+                users = base_users.filter(userprofile__role='Faculty')
+            else:
+                # Default: all users (shouldn't happen)
+                users = base_users
             
             if not users.exists():
                 logger.warning(f"No active users to notify about {evaluation_type} evaluation close")
@@ -206,6 +244,8 @@ class EvaluationEmailService:
         """Get email subject for evaluation release"""
         if evaluation_type == 'peer':
             return "🎓 Peer Evaluation Form Released - Action Required"
+        elif evaluation_type == 'upward':
+            return "🎓 Upward Evaluation Form Released - Action Required"
         else:
             return "🎓 Student Evaluation Form Released - Action Required"
     
@@ -214,14 +254,20 @@ class EvaluationEmailService:
         """Get email subject for evaluation unreleased"""
         if evaluation_type == 'peer':
             return "📋 Peer Evaluation Period Closed"
+        elif evaluation_type == 'upward':
+            return "📋 Upward Evaluation Period Closed"
         else:
             return "📋 Student Evaluation Period Closed"
     
     @staticmethod
     def _get_release_html_content(evaluation_type):
         """Generate HTML content for release email"""
-        is_peer = evaluation_type == 'peer'
-        eval_name = "Peer Evaluation Form" if is_peer else "Student Evaluation Form"
+        if evaluation_type == 'peer':
+            eval_name = "Peer Evaluation Form"
+        elif evaluation_type == 'upward':
+            eval_name = "Upward Evaluation Form"
+        else:
+            eval_name = "Student Evaluation Form"
         
         # Get site URL from settings or environment
         site_url = getattr(settings, 'SITE_URL', 'http://13.211.104.201')
@@ -294,8 +340,12 @@ class EvaluationEmailService:
     @staticmethod
     def _get_release_text_content(evaluation_type):
         """Generate plain text content for release email"""
-        is_peer = evaluation_type == 'peer'
-        eval_name = "Peer Evaluation Form" if is_peer else "Student Evaluation Form"
+        if evaluation_type == 'peer':
+            eval_name = "Peer Evaluation Form"
+        elif evaluation_type == 'upward':
+            eval_name = "Upward Evaluation Form"
+        else:
+            eval_name = "Student Evaluation Form"
         
         # Get site URL from settings or environment
         site_url = getattr(settings, 'SITE_URL', 'http://13.211.104.201')
@@ -327,8 +377,12 @@ This is an automated notification. Please do not reply to this email.
     @staticmethod
     def _get_unreleased_html_content(evaluation_type):
         """Generate HTML content for unreleased/close email"""
-        is_peer = evaluation_type == 'peer'
-        eval_name = "Peer Evaluation Form" if is_peer else "Student Evaluation Form"
+        if evaluation_type == 'peer':
+            eval_name = "Peer Evaluation Form"
+        elif evaluation_type == 'upward':
+            eval_name = "Upward Evaluation Form"
+        else:
+            eval_name = "Student Evaluation Form"
         
         html = f"""
         <html>
@@ -389,8 +443,12 @@ This is an automated notification. Please do not reply to this email.
     @staticmethod
     def _get_unreleased_text_content(evaluation_type):
         """Generate plain text content for unreleased/close email"""
-        is_peer = evaluation_type == 'peer'
-        eval_name = "Peer Evaluation Form" if is_peer else "Student Evaluation Form"
+        if evaluation_type == 'peer':
+            eval_name = "Peer Evaluation Form"
+        elif evaluation_type == 'upward':
+            eval_name = "Upward Evaluation Form"
+        else:
+            eval_name = "Student Evaluation Form"
         
         text = f"""
 The {eval_name} evaluation period has ended and is now CLOSED.
