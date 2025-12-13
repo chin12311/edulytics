@@ -1577,6 +1577,162 @@ def unrelease_upward_evaluation(request):
     })
 
 
+def release_dean_evaluation(request):
+    """
+    Release dean evaluation (Faculty → Dean):
+    1. Move old EvaluationResult records to EvaluationHistory
+    2. Create new EvaluationPeriod with is_active=True
+    3. Create/update Evaluation record with evaluator='dean'
+    """
+    if request.method == 'POST':
+        try:
+            from django.utils import timezone
+            
+            # Check if there's already an active dean evaluation period
+            active_period = EvaluationPeriod.objects.filter(evaluation_type='dean', is_active=True).exists()
+            
+            if active_period:
+                return JsonResponse({
+                    'success': False, 
+                    'error': "Dean evaluation is already released."
+                })
+
+            # STEP 1: Move current EvaluationResult records to EvaluationHistory
+            logger.info("Moving current dean EvaluationResult records to history...")
+            archived_count = move_current_results_to_history()
+            logger.info(f"Moved {archived_count} results to evaluation history")
+
+            # STEP 2: Create new active evaluation period with unique name
+            period_timestamp = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+            evaluation_period = EvaluationPeriod.objects.create(
+                name=f"Dean Evaluation {period_timestamp}",
+                evaluation_type='dean',
+                start_date=timezone.now(),
+                end_date=timezone.now() + timezone.timedelta(days=30),
+                is_active=True
+            )
+            logger.info(f"Created new dean evaluation period: {evaluation_period.name}")
+
+            # STEP 3: Create or update Evaluation record with evaluator='dean'
+            evaluation, created = Evaluation.objects.update_or_create(
+                evaluation_type='dean',
+                defaults={
+                    'is_released': True,
+                    'evaluation_period': evaluation_period,
+                    'evaluator': 'dean'  # Faculty evaluate deans
+                }
+            )
+            action = "Created" if created else "Updated"
+            logger.info(f"{action} dean evaluation record with evaluator='dean'")
+
+            # Send email notifications to Faculty only
+            logger.info("Background: Sending email notifications about dean evaluation release")
+            email_result = EvaluationEmailService.send_evaluation_released_notification('dean')
+            logger.info(f"Email notification result: {email_result.get('message', 'Unknown')}")
+
+            log_admin_activity(
+                request=request,
+                action='release_evaluation',
+                description=f"Started dean evaluation period '{evaluation_period.name}'. Previous results ({archived_count} records) moved to history."
+            )
+
+            return JsonResponse({
+                'success': True,
+                'message': f'Dean evaluation period started: {evaluation_period.name}. Previous results ({archived_count} records) moved to history. Faculty can now evaluate deans.',
+                'dean_evaluation_released': True,
+                'evaluation_period_ended': False,
+                'results_archived': archived_count,
+                'new_period': evaluation_period.name,
+                'emails_sent': email_result.get('sent_count', 0)
+            })
+        except Exception as e:
+            logger.error(f"Exception in release_dean_evaluation: {e}", exc_info=True)
+            return JsonResponse({
+                'success': False,
+                'error': f'Server error: {str(e)}'
+            })
+    return JsonResponse({
+        'success': False, 
+        'error': 'Invalid request'
+    })
+
+
+def unrelease_dean_evaluation(request):
+    """
+    Unrelease dean evaluation:
+    1. Process responses into EvaluationResult (visible to admin only)
+    2. Set EvaluationPeriod to is_active=False
+    3. Set Evaluation.is_released=False
+    """
+    if request.method == 'POST':
+        try:
+            # Get the active dean evaluation period
+            active_period = EvaluationPeriod.objects.filter(
+                evaluation_type='dean',
+                is_active=True
+            ).first()
+
+            if not active_period:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No active dean evaluation period found.'
+                })
+            
+            # Set Evaluation to unreleased
+            evaluations = Evaluation.objects.filter(evaluation_type='dean')
+            evaluations.update(is_released=False)
+
+            # STEP 1: Process dean evaluation responses into EvaluationResult
+            logger.info(f"Processing dean evaluation results for period: {active_period.name}")
+            processing_results = process_dean_evaluation_results(evaluation_period=active_period)
+            logger.info(f"Processed {processing_results.get('processed_count', 0)} dean results")
+
+            # STEP 2: Deactivate the evaluation period
+            active_period.is_active = False
+            active_period.end_date = timezone.now()
+            active_period.save()
+            logger.info(f"Deactivated dean evaluation period: {active_period.name}")
+
+            # Send email notifications to Faculty only
+            logger.info("Background: Sending email notifications about dean evaluation closure")
+            email_result = EvaluationEmailService.send_evaluation_unreleased_notification('dean')
+            logger.info(f"Email notification result: {email_result.get('message', 'Unknown')}")
+
+            log_admin_activity(
+                request=request,
+                action='unrelease_evaluation',
+                description=f"Ended dean evaluation period '{active_period.name}'. Processed {processing_results.get('processed_count', 0)} dean evaluations."
+            )
+
+            message = f'Dean evaluation period "{active_period.name}" has ended.'
+
+            if processing_results['success']:
+                processed_count = processing_results['processed_count']
+                message += f' Successfully processed evaluation results for {processed_count} deans (visible to admin only).'
+            else:
+                message += ' But evaluation processing failed. Please check the logs.'
+
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'dean_evaluation_released': False,
+                'evaluation_period_ended': True,
+                'results_processed': processing_results['success'],
+                'processed_count': processing_results.get('processed_count', 0),
+                'emails_sent': email_result.get('sent_count', 0)
+            })
+        except Exception as e:
+            logger.error(f"Exception in unrelease_dean_evaluation: {e}", exc_info=True)
+            return JsonResponse({
+                'success': False,
+                'error': f'Server error: {str(e)}'
+            })
+    return JsonResponse({
+        'success': False, 
+        'error': 'Invalid request'
+    })
+
+
 def process_peer_evaluation_results(evaluation_period=None):
     """
     Process peer evaluation results for all staff members after evaluation period ends
@@ -1758,6 +1914,126 @@ def process_upward_evaluation_results(evaluation_period=None):
             'success': True,
             'processed_count': processed_count,
             'total_coordinators': len(coordinator_ids),
+            'details': processing_details,
+            'evaluation_period': current_period.name
+        }
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        return {
+            'success': False,
+            'error': str(e),
+            'error_details': error_details,
+            'processed_count': 0,
+            'details': [f"❌ System error: {str(e)}"]
+        }
+
+
+def process_dean_evaluation_results(evaluation_period=None):
+    """
+    Process dean evaluation results (Faculty → Dean) after evaluation period ends
+    """
+    try:
+        from main.models import DeanEvaluationResponse
+        
+        # Use the provided evaluation period if given; otherwise try to infer
+        current_period = evaluation_period
+        if not current_period:
+            # Fallback: use latest active dean period
+            current_period = EvaluationPeriod.objects.filter(
+                evaluation_type='dean',
+                is_active=True
+            ).first()
+        if not current_period:
+            # As a last resort, use the latest completed dean period
+            current_period = EvaluationPeriod.objects.filter(
+                evaluation_type='dean',
+                is_active=False
+            ).order_by('-end_date').first()
+        if not current_period:
+            return {
+                'success': False,
+                'error': 'No dean evaluation period available to process.',
+                'processed_count': 0,
+                'details': []
+            }
+        
+        # Get all deans who were evaluated
+        dean_ids = DeanEvaluationResponse.objects.filter(
+            evaluation_period=current_period
+        ).values_list('evaluatee', flat=True).distinct()
+        
+        processed_count = 0
+        processing_details = []
+        
+        for dean_id in dean_ids:
+            try:
+                dean = User.objects.get(id=dean_id)
+                
+                # Get all dean evaluations for this dean in this period
+                responses = DeanEvaluationResponse.objects.filter(
+                    evaluatee=dean,
+                    evaluation_period=current_period
+                )
+                
+                if responses.exists():
+                    # Calculate average scores for 15 questions
+                    total_score = 0
+                    response_count = responses.count()
+                    
+                    for i in range(1, 16):  # 15 questions
+                        question_field = f'question{i}'
+                        question_scores = []
+                        
+                        for response in responses:
+                            rating = getattr(response, question_field)
+                            score = {
+                                'Strongly Disagree': 1,
+                                'Disagree': 2,
+                                'Neutral': 3,
+                                'Agree': 4,
+                                'Strongly Agree': 5,
+                                'Poor': 1,
+                                'Fair': 2,
+                                'Satisfactory': 3,
+                                'Very Satisfactory': 4,
+                                'Outstanding': 5
+                            }.get(rating, 3)
+                            question_scores.append(score)
+                        
+                        avg_score = sum(question_scores) / len(question_scores) if question_scores else 0
+                        total_score += avg_score
+                    
+                    # Calculate percentage (15 questions, max 5 points each = 75 total)
+                    overall_percentage = (total_score / 75) * 100
+                    
+                    # Create or update EvaluationResult
+                    result, created = EvaluationResult.objects.update_or_create(
+                        user=dean,
+                        evaluation_period=current_period,
+                        defaults={
+                            'evaluation_type': 'dean',
+                            'total_percentage': overall_percentage,
+                            'total_responses': response_count,
+                            'last_updated': timezone.now()
+                        }
+                    )
+                    
+                    processed_count += 1
+                    processing_details.append(f"✅ Processed {dean.get_full_name() or dean.username}: {overall_percentage:.1f}% ({response_count} faculty evaluations)")
+                else:
+                    processing_details.append(f"➖ No dean evaluations for {dean.get_full_name() or dean.username}")
+                    
+            except User.DoesNotExist:
+                processing_details.append(f"❌ Dean ID {dean_id} not found")
+            except Exception as e:
+                processing_details.append(f"❌ Error processing dean ID {dean_id}: {str(e)}")
+        
+        return {
+            'success': True,
+            'processed_count': processed_count,
+            'total_deans': len(dean_ids),
             'details': processing_details,
             'evaluation_period': current_period.name
         }
@@ -2831,6 +3107,260 @@ def submit_upward_evaluation(request):
 
     print("Method was not POST, redirecting")
     return redirect('main:evaluation_form_upward')
+
+
+def evaluation_form_dean(request):
+    """
+    Display the dean evaluation form (Faculty → Dean).
+    Only faculty can access this form.
+    Faculty evaluates their dean only.
+    """
+    if not request.user.is_authenticated:
+        return redirect('/login')
+    
+    # Check if user has agreed to terms (reuse upward terms since they're on same page)
+    if not request.session.get('upward_terms_agreed'):
+        return redirect('upward_evaluation_terms')
+
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+
+        # ✅ ONLY FACULTY can access dean evaluation form
+        if user_profile.role != Role.FACULTY:
+            return render(request, 'main/no_permission.html', {
+                'message': 'Only faculty members can access the dean evaluation form.',
+                'page_title': 'Access Denied',
+            })
+        
+        logger.info(f"🔍 evaluation_form_dean accessed by {request.user.username} (Faculty)")
+        
+        # STEP 1: Get the current active dean evaluation period
+        logger.info("📍 STEP 1: Looking for active dean evaluation period...")
+        try:
+            current_dean_period = EvaluationPeriod.objects.get(
+                evaluation_type='dean',
+                is_active=True
+            )
+            logger.info(f"✅ Found active dean period: ID={current_dean_period.id}, Name={current_dean_period.name}")
+        except EvaluationPeriod.DoesNotExist:
+            logger.warning("❌ No active dean evaluation period found!")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'No active dean evaluation period found.',
+                'page_title': 'Evaluation Unavailable',
+            })
+        except Exception as e:
+            logger.error(f"❌ Error getting active dean period: {e}")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'Error retrieving evaluation period.',
+                'page_title': 'Evaluation Unavailable',
+            })
+
+        # STEP 2: Check if dean evaluation is released and linked to this period
+        logger.info("📍 STEP 2: Looking for released dean evaluation linked to active period...")
+        evaluation = Evaluation.objects.filter(
+            is_released=True,
+            evaluation_type='dean',
+            evaluation_period=current_dean_period
+        ).first()
+
+        if not evaluation:
+            logger.warning(f"❌ No released dean evaluation linked to active period!")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'No active dean evaluation is currently available.',
+                'page_title': 'Evaluation Unavailable',
+            })
+        
+        logger.info(f"✅ Found released dean evaluation: ID={evaluation.id}, Period={evaluation.evaluation_period_id}")
+
+        # STEP 3: Get all deans from the faculty's institute
+        logger.info("📍 STEP 3: Getting deans...")
+        
+        if not user_profile.institute:
+            logger.warning(f"❌ Faculty {request.user.username} has no institute assigned!")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'Your institute information is not set up. Please contact administrator.',
+                'page_title': 'Configuration Required',
+            })
+        
+        # Get all deans from the same institute
+        dean_profiles = UserProfile.objects.filter(
+            role=Role.DEAN,
+            institute=user_profile.institute
+        )
+        
+        if not dean_profiles.exists():
+            logger.warning(f"❌ No dean found for institute '{user_profile.institute}'!")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'Your institute has no dean assigned. Please contact administrator.',
+                'page_title': 'Configuration Required',
+            })
+        
+        deans = User.objects.filter(userprofile__in=dean_profiles)
+        logger.info(f"✅ Found {deans.count()} dean(s)")
+
+        # STEP 4: Get list of already evaluated deans in this period
+        logger.info("📍 STEP 4: Checking evaluated deans...")
+        from main.models import DeanEvaluationResponse
+        
+        evaluated_ids = list(DeanEvaluationResponse.objects.filter(
+            evaluator=request.user,
+            evaluation_period=current_dean_period
+        ).values_list('evaluatee_id', flat=True))
+
+        logger.info(f"✅ User has evaluated {len(evaluated_ids)} dean(s) in this period")
+
+        # ✅ Get dean evaluation questions from database
+        from main.models import DeanEvaluationQuestion
+        dean_questions = DeanEvaluationQuestion.objects.filter(
+            is_active=True
+        ).order_by('question_number')
+        
+        context = {
+            'evaluation': evaluation,
+            'deans': deans,
+            'evaluated_ids': evaluated_ids,
+            'questions': dean_questions,
+            'page_title': 'Dean Evaluation Form',
+        }
+        response = render(request, 'main/evaluationform_dean.html', context)
+        # Prevent browser caching
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
+
+    except UserProfile.DoesNotExist:
+        messages.error(request, "User profile not found. Please contact administrator.")
+        return redirect('/login')
+
+
+def submit_dean_evaluation(request):
+    """
+    Handle submission of dean evaluation (Faculty → Dean)
+    """
+    print("=" * 80)
+    print(f"SUBMIT DEAN EVALUATION CALLED - Method: {request.method}")
+    print("=" * 80)
+    
+    if request.method == 'POST':
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            print("ERROR: User not authenticated")
+            messages.error(request, 'You must be logged in to submit an evaluation.')
+            return redirect('main:login')
+
+        try:
+            evaluator_profile = request.user.userprofile
+            
+            # ✅ ONLY FACULTY can submit dean evaluation
+            if evaluator_profile.role != Role.FACULTY:
+                messages.error(request, 'Only faculty members can submit dean evaluations.')
+                return redirect('main:index')
+            
+            print(f"User: {request.user.username} (Faculty)")
+            logger.info(f"🔍 Dean evaluation submission by {request.user.username}")
+            
+            # Get the dean being evaluated
+            dean_id = request.POST.get('dean_id')
+            print(f"Dean ID: {dean_id}")
+            
+            if not dean_id:
+                messages.error(request, 'No dean selected.')
+                return redirect('main:evaluation_form_dean')
+            
+            try:
+                dean = User.objects.get(id=dean_id)
+                dean_profile = dean.userprofile
+            except User.DoesNotExist:
+                messages.error(request, 'Selected dean does not exist.')
+                return redirect('main:evaluation_form_dean')
+            
+            # Validate dean role
+            if dean_profile.role != Role.DEAN:
+                messages.error(request, 'You can only evaluate deans.')
+                return redirect('main:evaluation_form_dean')
+            
+            # Validate same institute
+            if evaluator_profile.institute != dean_profile.institute:
+                messages.error(request, 'You can only evaluate your own institute dean.')
+                return redirect('main:evaluation_form_dean')
+
+            # Get the current active dean evaluation period
+            try:
+                current_period = EvaluationPeriod.objects.get(
+                    evaluation_type='dean',
+                    is_active=True
+                )
+            except EvaluationPeriod.DoesNotExist:
+                messages.error(request, 'No active dean evaluation period found.')
+                return redirect('main:evaluation_form_dean')
+
+            # Check for duplicate evaluation in this period
+            from main.models import DeanEvaluationResponse
+            if DeanEvaluationResponse.objects.filter(
+                evaluator=request.user,
+                evaluatee=dean,
+                evaluation_period=current_period
+            ).exists():
+                messages.error(request, 'You have already evaluated this dean in this evaluation period.')
+                return redirect('main:evaluation_form_dean')
+
+            # Convert numeric values to text ratings
+            rating_map = {
+                '1': 'Strongly Disagree',
+                '2': 'Disagree', 
+                '3': 'Neutral',
+                '4': 'Agree',
+                '5': 'Strongly Agree'
+            }
+            
+            # Validate all 15 questions and convert to text
+            questions = {}
+            for i in range(1, 16):  # 15 questions for dean evaluation
+                question_key = f'question{i}'
+                question_value = request.POST.get(question_key)
+                
+                if not question_value:
+                    messages.error(request, f'All questions must be answered. Missing: Question {i}')
+                    return redirect('main:evaluation_form_dean')
+                
+                if question_value not in rating_map:
+                    messages.error(request, f'Invalid rating for question {i}.')
+                    return redirect('main:evaluation_form_dean')
+                    
+                questions[question_key] = rating_map[question_value]
+
+            # Get comments
+            comments = request.POST.get('comments', '')
+
+            # Create and save the dean evaluation response
+            logger.info(f"🔍 Creating dean evaluation with 15 questions")
+            
+            evaluation_response = DeanEvaluationResponse(
+                evaluator=request.user,
+                evaluatee=dean,
+                evaluation_period=current_period,
+                comments=comments,
+                **questions
+            )
+            evaluation_response.save()
+            logger.info(f"✅ Dean evaluation saved successfully! ID: {evaluation_response.id}")
+
+            messages.success(request, 'Dean evaluation submitted successfully!')
+            return redirect('main:evaluation_form_dean')
+
+        except Exception as e:
+            print("=" * 80)
+            print(f"EXCEPTION OCCURRED: {str(e)}")
+            print("=" * 80)
+            import traceback
+            traceback.print_exc()
+            
+            messages.error(request, f'An error occurred: {str(e)}')
+            return redirect('main:evaluation_form_dean')
+
+    print("Method was not POST, redirecting")
+    return redirect('main:evaluation_form_dean')
     
 
 def process_results(request):

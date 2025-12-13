@@ -37,6 +37,7 @@ class EvaluationEmailService:
         - student: Students only
         - peer: Dean, Coordinator, Faculty (NOT Students)
         - upward: Faculty only
+        - dean: Faculty only
         """
         try:
             # Get all active users with valid email addresses
@@ -50,6 +51,9 @@ class EvaluationEmailService:
                 # Send to Dean, Coordinator, and Faculty (NOT Students)
                 users = base_users.filter(userprofile__role__in=['Dean', 'Coordinator', 'Faculty'])
             elif evaluation_type == 'upward':
+                # Only send to Faculty
+                users = base_users.filter(userprofile__role='Faculty')
+            elif evaluation_type == 'dean':
                 # Only send to Faculty
                 users = base_users.filter(userprofile__role='Faculty')
             else:
@@ -132,6 +136,7 @@ class EvaluationEmailService:
         - student: Students only
         - peer: Dean, Coordinator, Faculty (NOT Students)
         - upward: Faculty only
+        - dean: Faculty only
         """
         try:
             base_users = User.objects.filter(is_active=True).exclude(email='')
@@ -144,6 +149,9 @@ class EvaluationEmailService:
                 # Send to Dean, Coordinator, and Faculty (NOT Students)
                 users = base_users.filter(userprofile__role__in=['Dean', 'Coordinator', 'Faculty'])
             elif evaluation_type == 'upward':
+                # Only send to Faculty
+                users = base_users.filter(userprofile__role='Faculty')
+            elif evaluation_type == 'dean':
                 # Only send to Faculty
                 users = base_users.filter(userprofile__role='Faculty')
             else:
@@ -245,6 +253,8 @@ class EvaluationEmailService:
             return "🎓 Peer Evaluation Form Released - Action Required"
         elif evaluation_type == 'upward':
             return "🎓 Upward Evaluation Form Released - Action Required"
+        elif evaluation_type == 'dean':
+            return "🎓 Dean Evaluation Form Released - Action Required"
         else:
             return "🎓 Student Evaluation Form Released - Action Required"
     
@@ -255,6 +265,8 @@ class EvaluationEmailService:
             return "📋 Peer Evaluation Period Closed"
         elif evaluation_type == 'upward':
             return "📋 Upward Evaluation Period Closed"
+        elif evaluation_type == 'dean':
+            return "📋 Dean Evaluation Period Closed"
         else:
             return "📋 Student Evaluation Period Closed"
     
@@ -265,6 +277,8 @@ class EvaluationEmailService:
             eval_name = "Peer Evaluation Form"
         elif evaluation_type == 'upward':
             eval_name = "Upward Evaluation Form"
+        elif evaluation_type == 'dean':
+            eval_name = "Dean Evaluation Form"
         else:
             eval_name = "Student Evaluation Form"
         
@@ -343,6 +357,8 @@ class EvaluationEmailService:
             eval_name = "Peer Evaluation Form"
         elif evaluation_type == 'upward':
             eval_name = "Upward Evaluation Form"
+        elif evaluation_type == 'dean':
+            eval_name = "Dean Evaluation Form"
         else:
             eval_name = "Student Evaluation Form"
         
@@ -380,6 +396,8 @@ This is an automated notification. Please do not reply to this email.
             eval_name = "Peer Evaluation Form"
         elif evaluation_type == 'upward':
             eval_name = "Upward Evaluation Form"
+        elif evaluation_type == 'dean':
+            eval_name = "Dean Evaluation Form"
         else:
             eval_name = "Student Evaluation Form"
         
@@ -446,6 +464,8 @@ This is an automated notification. Please do not reply to this email.
             eval_name = "Peer Evaluation Form"
         elif evaluation_type == 'upward':
             eval_name = "Upward Evaluation Form"
+        elif evaluation_type == 'dean':
+            eval_name = "Dean Evaluation Form"
         else:
             eval_name = "Student Evaluation Form"
         

@@ -7,7 +7,8 @@ from .views import (
     release_student_evaluation, unrelease_student_evaluation,
     release_peer_evaluation, unrelease_peer_evaluation,
     release_upward_evaluation, unrelease_upward_evaluation,
-    submit_evaluation, submit_upward_evaluation, evaluated, evaluation_form_staffs, evaluation_form_upward,
+    release_dean_evaluation, unrelease_dean_evaluation,
+    submit_evaluation, submit_upward_evaluation, submit_dean_evaluation, evaluated, evaluation_form_staffs, evaluation_form_upward, evaluation_form_dean,
     assign_section, remove_section_assignment, upward_evaluation_terms, upward_terms_agree
 )
 from .decorators import evaluation_results_required
@@ -34,12 +35,16 @@ urlpatterns = [
     path('unrelease/peer/', views.unrelease_peer_evaluation, name='unrelease_peer_evaluation'),
     path('release/upward/', views.release_upward_evaluation, name='release_upward_evaluation'),
     path('unrelease/upward/', views.unrelease_upward_evaluation, name='unrelease_upward_evaluation'),
+    path('release/dean/', views.release_dean_evaluation, name='release_dean_evaluation'),
+    path('unrelease/dean/', views.unrelease_dean_evaluation, name='unrelease_dean_evaluation'),
     path('evaluationform/', views.EvaluationFormView.as_view(), name='evaluationform'),
     path('submit_evaluation/', views.submit_evaluation, name='submit_evaluation'),
     path('upward-evaluation-terms/', views.upward_evaluation_terms, name='upward_evaluation_terms'),
     path('upward-terms-agree/', views.upward_terms_agree, name='upward_terms_agree'),
     path('evaluation-upward/', views.evaluation_form_upward, name='evaluation_form_upward'),
     path('submit-upward-evaluation/', views.submit_upward_evaluation, name='submit_upward_evaluation'),
+    path('evaluation-dean/', views.evaluation_form_dean, name='evaluation_form_dean'),
+    path('submit-dean-evaluation/', views.submit_dean_evaluation, name='submit_dean_evaluation'),
     path('evaluate/', views.evaluated, name='evaluate'),
     path('dean/profile-settings/', evaluation_results_required(views.DeanProfileSettingsView.as_view()), name='dean_profile_settings'),
     path('coordinator/settings/',(views.CoordinatorProfileSettingsView.as_view()), name='coordinator_profile_settings'),
