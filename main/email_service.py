@@ -40,8 +40,7 @@ class EvaluationEmailService:
         """
         try:
             # Get all active users with valid email addresses
-            # Exclude the school head admin account (cibituonon@cca.edu.ph)
-            base_users = User.objects.filter(is_active=True).exclude(email='').exclude(email='cibituonon@cca.edu.ph')
+            base_users = User.objects.filter(is_active=True).exclude(email='')
             
             # Filter users based on evaluation type
             if evaluation_type == 'student':
@@ -135,7 +134,7 @@ class EvaluationEmailService:
         - upward: Faculty only
         """
         try:
-            base_users = User.objects.filter(is_active=True).exclude(email='').exclude(email='cibituonon@cca.edu.ph')
+            base_users = User.objects.filter(is_active=True).exclude(email='')
             
             # Filter users based on evaluation type
             if evaluation_type == 'student':
