@@ -200,6 +200,7 @@ class EvaluationPeriod(models.Model):
     EVALUATION_TYPE_CHOICES = [
         ('student', 'Student'),
         ('peer', 'Peer'),
+        ('dean', 'Dean'),
     ]
     
     name = models.CharField(max_length=100)  # e.g., "1st Semester 2024"
@@ -227,6 +228,7 @@ class Evaluation(models.Model):
     EVALUATION_TYPE_CHOICES = [
         ('student', 'Student'),
         ('peer', 'Peer'),
+        ('dean', 'Dean'),
     ]
     
     EVALUATOR_CHOICES = [
@@ -816,3 +818,55 @@ class UpwardEvaluationResponse(models.Model):
 
     def __str__(self):
         return f"{self.evaluator.get_full_name() or self.evaluator.username}'s Upward Evaluation for {self.evaluatee.get_full_name() or self.evaluatee.username}"
+
+
+class DeanEvaluationQuestion(models.Model):
+    """Store dean evaluation questions (Faculty → Dean)"""
+    question_number = models.IntegerField(primary_key=True)
+    question_text = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['question_number']
+    
+    def __str__(self):
+        return f"Dean Q{self.question_number}: {self.question_text[:50]}..."
+
+
+class DeanEvaluationResponse(models.Model):
+    """Store faculty responses when evaluating their dean"""
+    evaluator = models.ForeignKey(User, related_name='dean_evaluations', on_delete=models.CASCADE, db_index=True)
+    evaluatee = models.ForeignKey(User, related_name='dean_evaluated_by', on_delete=models.CASCADE, db_index=True)
+    evaluation_period = models.ForeignKey(EvaluationPeriod, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    
+    # Timestamp
+    submitted_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    # Questions for dean evaluation (will add based on Jotform)
+    question1 = models.CharField(max_length=50, default='Poor')
+    question2 = models.CharField(max_length=50, default='Poor')
+    question3 = models.CharField(max_length=50, default='Poor')
+    question4 = models.CharField(max_length=50, default='Poor')
+    question5 = models.CharField(max_length=50, default='Poor')
+    question6 = models.CharField(max_length=50, default='Poor')
+    question7 = models.CharField(max_length=50, default='Poor')
+    question8 = models.CharField(max_length=50, default='Poor')
+    question9 = models.CharField(max_length=50, default='Poor')
+    question10 = models.CharField(max_length=50, default='Poor')
+    question11 = models.CharField(max_length=50, default='Poor')
+    question12 = models.CharField(max_length=50, default='Poor')
+    question13 = models.CharField(max_length=50, default='Poor')
+    question14 = models.CharField(max_length=50, default='Poor')
+    question15 = models.CharField(max_length=50, default='Poor')
+
+    # Comments field
+    comments = models.TextField(blank=True, null=True, verbose_name="Additional Comments/Suggestions")
+
+    class Meta:
+        # Prevent duplicate evaluation within the same period
+        unique_together = ('evaluator', 'evaluatee', 'evaluation_period')
+
+    def __str__(self):
+        return f"{self.evaluator.get_full_name() or self.evaluator.username}'s Dean Evaluation for {self.evaluatee.get_full_name() or self.evaluatee.username}"

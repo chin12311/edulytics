@@ -155,12 +155,24 @@
                 
                 <form method="POST" action="">
                     {% csrf_token %}
-                    <p class="mb-3">Please review the terms and conditions above before starting the upward evaluation.</p>
+                    <p class="mb-3">Please review the terms and conditions above before starting the evaluation.</p>
 
-                    <!-- Start Evaluation Button (with agreement validation) - INITIALLY DISABLED -->
-                    <button type="button" id="evaluationBtn" class="btn btn-primary btn-lg" onclick="validateAgreement()" disabled>
-                        <i class="fas fa-edit me-2"></i> Start Evaluation
-                    </button>
+                    <!-- Two evaluation buttons side by side -->
+                    <div class="row g-3">
+                        <!-- Start Coordinator Evaluation Button -->
+                        <div class="col-md-6">
+                            <button type="button" id="coordinatorEvaluationBtn" class="btn btn-primary btn-lg w-100" onclick="validateAgreement('coordinator')" disabled>
+                                <i class="fas fa-user-tie me-2"></i> Start Coordinator Evaluation
+                            </button>
+                        </div>
+                        
+                        <!-- Start Dean Evaluation Button -->
+                        <div class="col-md-6">
+                            <button type="button" id="deanEvaluationBtn" class="btn btn-success btn-lg w-100" onclick="validateAgreement('dean')" disabled>
+                                <i class="fas fa-user-graduate me-2"></i> Start Dean Evaluation
+                            </button>
+                        </div>
+                    </div>
                 </form>
             {% else %}
                 <div class="alert alert-warning text-center" role="alert">
@@ -174,7 +186,7 @@
 
 <!-- JavaScript for Agreement Validation -->
 <script>
-function validateAgreement() {
+function validateAgreement(evaluationType) {
     const agreementCheckbox = document.getElementById('userAgreement');
     const agreementError = document.getElementById('agreementError');
     
@@ -188,40 +200,51 @@ function validateAgreement() {
     } else {
         agreementError.style.display = 'none';
         
-        // Store agreement in session and redirect to upward evaluation form
+        // Store agreement in session and redirect to appropriate evaluation form
         fetch('{% url "main:upward_terms_agree" %}', {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ agreed: true })
+            body: JSON.stringify({ agreed: true, evaluation_type: evaluationType })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                window.location.href = '{% url "main:evaluation_form_upward" %}';
+                // Redirect to the appropriate evaluation form
+                if (evaluationType === 'dean') {
+                    window.location.href = '{% url "main:evaluation_form_dean" %}';
+                } else {
+                    window.location.href = '{% url "main:evaluation_form_upward" %}';
+                }
             }
         })
         .catch(error => {
             console.error('Error:', error);
             // Still redirect even if session storage fails
-            window.location.href = '{% url "main:evaluation_form_upward" %}';
+            if (evaluationType === 'dean') {
+                window.location.href = '{% url "main:evaluation_form_dean" %}';
+            } else {
+                window.location.href = '{% url "main:evaluation_form_upward" %}';
+            }
         });
         
         return true;
     }
 }
 
-// Enable/disable button based on agreement checkbox
+// Enable/disable buttons based on agreement checkbox
 document.addEventListener('DOMContentLoaded', function() {
     const agreementCheckbox = document.getElementById('userAgreement');
-    const evaluationBtn = document.getElementById('evaluationBtn');
+    const coordinatorBtn = document.getElementById('coordinatorEvaluationBtn');
+    const deanBtn = document.getElementById('deanEvaluationBtn');
     
-    if (agreementCheckbox && evaluationBtn) {
+    if (agreementCheckbox && coordinatorBtn && deanBtn) {
         agreementCheckbox.addEventListener('change', function() {
-            // Enable/disable button based on agreement
-            evaluationBtn.disabled = !this.checked;
+            // Enable/disable buttons based on agreement
+            coordinatorBtn.disabled = !this.checked;
+            deanBtn.disabled = !this.checked;
             
             // Hide error message when checking the box
             const agreementError = document.getElementById('agreementError');
@@ -260,10 +283,9 @@ style.textContent = `
     .modal-header {
         border-radius: 10px 10px 0 0 !important;
     }
-    /* Style for disabled button */
-    #evaluationBtn:disabled {
-        background-color: #6c757d;
-        border-color: #6c757d;
+    /* Style for disabled buttons */
+    #coordinatorEvaluationBtn:disabled,
+    #deanEvaluationBtn:disabled {
         cursor: not-allowed;
         opacity: 0.6;
     }
