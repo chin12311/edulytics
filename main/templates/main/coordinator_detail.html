@@ -782,6 +782,18 @@
 
         // For peer evaluations, only show total score (no categories)
         if (dataType === 'peer') {
+            // Check if there's data
+            if (!sectionData.has_data || totalPercentage === 0) {
+                // Show no data message for peer evaluation
+                document.querySelector('.dashboard-grid').style.display = 'none';
+                document.getElementById('peerDisplay').style.display = 'none';
+                document.getElementById('upwardDisplay').style.display = 'none';
+                document.getElementById('noDataMessage').style.display = 'block';
+                document.getElementById('explanationBox').style.display = 'none';
+                document.getElementById('overallStats').style.display = 'none';
+                return;
+            }
+            
             // Hide chart and category breakdown
             document.getElementById('evaluationPieChart').style.display = 'none';
             document.getElementById('scoreDetails').style.display = 'none';
@@ -806,6 +818,18 @@
         
         // For upward evaluations, only show total score (no categories)
         if (dataType === 'upward') {
+            // Check if there's data
+            if (!sectionData.has_data || totalPercentage === 0) {
+                // Show no data message for upward evaluation
+                document.querySelector('.dashboard-grid').style.display = 'none';
+                document.getElementById('peerDisplay').style.display = 'none';
+                document.getElementById('upwardDisplay').style.display = 'none';
+                document.getElementById('noDataMessage').style.display = 'block';
+                document.getElementById('explanationBox').style.display = 'none';
+                document.getElementById('overallStats').style.display = 'none';
+                return;
+            }
+            
             // Hide chart and category breakdown
             document.getElementById('evaluationPieChart').style.display = 'none';
             document.getElementById('scoreDetails').style.display = 'none';
