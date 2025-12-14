@@ -3752,32 +3752,20 @@ def evaluation_form_student_upward(request):
         logger.info(f"✅ Found released student upward evaluation: ID={evaluation.id}, Period={evaluation.evaluation_period_id}")
 
         # STEP 3: Get coordinators assigned to student's section
-        logger.info("📍 STEP 3: Getting coordinators...")
+        logger.info("📍 STEP 3: Getting all coordinators...")
         
-        if not user_profile.section:
-            logger.warning(f"❌ Student {request.user.username} has no section assigned!")
-            return render(request, 'main/no_active_evaluation.html', {
-                'message': 'Your section information is not set up. Please contact administrator.',
-                'page_title': 'Configuration Required',
-            })
-        
-        # Get coordinators assigned to this student's section
-        from main.models import SectionAssignment
-        coordinator_assignments = SectionAssignment.objects.filter(
-            section=user_profile.section,
-            user__userprofile__role=Role.COORDINATOR
-        )
-        
-        if not coordinator_assignments.exists():
-            logger.warning(f"❌ No coordinator assigned to section {user_profile.section}!")
-            return render(request, 'main/no_active_evaluation.html', {
-                'message': 'Your section has no coordinator assigned. Please contact administrator.',
-                'page_title': 'Configuration Required',
-            })
-        
+        # Get ALL coordinators in the system (not restricted to student's section)
         coordinators = User.objects.filter(
-            id__in=coordinator_assignments.values_list('user_id', flat=True)
+            userprofile__role=Role.COORDINATOR
         )
+        
+        if not coordinators.exists():
+            logger.warning(f"❌ No coordinators found in the system!")
+            return render(request, 'main/no_active_evaluation.html', {
+                'message': 'No coordinators available for evaluation. Please contact administrator.',
+                'page_title': 'Configuration Required',
+            })
+        
         logger.info(f"✅ Found {coordinators.count()} coordinator(s)")
 
         # STEP 4: Get list of already evaluated coordinators in this period
