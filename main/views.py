@@ -8025,18 +8025,30 @@ def move_current_results_to_history():
     """
     try:
         results = EvaluationResult.objects.all()
-        moved_count = 0
         
+        if not results.exists():
+            return 0
+        
+        # Bulk create history records for better performance
+        history_records = []
         for result in results:
-            # Create history record from result
-            EvaluationHistory.create_from_result(result)
-            moved_count += 1
-            logger.info(f"Moved result to history: {result.user.username} - {result.evaluation_period.name}")
+            history_records.append(EvaluationHistory(
+                user=result.user,
+                evaluation_period=result.evaluation_period,
+                evaluation_type=result.evaluation_type,
+                total_percentage=result.total_percentage,
+                total_responses=result.total_responses,
+                archived_at=timezone.now()
+            ))
+        
+        # Bulk insert all history records at once (much faster)
+        EvaluationHistory.objects.bulk_create(history_records, batch_size=100)
+        moved_count = len(history_records)
+        logger.info(f"Bulk moved {moved_count} results to history")
         
         # Delete all results from EvaluationResult after moving to history
-        if moved_count > 0:
-            deleted_count = results.delete()[0]
-            logger.info(f"Cleared {deleted_count} records from EvaluationResult table after moving to history")
+        deleted_count = results.delete()[0]
+        logger.info(f"Cleared {deleted_count} records from EvaluationResult table")
         
         return moved_count
         
