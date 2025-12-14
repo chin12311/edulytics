@@ -200,12 +200,14 @@ class EvaluationPeriod(models.Model):
     EVALUATION_TYPE_CHOICES = [
         ('student', 'Student'),
         ('peer', 'Peer'),
+        ('upward', 'Upward'),
         ('dean', 'Dean'),
+        ('student_upward', 'Student Upward'),
     ]
     
     name = models.CharField(max_length=100)  # e.g., "1st Semester 2024"
     evaluation_type = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=EVALUATION_TYPE_CHOICES,
         default='student'
     )
@@ -228,7 +230,9 @@ class Evaluation(models.Model):
     EVALUATION_TYPE_CHOICES = [
         ('student', 'Student'),
         ('peer', 'Peer'),
+        ('upward', 'Upward'),
         ('dean', 'Dean'),
+        ('student_upward', 'Student Upward'),
     ]
     
     EVALUATOR_CHOICES = [
@@ -243,7 +247,7 @@ class Evaluation(models.Model):
         help_text='Who evaluates: students evaluate teachers, peer means teachers evaluate each other'
     )
     evaluation_type = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=EVALUATION_TYPE_CHOICES,
         default='student'
     )
@@ -459,6 +463,9 @@ class EvaluationHistory(models.Model):
     EVALUATION_TYPE_CHOICES = [
         ('student', 'Student Evaluation'),
         ('peer', 'Peer Evaluation'),
+        ('upward', 'Upward Evaluation'),
+        ('dean', 'Dean Evaluation'),
+        ('student_upward', 'Student Upward Evaluation'),
     ]
     
     # Link to the user being evaluated
@@ -471,7 +478,7 @@ class EvaluationHistory(models.Model):
         related_name="history_records"
     )
     evaluation_type = models.CharField(
-        max_length=10, 
+        max_length=20, 
         choices=EVALUATION_TYPE_CHOICES,
         default='student'
     )
@@ -618,6 +625,9 @@ class AiRecommendation(models.Model):
     EVALUATION_TYPE_CHOICES = [
         ('student', 'Student'),
         ('peer', 'Peer'),
+        ('upward', 'Upward'),
+        ('dean', 'Dean'),
+        ('student_upward', 'Student Upward'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recommendations")
@@ -632,7 +642,7 @@ class AiRecommendation(models.Model):
     # Optional legacy field (kept for backward compatibility)
     recommendation = models.TextField(blank=True)
 
-    evaluation_type = models.CharField(max_length=10, choices=EVALUATION_TYPE_CHOICES, default='student')
+    evaluation_type = models.CharField(max_length=20, choices=EVALUATION_TYPE_CHOICES, default='student')
     section_code = models.CharField(max_length=50, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -736,9 +746,12 @@ class EvaluationQuestion(models.Model):
     EVALUATION_TYPE_CHOICES = [
         ('student', 'Student Evaluation'),
         ('peer', 'Peer Evaluation'),
+        ('upward', 'Upward Evaluation'),
+        ('dean', 'Dean Evaluation'),
+        ('student_upward', 'Student Upward Evaluation'),
     ]
     
-    evaluation_type = models.CharField(max_length=10, choices=EVALUATION_TYPE_CHOICES, default='student')
+    evaluation_type = models.CharField(max_length=20, choices=EVALUATION_TYPE_CHOICES, default='student')
     question_number = models.IntegerField()  # 1, 2, 3, ..., 19
     question_text = models.TextField()
     is_active = models.BooleanField(default=True)
@@ -870,3 +883,62 @@ class DeanEvaluationResponse(models.Model):
 
     def __str__(self):
         return f"{self.evaluator.get_full_name() or self.evaluator.username}'s Dean Evaluation for {self.evaluatee.get_full_name() or self.evaluatee.username}"
+
+
+# Student → Coordinator Upward Evaluation (12 questions in 4 categories)
+class StudentUpwardEvaluationQuestion(models.Model):
+    """
+    Student → Coordinator Upward Evaluation Questions
+    12 questions grouped into 4 categories (3 questions per category)
+    """
+    question_number = models.IntegerField(primary_key=True, unique=True)
+    question_text = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['question_number']
+
+    def __str__(self):
+        return f"Q{self.question_number}: {self.question_text[:50]}"
+
+
+class StudentUpwardEvaluationResponse(models.Model):
+    """
+    Stores a Student's upward evaluation response for a Coordinator
+    12 questions with comments
+    """
+    # Who is evaluating whom
+    evaluator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='student_upward_evaluations_given', db_index=True)
+    evaluatee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='student_upward_evaluations_received', db_index=True)
+    
+    # Link to evaluation period
+    evaluation_period = models.ForeignKey(EvaluationPeriod, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    
+    # Timestamp
+    submitted_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    # 12 questions for student upward evaluation (Student → Coordinator)
+    question1 = models.CharField(max_length=50, default='Poor')
+    question2 = models.CharField(max_length=50, default='Poor')
+    question3 = models.CharField(max_length=50, default='Poor')
+    question4 = models.CharField(max_length=50, default='Poor')
+    question5 = models.CharField(max_length=50, default='Poor')
+    question6 = models.CharField(max_length=50, default='Poor')
+    question7 = models.CharField(max_length=50, default='Poor')
+    question8 = models.CharField(max_length=50, default='Poor')
+    question9 = models.CharField(max_length=50, default='Poor')
+    question10 = models.CharField(max_length=50, default='Poor')
+    question11 = models.CharField(max_length=50, default='Poor')
+    question12 = models.CharField(max_length=50, default='Poor')
+
+    # Comments field
+    comments = models.TextField(blank=True, null=True, verbose_name="Additional Comments/Suggestions")
+
+    class Meta:
+        # Prevent duplicate evaluation within the same period
+        unique_together = ('evaluator', 'evaluatee', 'evaluation_period')
+
+    def __str__(self):
+        return f"{self.evaluator.get_full_name() or self.evaluator.username}'s Student Upward Evaluation for {self.evaluatee.get_full_name() or self.evaluatee.username}"

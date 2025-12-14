@@ -20,6 +20,23 @@ def evaluation_context(request):
             is_released=True
         ).exists()
     
+    # Check for student upward evaluation (Student → Coordinator)
+    student_upward_evaluation_active = False
+    
+    student_upward_period = EvaluationPeriod.objects.filter(
+        evaluation_type='student_upward',
+        is_active=True
+    ).first()
+    
+    if student_upward_period:
+        # Check if there's a released evaluation linked to this period
+        student_upward_evaluation_active = Evaluation.objects.filter(
+            evaluation_type='student_upward',
+            evaluation_period=student_upward_period,
+            is_released=True
+        ).exists()
+    
     return {
-        'upward_evaluation_active': upward_evaluation_active
+        'upward_evaluation_active': upward_evaluation_active,
+        'student_upward_evaluation_active': student_upward_evaluation_active
     }

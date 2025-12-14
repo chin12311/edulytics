@@ -1,0 +1,316 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+
+    <!-- Success Popup Modal -->
+    {% if show_success_popup %}
+    <div class="modal fade show" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="false" style="display: block; background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="successModalLabel">
+                        <i class="fas fa-check-circle"></i> Success!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4 class="text-success">Evaluation Submitted Successfully!</h4>
+                    <p class="mt-3">Thank you for your feedback. Your evaluation has been recorded and will help improve teaching quality.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Terms & Conditions Modal -->
+    <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="termsModalLabel">
+                        <i class="fas fa-file-contract me-2"></i>Terms & Conditions
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                    <h6>Evaluation System Terms & Conditions</h6>
+                    <ol class="mt-3">
+                        <li class="mb-2">
+                            <strong>Purpose:</strong> This evaluation system collects feedback to improve teaching quality and educational experience.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Professional Conduct:</strong> Provide honest, constructive, and professional feedback. Avoid personal attacks or inappropriate comments.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Academic Integrity:</strong> Your evaluation should reflect your genuine experience and observations.
+                        </li>
+                        <li class="mb-2">
+                            <strong>One Submission:</strong> You can only submit one evaluation per instructor. Submissions are final.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Data Usage:</strong> Feedback is used for faculty development, curriculum improvement, and institutional research.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Consequences:</strong> Misuse of the system may result in disciplinary action.
+                        </li>
+                    </ol>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy Policy Modal -->
+    <div class="modal fade" id="privacyModal" tabindex="-1" aria-labelledby="privacyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="privacyModalLabel">
+                        <i class="fas fa-shield-alt me-2"></i>Privacy Policy
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                    <h6>Privacy Policy for Evaluation System</h6>
+                    <ol class="mt-3">
+                        <li class="mb-2">
+                            <strong>Confidentiality:</strong> Your responses are kept confidential and used solely for professional development.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Anonymity:</strong> Individual responses are anonymized in reports shown to instructors.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Data Collection:</strong> We collect evaluation responses, course information, and timestamps.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Data Storage:</strong> Data is stored securely and accessed only by authorized personnel.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Data Retention:</strong> Evaluation data is retained for institutional research and accreditation purposes.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Your Rights:</strong> You have the right to know how your data is used and can contact administration with concerns.
+                        </li>
+                    </ol>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-info text-white" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="text-center">{{ page_title }}</h2>
+
+            {% if evaluation %}
+                <h3>{{ evaluation.title }}</h3>
+                <p>{{ evaluation.description }}</p>
+                
+                <!-- Simplified User Agreement Section -->
+                <div class="agreement-section mb-4">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white py-2">
+                            <h6 class="mb-0 text-center">
+                                <i class="fas fa-file-contract me-2"></i>Evaluation Agreement
+                            </h6>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="agreement-summary text-center mb-3">
+                                <small class="text-muted">
+                                    Please review our terms before proceeding with the evaluation
+                                </small>
+                            </div>
+                            
+                            <div class="form-check mt-3 mb-2">
+                                <input class="form-check-input" type="checkbox" id="userAgreement" name="userAgreement">
+                                <label class="form-check-label" for="userAgreement">
+                                    <small>
+                                        I agree to the 
+                                        <a href="#" class="text-primary fw-bold" data-bs-toggle="modal" data-bs-target="#termsModal">Terms & Conditions</a> 
+                                        and 
+                                        <a href="#" class="text-primary fw-bold" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a>
+                                    </small>
+                                </label>
+                            </div>
+                            
+                            <!-- Agreement Error Message -->
+                            <div id="agreementError" class="alert alert-danger py-2 mt-2" style="display: none;">
+                                <i class="fas fa-exclamation-circle me-1"></i>
+                                <small>Please agree to the terms and conditions to continue</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <p class="mb-3">Please review the terms and conditions above before starting the evaluation.</p>
+
+                    <!-- Two evaluation buttons side by side -->
+                    <div class="row g-3">
+                        <!-- Start Coordinator Evaluation Button -->
+                        <div class="col-md-6">
+                            <button type="button" id="coordinatorEvaluationBtn" class="btn btn-primary btn-lg w-100" onclick="validateAgreement('coordinator')" disabled>
+                                <i class="fas fa-user-tie me-2"></i> Start Coordinator Evaluation
+                            </button>
+                        </div>
+                        
+                        <!-- Start Dean Evaluation Button -->
+                        <div class="col-md-6">
+                            <button type="button" id="deanEvaluationBtn" class="btn btn-success btn-lg w-100" onclick="validateAgreement('dean')" disabled>
+                                <i class="fas fa-user-graduate me-2"></i> Start Dean Evaluation
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            {% else %}
+                <div class="alert alert-warning text-center" role="alert">
+                    <strong>Evaluation is not yet available.</strong>
+                    Please wait for the administrator to release it.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Agreement Validation -->
+<script>
+function validateAgreement(evaluationType) {
+    const agreementCheckbox = document.getElementById('userAgreement');
+    const agreementError = document.getElementById('agreementError');
+    
+    if (!agreementCheckbox.checked) {
+        agreementError.style.display = 'block';
+        agreementCheckbox.classList.add('shake');
+        setTimeout(() => {
+            agreementCheckbox.classList.remove('shake');
+        }, 500);
+        return false;
+    } else {
+        agreementError.style.display = 'none';
+        
+        // Store agreement in session and redirect to appropriate evaluation form
+        fetch('{% url "main:student_upward_terms_agree" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ agreed: true, evaluation_type: evaluationType })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to the appropriate evaluation form
+                if (evaluationType === 'dean') {
+                    window.location.href = '{% url "main:evaluation_form_dean" %}';
+                } else {
+                    window.location.href = '{% url "main:evaluation_form_student_upward" %}';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Still redirect even if session storage fails
+            if (evaluationType === 'dean') {
+                window.location.href = '{% url "main:evaluation_form_dean" %}';
+            } else {
+                window.location.href = '{% url "main:evaluation_form_student_upward" %}';
+            }
+        });
+        
+        return true;
+    }
+}
+
+// Enable/disable buttons based on agreement checkbox
+document.addEventListener('DOMContentLoaded', function() {
+    const agreementCheckbox = document.getElementById('userAgreement');
+    const coordinatorBtn = document.getElementById('coordinatorEvaluationBtn');
+    const deanBtn = document.getElementById('deanEvaluationBtn');
+    
+    if (agreementCheckbox && coordinatorBtn && deanBtn) {
+        agreementCheckbox.addEventListener('change', function() {
+            // Enable/disable buttons based on agreement
+            coordinatorBtn.disabled = !this.checked;
+            deanBtn.disabled = !this.checked;
+            
+            // Hide error message when checking the box
+            const agreementError = document.getElementById('agreementError');
+            if (this.checked) {
+                agreementError.style.display = 'none';
+            }
+        });
+    }
+});
+
+// Add CSS for shake animation and disabled button styling
+const style = document.createElement('style');
+style.textContent = `
+    .agreement-section .card {
+        border-radius: 10px;
+    }
+    .agreement-section .card-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+    .agreement-summary {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px;
+    }
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    .shake {
+        animation: shake 0.5s ease-in-out;
+    }
+    .modal-content {
+        border-radius: 10px;
+    }
+    .modal-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+    /* Style for disabled buttons */
+    #coordinatorEvaluationBtn:disabled,
+    #deanEvaluationBtn:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+<!-- Auto-hide the popup after 5 seconds -->
+{% if show_success_popup %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var successModal = new bootstrap.Modal(document.getElementById('successModal'));
+        successModal.show();
+        
+        // Auto-hide after 5 seconds
+        setTimeout(function() {
+            successModal.hide();
+        }, 5000);
+        
+        // Remove the submitted parameter from URL to prevent showing again on refresh
+        if (window.history.replaceState) {
+            var newUrl = window.location.href.split('?')[0];
+            window.history.replaceState({}, document.title, newUrl);
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

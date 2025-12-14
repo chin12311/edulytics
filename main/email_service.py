@@ -56,6 +56,9 @@ class EvaluationEmailService:
             elif evaluation_type == 'dean':
                 # Only send to Faculty
                 users = base_users.filter(userprofile__role='Faculty')
+            elif evaluation_type == 'student_upward':
+                # Only send to Students (for coordinator evaluation)
+                users = base_users.filter(userprofile__role='Student')
             else:
                 # Default: all users (shouldn't happen)
                 users = base_users
@@ -154,6 +157,9 @@ class EvaluationEmailService:
             elif evaluation_type == 'dean':
                 # Only send to Faculty
                 users = base_users.filter(userprofile__role='Faculty')
+            elif evaluation_type == 'student_upward':
+                # Only send to Students (for coordinator evaluation)
+                users = base_users.filter(userprofile__role='Student')
             else:
                 # Default: all users (shouldn't happen)
                 users = base_users
@@ -255,6 +261,8 @@ class EvaluationEmailService:
             return "🎓 Upward Evaluation Form Released - Action Required"
         elif evaluation_type == 'dean':
             return "🎓 Dean Evaluation Form Released - Action Required"
+        elif evaluation_type == 'student_upward':
+            return "🎓 Coordinator Evaluation Form Released - Action Required"
         else:
             return "🎓 Student Evaluation Form Released - Action Required"
     
@@ -267,6 +275,8 @@ class EvaluationEmailService:
             return "📋 Upward Evaluation Period Closed"
         elif evaluation_type == 'dean':
             return "📋 Dean Evaluation Period Closed"
+        elif evaluation_type == 'student_upward':
+            return "📋 Coordinator Evaluation Period Closed"
         else:
             return "📋 Student Evaluation Period Closed"
     
@@ -279,6 +289,8 @@ class EvaluationEmailService:
             eval_name = "Upward Evaluation Form"
         elif evaluation_type == 'dean':
             eval_name = "Dean Evaluation Form"
+        elif evaluation_type == 'student_upward':
+            eval_name = "Coordinator Evaluation Form"
         else:
             eval_name = "Student Evaluation Form"
         
@@ -359,6 +371,8 @@ class EvaluationEmailService:
             eval_name = "Upward Evaluation Form"
         elif evaluation_type == 'dean':
             eval_name = "Dean Evaluation Form"
+        elif evaluation_type == 'student_upward':
+            eval_name = "Coordinator Evaluation Form"
         else:
             eval_name = "Student Evaluation Form"
         
@@ -398,6 +412,8 @@ This is an automated notification. Please do not reply to this email.
             eval_name = "Upward Evaluation Form"
         elif evaluation_type == 'dean':
             eval_name = "Dean Evaluation Form"
+        elif evaluation_type == 'student_upward':
+            eval_name = "Coordinator Evaluation Form"
         else:
             eval_name = "Student Evaluation Form"
         
@@ -466,6 +482,8 @@ This is an automated notification. Please do not reply to this email.
             eval_name = "Upward Evaluation Form"
         elif evaluation_type == 'dean':
             eval_name = "Dean Evaluation Form"
+        elif evaluation_type == 'student_upward':
+            eval_name = "Coordinator Evaluation Form"
         else:
             eval_name = "Student Evaluation Form"
         

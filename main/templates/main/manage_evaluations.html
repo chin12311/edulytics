@@ -362,6 +362,47 @@
                 </button>
             </div>
         </div>
+
+        <!-- Student Upward Evaluation Card -->
+        <div class="evaluation-card" style="border-top: 5px solid #FF5722;">
+            <div class="card-header">
+                <div class="card-icon">🎯</div>
+                <h2 class="card-title">Student Upward Evaluation</h2>
+                <p class="card-description">
+                    Students evaluate their coordinators on communication, academic support, 
+                    student advocacy, and professionalism (12 questions in 4 categories).
+                </p>
+            </div>
+
+            <div style="text-align: center;">
+                <span class="status-badge {% if student_upward_active %}active{% else %}inactive{% endif %}">
+                    {% if student_upward_active %}
+                        ✅ Currently Active
+                    {% else %}
+                        ⛔ Currently Inactive
+                    {% endif %}
+                </span>
+
+                {% if student_upward_active and student_upward_period_name %}
+                <div class="period-info">
+                    <strong>Started:</strong> {{ student_upward_period_start|date:"M d, Y - g:i A" }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-action btn-release" 
+                        onclick="releaseEvaluation('student_upward')"
+                        {% if student_upward_active %}disabled{% endif %}>
+                    🚀 Release Student Upward Evaluation
+                </button>
+                <button class="btn-action btn-unrelease" 
+                        onclick="unreleaseEvaluation('student_upward')"
+                        {% if not student_upward_active %}disabled{% endif %}>
+                    ⛔ Unrelease Student Upward Evaluation
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="back-button">
@@ -377,13 +418,15 @@ function releaseEvaluation(type) {
         'student': 'Student',
         'peer': 'Peer',
         'upward': 'Upward',
-        'dean': 'Dean'
+        'dean': 'Dean',
+        'student_upward': 'Student Upward'
     };
     const typeName = typeNames[type];
     const targetUsers = type === 'student' ? 'students' : 
                        type === 'peer' ? 'faculty' : 
                        type === 'upward' ? 'faculty (to evaluate coordinators)' :
-                       'faculty (to evaluate deans)';
+                       type === 'dean' ? 'faculty (to evaluate deans)' :
+                       'students (to evaluate coordinators)';
     
     if (!confirm(`Are you sure you want to release ${typeName} Evaluation?\n\nThis will:\n- Create a new evaluation period\n- Allow ${targetUsers} to submit evaluations\n- Archive previous period results (if any)`)) {
         return;
@@ -397,7 +440,8 @@ function releaseEvaluation(type) {
         'student': '{% url "main:release_evaluation" %}',
         'peer': '{% url "main:release_peer_evaluation" %}',
         'upward': '{% url "main:release_upward_evaluation" %}',
-        'dean': '{% url "main:release_dean_evaluation" %}'
+        'dean': '{% url "main:release_dean_evaluation" %}',
+        'student_upward': '{% url "main:release_student_upward_evaluation" %}'
     };
     const url = urls[type];
 
@@ -432,7 +476,8 @@ function unreleaseEvaluation(type) {
         'student': 'Student',
         'peer': 'Peer',
         'upward': 'Upward',
-        'dean': 'Dean'
+        'dean': 'Dean',
+        'student_upward': 'Student Upward'
     };
     const typeName = typeNames[type];
     
@@ -448,7 +493,8 @@ function unreleaseEvaluation(type) {
         'student': '{% url "main:unrelease_evaluation" %}',
         'peer': '{% url "main:unrelease_peer_evaluation" %}',
         'upward': '{% url "main:unrelease_upward_evaluation" %}',
-        'dean': '{% url "main:unrelease_dean_evaluation" %}'
+        'dean': '{% url "main:unrelease_dean_evaluation" %}',
+        'student_upward': '{% url "main:unrelease_student_upward_evaluation" %}'
     };
     const url = urls[type];
 

@@ -37,6 +37,8 @@ urlpatterns = [
     path('unrelease/upward/', views.unrelease_upward_evaluation, name='unrelease_upward_evaluation'),
     path('release/dean/', views.release_dean_evaluation, name='release_dean_evaluation'),
     path('unrelease/dean/', views.unrelease_dean_evaluation, name='unrelease_dean_evaluation'),
+    path('release/student_upward/', views.release_student_upward_evaluation, name='release_student_upward_evaluation'),
+    path('unrelease/student_upward/', views.unrelease_student_upward_evaluation, name='unrelease_student_upward_evaluation'),
     path('evaluationform/', views.EvaluationFormView.as_view(), name='evaluationform'),
     path('submit_evaluation/', views.submit_evaluation, name='submit_evaluation'),
     path('upward-evaluation-terms/', views.upward_evaluation_terms, name='upward_evaluation_terms'),
@@ -45,6 +47,13 @@ urlpatterns = [
     path('submit-upward-evaluation/', views.submit_upward_evaluation, name='submit_upward_evaluation'),
     path('evaluation-dean/', views.evaluation_form_dean, name='evaluation_form_dean'),
     path('submit-dean-evaluation/', views.submit_dean_evaluation, name='submit_dean_evaluation'),
+    
+    # Student Upward Evaluation (Student → Coordinator)
+    path('student-upward-evaluation-terms/', views.student_upward_evaluation_terms, name='student_upward_evaluation_terms'),
+    path('student-upward-terms-agree/', views.student_upward_terms_agree, name='student_upward_terms_agree'),
+    path('evaluation-student-upward/', views.evaluation_form_student_upward, name='evaluation_form_student_upward'),
+    path('submit-student-upward-evaluation/', views.submit_student_upward_evaluation, name='submit_student_upward_evaluation'),
+    
     path('evaluate/', views.evaluated, name='evaluate'),
     path('dean/profile-settings/', evaluation_results_required(views.DeanProfileSettingsView.as_view()), name='dean_profile_settings'),
     path('coordinator/settings/',(views.CoordinatorProfileSettingsView.as_view()), name='coordinator_profile_settings'),
