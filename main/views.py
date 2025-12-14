@@ -3765,7 +3765,7 @@ def evaluation_form_student_upward(request):
         from main.models import SectionAssignment
         coordinator_assignments = SectionAssignment.objects.filter(
             section=user_profile.section,
-            assigned_user__userprofile__role=Role.COORDINATOR
+            user__userprofile__role=Role.COORDINATOR
         )
         
         if not coordinator_assignments.exists():
@@ -3776,7 +3776,7 @@ def evaluation_form_student_upward(request):
             })
         
         coordinators = User.objects.filter(
-            id__in=coordinator_assignments.values_list('assigned_user_id', flat=True)
+            id__in=coordinator_assignments.values_list('user_id', flat=True)
         )
         logger.info(f"✅ Found {coordinators.count()} coordinator(s)")
 
