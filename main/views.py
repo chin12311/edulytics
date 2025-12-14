@@ -2871,6 +2871,68 @@ class CoordinatorDetailView(View):
                     'evaluation_count': 0
                 }
 
+            # Calculate STUDENT UPWARD evaluation scores (Student → Coordinator)
+            # Get the ACTIVE evaluation period for student_upward evaluations
+            latest_student_upward_period = EvaluationPeriod.objects.filter(
+                evaluation_type='student_upward',
+                is_active=True
+            ).first()
+            
+            student_upward_filter_kwargs = {'evaluatee': coordinator.user}
+            if latest_student_upward_period:
+                student_upward_filter_kwargs['submitted_at__gte'] = latest_student_upward_period.start_date
+                student_upward_filter_kwargs['submitted_at__lte'] = latest_student_upward_period.end_date
+                student_upward_filter_kwargs['evaluation_period__evaluation_type'] = 'student_upward'
+            else:
+                # If no active period, filter by evaluation_type
+                student_upward_filter_kwargs['evaluation_period__evaluation_type'] = 'student_upward'
+            
+            from main.models import StudentUpwardEvaluationResponse
+            student_upward_responses = StudentUpwardEvaluationResponse.objects.filter(**student_upward_filter_kwargs)
+            student_upward_evaluation_count = student_upward_responses.count()
+            
+            if student_upward_evaluation_count > 0:
+                # Rating mapping for student upward evaluations
+                rating_to_numeric = {
+                    'Strongly Disagree': 1,
+                    'Disagree': 2,
+                    'Neutral': 3,
+                    'Agree': 4,
+                    'Strongly Agree': 5,
+                    'Poor': 1,
+                    'Fair': 2,
+                    'Satisfactory': 3,
+                    'Very Satisfactory': 4,
+                    'Outstanding': 5
+                }
+                
+                # Calculate scores for 15 questions
+                total_score = 0
+                for i in range(1, 16):
+                    question_field = f'question{i}'
+                    question_scores = []
+                    for response in student_upward_responses:
+                        rating = getattr(response, question_field)
+                        score = rating_to_numeric.get(rating, 3)
+                        question_scores.append(score)
+                    avg_score = sum(question_scores) / len(question_scores) if question_scores else 0
+                    total_score += avg_score
+                
+                # Calculate percentage (15 questions, max 5 points each = 75 total)
+                student_upward_total_percentage = (total_score / 75) * 100
+                
+                student_upward_data = {
+                    'total_percentage': student_upward_total_percentage,
+                    'has_data': True,
+                    'evaluation_count': student_upward_evaluation_count
+                }
+            else:
+                student_upward_data = {
+                    'total_percentage': 0,
+                    'has_data': False,
+                    'evaluation_count': 0
+                }
+
             # Convert to JSON for JavaScript
             import json
             section_scores_json = json.dumps(section_scores)
@@ -2878,6 +2940,7 @@ class CoordinatorDetailView(View):
             peer_data_json = json.dumps(peer_data)
             irregular_data_json = json.dumps(irregular_data)
             upward_data_json = json.dumps(upward_data)
+            student_upward_data_json = json.dumps(student_upward_data)
             
             # Calculate overall statistics for the template
             total_sections = assigned_sections.count()
@@ -2914,6 +2977,8 @@ class CoordinatorDetailView(View):
                 'irregular_data_json': irregular_data_json,  # JSON for JavaScript
                 'upward_data': upward_data,
                 'upward_data_json': upward_data_json,        # JSON for JavaScript
+                'student_upward_data': student_upward_data,
+                'student_upward_data_json': student_upward_data_json,  # JSON for JavaScript
                 'has_any_data': any(scores['has_data'] for scores in section_scores.values()),
                 'total_sections': total_sections,
                 'sections_with_data': sections_with_data,
