@@ -789,7 +789,8 @@
             document.getElementById('explanationBox').style.display = 'none';
             document.querySelector('.dashboard-grid').style.display = 'none';
             
-            // Show peer display
+            // Hide upward display, show peer display
+            document.getElementById('upwardDisplay').style.display = 'none';
             const peerDisplay = document.getElementById('peerDisplay');
             peerDisplay.style.display = 'block';
             document.getElementById('peerTotalScore').textContent = totalPercentage.toFixed(1) + '%';
