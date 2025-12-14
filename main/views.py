@@ -1775,7 +1775,9 @@ def release_student_upward_evaluation(request):
             logger.info(f"Created new student upward evaluation period: {evaluation_period.name}")
             
             # Archive existing results to history
-            archived_count = EvaluationService.archive_results_to_history('student_upward')
+            logger.info("Moving current EvaluationResult records to history...")
+            archived_count = move_current_results_to_history()
+            logger.info(f"Moved {archived_count} results to evaluation history")
             
             # Create/update evaluation record linked to the period
             evaluation, action = Evaluation.objects.update_or_create(
