@@ -242,8 +242,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (agreementCheckbox && coordinatorBtn && deanBtn) {
         // Check which evaluations are available
-        const hasUpwardEval = {{ 'true' if upward_evaluation else 'false' }};
-        const hasDeanEval = {{ 'true' if dean_evaluation else 'false' }};
+        const hasUpwardEval = {% if upward_evaluation %}true{% else %}false{% endif %};
+        const hasDeanEval = {% if dean_evaluation %}true{% else %}false{% endif %};
         
         agreementCheckbox.addEventListener('change', function() {
             // Enable buttons based on agreement AND availability
