@@ -157,21 +157,11 @@
                     {% csrf_token %}
                     <p class="mb-3">Please review the terms and conditions above before starting the evaluation.</p>
 
-                    <!-- Two evaluation buttons side by side -->
-                    <div class="row g-3">
-                        <!-- Start Coordinator Evaluation Button -->
-                        <div class="col-md-6">
-                            <button type="button" id="coordinatorEvaluationBtn" class="btn btn-primary btn-lg w-100" onclick="validateAgreement('coordinator')" disabled>
-                                <i class="fas fa-user-tie me-2"></i> Start Coordinator Evaluation
-                            </button>
-                        </div>
-                        
-                        <!-- Start Dean Evaluation Button -->
-                        <div class="col-md-6">
-                            <button type="button" id="deanEvaluationBtn" class="btn btn-success btn-lg w-100" onclick="validateAgreement('dean')" disabled>
-                                <i class="fas fa-user-graduate me-2"></i> Start Dean Evaluation
-                            </button>
-                        </div>
+                    <!-- Start Coordinator Evaluation Button -->
+                    <div class="text-center">
+                        <button type="button" id="coordinatorEvaluationBtn" class="btn btn-primary btn-lg px-5" onclick="validateAgreement('coordinator')" disabled>
+                            <i class="fas fa-user-tie me-2"></i> Start Coordinator Evaluation
+                        </button>
                     </div>
                 </form>
             {% else %}
@@ -212,39 +202,29 @@ function validateAgreement(evaluationType) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Redirect to the appropriate evaluation form
-                if (evaluationType === 'dean') {
-                    window.location.href = '{% url "main:evaluation_form_dean" %}';
-                } else {
-                    window.location.href = '{% url "main:evaluation_form_student_upward" %}';
-                }
+                // Redirect to coordinator evaluation form
+                window.location.href = '{% url "main:evaluation_form_student_upward" %}';
             }
         })
         .catch(error => {
             console.error('Error:', error);
             // Still redirect even if session storage fails
-            if (evaluationType === 'dean') {
-                window.location.href = '{% url "main:evaluation_form_dean" %}';
-            } else {
-                window.location.href = '{% url "main:evaluation_form_student_upward" %}';
-            }
+            window.location.href = '{% url "main:evaluation_form_student_upward" %}';
         });
         
         return true;
     }
 }
 
-// Enable/disable buttons based on agreement checkbox
+// Enable/disable button based on agreement checkbox
 document.addEventListener('DOMContentLoaded', function() {
     const agreementCheckbox = document.getElementById('userAgreement');
     const coordinatorBtn = document.getElementById('coordinatorEvaluationBtn');
-    const deanBtn = document.getElementById('deanEvaluationBtn');
     
-    if (agreementCheckbox && coordinatorBtn && deanBtn) {
+    if (agreementCheckbox && coordinatorBtn) {
         agreementCheckbox.addEventListener('change', function() {
-            // Enable/disable buttons based on agreement
+            // Enable/disable button based on agreement
             coordinatorBtn.disabled = !this.checked;
-            deanBtn.disabled = !this.checked;
             
             // Hide error message when checking the box
             const agreementError = document.getElementById('agreementError');
