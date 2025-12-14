@@ -1790,7 +1790,7 @@ def release_student_upward_evaluation(request):
             # Send email notifications in background
             logger.info("Background: Sending email notifications about student upward evaluation release")
             evaluation_email_service = EvaluationEmailService()
-            evaluation_email_service.send_evaluation_released_notification('student_upward', evaluation_period)
+            evaluation_email_service.send_evaluation_released_notification('student_upward')
             
             # Log admin activity
             AdminActivityLog.objects.create(
@@ -1860,7 +1860,7 @@ def unrelease_student_upward_evaluation(request):
             
             # STEP 4: Send closure emails
             evaluation_email_service = EvaluationEmailService()
-            email_result = evaluation_email_service.send_evaluation_unreleased_notification('student_upward', active_period)
+            email_result = evaluation_email_service.send_evaluation_unreleased_notification('student_upward')
             
             # Log admin activity
             AdminActivityLog.objects.create(
