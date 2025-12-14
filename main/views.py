@@ -4554,7 +4554,10 @@ def upward_evaluation_terms(request):
                 'page_title': 'Access Denied',
             })
         
-        # Check if there's an active upward evaluation period
+        # Check if there's an active upward evaluation period OR dean evaluation period
+        upward_evaluation = None
+        dean_evaluation = None
+        
         try:
             current_upward_period = EvaluationPeriod.objects.get(
                 evaluation_type='upward',
@@ -4562,17 +4565,38 @@ def upward_evaluation_terms(request):
             )
             
             # Check if upward evaluation is released and linked to this period
-            evaluation = Evaluation.objects.filter(
+            upward_evaluation = Evaluation.objects.filter(
                 is_released=True,
                 evaluation_type='upward',
                 evaluation_period=current_upward_period
             ).first()
             
         except EvaluationPeriod.DoesNotExist:
-            evaluation = None
+            pass
+        
+        try:
+            current_dean_period = EvaluationPeriod.objects.get(
+                evaluation_type='dean',
+                is_active=True
+            )
+            
+            # Check if dean evaluation is released and linked to this period
+            dean_evaluation = Evaluation.objects.filter(
+                is_released=True,
+                evaluation_type='dean',
+                evaluation_period=current_dean_period
+            ).first()
+            
+        except EvaluationPeriod.DoesNotExist:
+            pass
+        
+        # Pass both evaluations to template - page is available if EITHER is active
+        evaluation = upward_evaluation or dean_evaluation
         
         context = {
             'evaluation': evaluation,
+            'upward_evaluation': upward_evaluation,
+            'dean_evaluation': dean_evaluation,
             'page_title': 'Upward Evaluation Agreement'
         }
         

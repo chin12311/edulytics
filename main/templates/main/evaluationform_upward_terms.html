@@ -241,10 +241,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const deanBtn = document.getElementById('deanEvaluationBtn');
     
     if (agreementCheckbox && coordinatorBtn && deanBtn) {
+        // Check which evaluations are available
+        const hasUpwardEval = {{ 'true' if upward_evaluation else 'false' }};
+        const hasDeanEval = {{ 'true' if dean_evaluation else 'false' }};
+        
         agreementCheckbox.addEventListener('change', function() {
-            // Enable/disable buttons based on agreement
-            coordinatorBtn.disabled = !this.checked;
-            deanBtn.disabled = !this.checked;
+            // Enable buttons based on agreement AND availability
+            coordinatorBtn.disabled = !this.checked || !hasUpwardEval;
+            deanBtn.disabled = !this.checked || !hasDeanEval;
             
             // Hide error message when checking the box
             const agreementError = document.getElementById('agreementError');
@@ -252,6 +256,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 agreementError.style.display = 'none';
             }
         });
+        
+        // Set initial button states based on availability
+        if (!hasUpwardEval) {
+            coordinatorBtn.disabled = true;
+            coordinatorBtn.style.opacity = '0.4';
+            coordinatorBtn.title = 'Coordinator evaluation not available';
+        }
+        if (!hasDeanEval) {
+            deanBtn.disabled = true;
+            deanBtn.style.opacity = '0.4';
+            deanBtn.title = 'Dean evaluation not available';
+        }
     }
 });
 
