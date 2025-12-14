@@ -3901,18 +3901,27 @@ def student_upward_evaluation_terms(request):
             })
         
         # Check if student upward evaluation is active
-        student_upward_active = EvaluationPeriod.objects.filter(
+        student_upward_period = EvaluationPeriod.objects.filter(
             evaluation_type='student_upward',
             is_active=True
-        ).exists()
+        ).first()
         
-        if not student_upward_active:
+        if not student_upward_period:
             return render(request, 'main/no_active_evaluation.html', {
                 'message': 'No active coordinator evaluation period found.',
                 'page_title': 'Evaluation Unavailable',
             })
         
-        return render(request, 'main/evaluationform_student_upward_terms.html')
+        # Check if evaluation is released
+        evaluation = Evaluation.objects.filter(
+            evaluation_type='student_upward',
+            evaluation_period=student_upward_period,
+            is_released=True
+        ).first()
+        
+        return render(request, 'main/evaluationform_student_upward_terms.html', {
+            'evaluation': evaluation
+        })
         
     except UserProfile.DoesNotExist:
         messages.error(request, "User profile not found.")
