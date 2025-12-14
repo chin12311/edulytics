@@ -3154,18 +3154,33 @@ def submit_evaluation(request):
             return redirect('main:login')
 
         try:
-            # ✅ ADDED: Check if evaluation period is active
+            # Get user profile first to determine evaluation type
             print(f"User: {request.user.username}")
             print(f"POST keys: {list(request.POST.keys())}")
             logger.info(f"🔍 Submit evaluation called by {request.user.username}")
             logger.info(f"🔍 POST data keys: {list(request.POST.keys())}")
-            is_active = Evaluation.is_evaluation_period_active()
-            print(f"Evaluation period active: {is_active}")
-            logger.info(f"🔍 Evaluation period active: {is_active}")
+            
+            evaluator_profile = request.user.userprofile
+            
+            # Determine evaluation type based on user role
+            if evaluator_profile.role == Role.STUDENT:
+                evaluation_type_to_check = 'student'
+            else:
+                evaluation_type_to_check = 'peer'
+            
+            # Check if the appropriate evaluation period is active
+            is_active = EvaluationPeriod.objects.filter(
+                evaluation_type=evaluation_type_to_check,
+                is_active=True
+            ).exists()
+            
+            print(f"Evaluation type: {evaluation_type_to_check}, Active: {is_active}")
+            logger.info(f"🔍 Evaluation type: {evaluation_type_to_check}, Active: {is_active}")
+            
             if not is_active:
-                print("ERROR: Evaluation period not active")
+                print(f"ERROR: {evaluation_type_to_check} evaluation period not active")
                 messages.error(request, 'Evaluation period has ended. You cannot submit evaluations at this time.')
-                logger.warning(f"⚠️ Evaluation period not active for {request.user.username}")
+                logger.warning(f"⚠️ {evaluation_type_to_check} evaluation period not active for {request.user.username}")
                 return redirect('main:evaluationform')
 
             # Retrieve the evaluatee
