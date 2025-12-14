@@ -6899,7 +6899,7 @@ def admin_evaluation_control(request):
 
 @login_required
 def manage_evaluations(request):
-    """View for managing evaluation periods - release/unrelease student, peer, and upward evaluations"""
+    """View for managing evaluation periods - release/unrelease student, peer, upward, and dean evaluations"""
     if not request.user.is_superuser:
         return redirect('main:index')
     
@@ -6923,6 +6923,12 @@ def manage_evaluations(request):
         is_active=True
     ).first()
     
+    # Check for active dean evaluation period
+    dean_period = EvaluationPeriod.objects.filter(
+        evaluation_type='dean',
+        is_active=True
+    ).first()
+    
     context = {
         'student_active': student_period is not None,
         'student_period_name': student_period.name if student_period else None,
@@ -6933,6 +6939,9 @@ def manage_evaluations(request):
         'upward_active': upward_period is not None,
         'upward_period_name': upward_period.name if upward_period else None,
         'upward_period_start': upward_period.start_date if upward_period else None,
+        'dean_active': dean_period is not None,
+        'dean_period_name': dean_period.name if dean_period else None,
+        'dean_period_start': dean_period.start_date if dean_period else None,
     }
     
     return render(request, 'main/manage_evaluations.html', context)

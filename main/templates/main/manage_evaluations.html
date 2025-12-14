@@ -57,6 +57,10 @@
         border-top: 5px solid #FF9800;
     }
 
+    .evaluation-card.dean {
+        border-top: 5px solid #9C27B0;
+    }
+
     .card-header {
         text-align: center;
         margin-bottom: 30px;
@@ -317,6 +321,47 @@
                 </button>
             </div>
         </div>
+
+        <!-- Dean Evaluation Card -->
+        <div class="evaluation-card dean">
+            <div class="card-header">
+                <div class="card-icon">👔</div>
+                <h2 class="card-title">Dean Evaluation</h2>
+                <p class="card-description">
+                    Faculty members evaluate their deans on leadership, 
+                    vision, resource management, and institutional effectiveness (15 questions).
+                </p>
+            </div>
+
+            <div style="text-align: center;">
+                <span class="status-badge {% if dean_active %}active{% else %}inactive{% endif %}">
+                    {% if dean_active %}
+                        ✅ Currently Active
+                    {% else %}
+                        ⛔ Currently Inactive
+                    {% endif %}
+                </span>
+
+                {% if dean_active and dean_period_name %}
+                <div class="period-info">
+                    <strong>Started:</strong> {{ dean_period_start|date:"M d, Y - g:i A" }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-action btn-release" 
+                        onclick="releaseEvaluation('dean')"
+                        {% if dean_active %}disabled{% endif %}>
+                    🚀 Release Dean Evaluation
+                </button>
+                <button class="btn-action btn-unrelease" 
+                        onclick="unreleaseEvaluation('dean')"
+                        {% if not dean_active %}disabled{% endif %}>
+                    ⛔ Unrelease Dean Evaluation
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="back-button">
@@ -331,10 +376,14 @@ function releaseEvaluation(type) {
     const typeNames = {
         'student': 'Student',
         'peer': 'Peer',
-        'upward': 'Upward'
+        'upward': 'Upward',
+        'dean': 'Dean'
     };
     const typeName = typeNames[type];
-    const targetUsers = type === 'student' ? 'students' : type === 'peer' ? 'faculty' : 'faculty (to evaluate coordinators)';
+    const targetUsers = type === 'student' ? 'students' : 
+                       type === 'peer' ? 'faculty' : 
+                       type === 'upward' ? 'faculty (to evaluate coordinators)' :
+                       'faculty (to evaluate deans)';
     
     if (!confirm(`Are you sure you want to release ${typeName} Evaluation?\n\nThis will:\n- Create a new evaluation period\n- Allow ${targetUsers} to submit evaluations\n- Archive previous period results (if any)`)) {
         return;
@@ -347,7 +396,8 @@ function releaseEvaluation(type) {
     const urls = {
         'student': '{% url "main:release_evaluation" %}',
         'peer': '{% url "main:release_peer_evaluation" %}',
-        'upward': '{% url "main:release_upward_evaluation" %}'
+        'upward': '{% url "main:release_upward_evaluation" %}',
+        'dean': '{% url "main:release_dean_evaluation" %}'
     };
     const url = urls[type];
 
@@ -381,7 +431,8 @@ function unreleaseEvaluation(type) {
     const typeNames = {
         'student': 'Student',
         'peer': 'Peer',
-        'upward': 'Upward'
+        'upward': 'Upward',
+        'dean': 'Dean'
     };
     const typeName = typeNames[type];
     
@@ -396,7 +447,8 @@ function unreleaseEvaluation(type) {
     const urls = {
         'student': '{% url "main:unrelease_evaluation" %}',
         'peer': '{% url "main:unrelease_peer_evaluation" %}',
-        'upward': '{% url "main:unrelease_upward_evaluation" %}'
+        'upward': '{% url "main:unrelease_upward_evaluation" %}',
+        'dean': '{% url "main:unrelease_dean_evaluation" %}'
     };
     const url = urls[type];
 
