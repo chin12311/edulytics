@@ -88,13 +88,13 @@
         color: white !important;
     }
 
-    .peer-option, .irregular-option {
+    .peer-option, .irregular-option, .upward-option {
         background: linear-gradient(135deg, #f7fafc, #edf2f7);
         font-weight: 600;
         color: #2d3748 !important;
     }
 
-    .peer-option:hover, .irregular-option:hover {
+    .peer-option:hover, .irregular-option:hover, .upward-option:hover {
         background: linear-gradient(135deg, #576d2e, #6b8c3a) !important;
         color: white !important;
     }
@@ -531,6 +531,11 @@
                     <li><a class="dropdown-item text-muted" href="#">No sections assigned</a></li>
                 {% endfor %}
                 <li><hr class="dropdown-divider"></li>
+                <!-- Upward Evaluation Results -->
+                <li><a class="dropdown-item upward-option" href="#" data-section="upward" data-type="upward">
+                    🎯 Upward Evaluation Results
+                    <span class="overall-badge">Faculty → Coordinator</span>
+                </a></li>
                 <!-- Peer Evaluation Results -->
                 <li><a class="dropdown-item peer-option" href="#" data-section="peer" data-type="peer">
                     👥 Peer Evaluation Results
@@ -563,6 +568,14 @@
                 <span class="stat-value" id="totalEvaluations">0</span>
                 <span class="stat-label">Total Evaluations</span>
             </div>
+        </div>
+        
+        <!-- Upward Evaluation Simple Display -->
+        <div id="upwardDisplay" style="display: none; text-align: center; padding: 40px; background: #f8fafc; border-radius: 12px; margin: 20px 0;">
+            <h4 style="color: #576d2e; margin-bottom: 20px;">🎯 Upward Evaluation Score</h4>
+            <div style="font-size: 72px; font-weight: bold; color: #576d2e;" id="upwardTotalScore">0%</div>
+            <p style="color: #718096; margin-top: 15px; font-size: 1.1rem;">Average score from faculty evaluations (15 questions)</p>
+            <p style="color: #4a5568; margin-top: 10px;"><strong>Total Evaluations:</strong> <span id="upwardEvaluationCount">0</span></p>
         </div>
         
         <!-- Peer Evaluation Simple Display -->
@@ -635,11 +648,13 @@
     const sectionMap = JSON.parse('{{ section_map_json|escapejs }}');
     const peerData = JSON.parse('{{ peer_data_json|escapejs }}');
     const irregularData = JSON.parse('{{ irregular_data_json|escapejs }}');
+    const upwardData = JSON.parse('{{ upward_data_json|escapejs }}');
     
     console.log("Section Scores:", sectionScores);
     console.log("Section Map:", sectionMap);
     console.log("Peer Data:", peerData);
     console.log("Irregular Data:", irregularData);
+    console.log("Upward Data:", upwardData);
 
     function calculateOverallResults() {
         console.log("Calculating overall results...");
@@ -707,6 +722,11 @@
             sectionData = peerData;
             console.log("Peer data:", sectionData);
             document.getElementById('overallStats').style.display = 'none';
+        } else if (dataType === 'upward') {
+            // Upward evaluation results (Faculty → Coordinator)
+            sectionData = upwardData;
+            console.log("Upward data:", sectionData);
+            document.getElementById('overallStats').style.display = 'none';
         } else if (dataType === 'irregular') {
             // Irregular evaluation results
             sectionData = irregularData;
@@ -765,9 +785,28 @@
             return;
         }
         
-        // For non-peer evaluations, show dashboard grid
+        // For upward evaluations, only show total score (no categories)
+        if (dataType === 'upward') {
+            // Hide chart and category breakdown
+            document.getElementById('evaluationPieChart').style.display = 'none';
+            document.getElementById('scoreDetails').style.display = 'none';
+            document.getElementById('noDataMessage').style.display = 'none';
+            document.getElementById('explanationBox').style.display = 'none';
+            document.querySelector('.dashboard-grid').style.display = 'none';
+            
+            // Hide peer display, show upward display
+            document.getElementById('peerDisplay').style.display = 'none';
+            const upwardDisplay = document.getElementById('upwardDisplay');
+            upwardDisplay.style.display = 'block';
+            document.getElementById('upwardTotalScore').textContent = totalPercentage.toFixed(1) + '%';
+            document.getElementById('upwardEvaluationCount').textContent = sectionData.evaluation_count || 0;
+            return;
+        }
+        
+        // For non-peer/non-upward evaluations, show dashboard grid
         document.querySelector('.dashboard-grid').style.display = 'grid';
         document.getElementById('peerDisplay').style.display = 'none';
+        document.getElementById('upwardDisplay').style.display = 'none';
 
         // Update score details for ALL 4 CATEGORIES (student and irregular only)
         document.getElementById('scoreA').textContent = categoryScores[0].toFixed(1) + '%';
@@ -866,7 +905,7 @@
     }
 
     // Section dropdown event listeners
-    document.querySelectorAll('.section-item, .overall-option, .peer-option, .irregular-option').forEach(item => {
+    document.querySelectorAll('.section-item, .overall-option, .peer-option, .irregular-option, .upward-option').forEach(item => {
         item.addEventListener('click', function (e) {
             e.preventDefault();
             
@@ -875,6 +914,7 @@
             const displayName = this.getAttribute('data-section-display') || 
                                (sectionId === 'overall' ? 'Overall Results' : 
                                 sectionId === 'peer' ? 'Peer Evaluation Results' : 
+                                sectionId === 'upward' ? 'Upward Evaluation Results' :
                                 sectionId === 'irregular' ? 'Irregular Student Results' : 'Results');
             
             console.log("Clicked:", sectionId, "Type:", dataType, "Display:", displayName);
@@ -884,6 +924,8 @@
                 document.getElementById('sectionDropdown').textContent = '📈 Overall Results';
             } else if (sectionId === 'peer') {
                 document.getElementById('sectionDropdown').textContent = '👥 Peer Evaluation Results';
+            } else if (sectionId === 'upward') {
+                document.getElementById('sectionDropdown').textContent = '🎯 Upward Evaluation Results';
             } else if (sectionId === 'irregular') {
                 document.getElementById('sectionDropdown').textContent = '🔄 Irregular Student Results';
             } else {

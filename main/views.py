@@ -2809,12 +2809,75 @@ class CoordinatorDetailView(View):
                     'evaluation_count': 0
                 }
 
+            # Calculate UPWARD evaluation scores (Faculty → Coordinator)
+            # Get the ACTIVE evaluation period for upward evaluations
+            latest_upward_period = EvaluationPeriod.objects.filter(
+                evaluation_type='upward',
+                is_active=True
+            ).first()
+            
+            upward_filter_kwargs = {'evaluatee': coordinator.user}
+            if latest_upward_period:
+                upward_filter_kwargs['submitted_at__gte'] = latest_upward_period.start_date
+                upward_filter_kwargs['submitted_at__lte'] = latest_upward_period.end_date
+                upward_filter_kwargs['evaluation_period__evaluation_type'] = 'upward'
+            else:
+                # If no active period, filter by evaluation_type
+                upward_filter_kwargs['evaluation_period__evaluation_type'] = 'upward'
+            
+            from main.models import UpwardEvaluationResponse
+            upward_responses = UpwardEvaluationResponse.objects.filter(**upward_filter_kwargs)
+            upward_evaluation_count = upward_responses.count()
+            
+            if upward_evaluation_count > 0:
+                # Rating mapping for upward evaluations
+                rating_to_numeric = {
+                    'Strongly Disagree': 1,
+                    'Disagree': 2,
+                    'Neutral': 3,
+                    'Agree': 4,
+                    'Strongly Agree': 5,
+                    'Poor': 1,
+                    'Fair': 2,
+                    'Satisfactory': 3,
+                    'Very Satisfactory': 4,
+                    'Outstanding': 5
+                }
+                
+                # Calculate scores for 15 questions
+                total_score = 0
+                for i in range(1, 16):
+                    question_field = f'question{i}'
+                    question_scores = []
+                    for response in upward_responses:
+                        rating = getattr(response, question_field)
+                        score = rating_to_numeric.get(rating, 3)
+                        question_scores.append(score)
+                    avg_score = sum(question_scores) / len(question_scores) if question_scores else 0
+                    total_score += avg_score
+                
+                # Calculate percentage (15 questions, max 5 points each = 75 total)
+                upward_total_percentage = (total_score / 75) * 100
+                
+                upward_data = {
+                    'total_percentage': upward_total_percentage,
+                    'has_data': True,
+                    'evaluation_count': upward_evaluation_count
+                }
+            else:
+                upward_data = {
+                    'total_percentage': 0,
+                    'has_data': False,
+                    'evaluation_count': 0
+                }
+
             # Convert to JSON for JavaScript
             import json
             section_scores_json = json.dumps(section_scores)
             section_map_json = json.dumps(section_map)
             peer_data_json = json.dumps(peer_data)
             irregular_data_json = json.dumps(irregular_data)
+            upward_data_json = json.dumps(upward_data)
             
             # Calculate overall statistics for the template
             total_sections = assigned_sections.count()
@@ -2849,6 +2912,8 @@ class CoordinatorDetailView(View):
                 'peer_data_json': peer_data_json,            # JSON for JavaScript
                 'irregular_data': irregular_data,
                 'irregular_data_json': irregular_data_json,  # JSON for JavaScript
+                'upward_data': upward_data,
+                'upward_data_json': upward_data_json,        # JSON for JavaScript
                 'has_any_data': any(scores['has_data'] for scores in section_scores.values()),
                 'total_sections': total_sections,
                 'sections_with_data': sections_with_data,
