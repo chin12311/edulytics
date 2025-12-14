@@ -1763,8 +1763,8 @@ def release_student_upward_evaluation(request):
 
             logger.info("Moving current student upward EvaluationResult records to history...")
             
-            # Create new evaluation period
-            period_timestamp = datetime.now().strftime("%B %Y")
+            # Create new evaluation period with unique timestamp
+            period_timestamp = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
             evaluation_period = EvaluationPeriod.objects.create(
                 name=f"Student Upward Evaluation {period_timestamp}",
                 evaluation_type='student_upward',
