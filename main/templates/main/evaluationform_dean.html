@@ -844,14 +844,53 @@
         <div class="form-content">
             <!-- Display Messages -->
             {% if messages %}
-            <div class="mb-3">
+            <div class="mb-3" id="messageContainer">
                 {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 8px; margin-bottom: 15px;">
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 12px; margin-bottom: 15px; padding: 20px; font-size: 1.1rem; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-left: 5px solid {% if message.tags == 'success' %}#28a745{% elif message.tags == 'error' %}#dc3545{% else %}#17a2b8{% endif %};">
+                        {% if message.tags == 'success' %}
+                        <i class="fas fa-check-circle" style="font-size: 1.3rem; margin-right: 10px;"></i>
+                        {% elif message.tags == 'error' %}
+                        <i class="fas fa-exclamation-circle" style="font-size: 1.3rem; margin-right: 10px;"></i>
+                        {% endif %}
                         {{ message }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             </div>
+            <script>
+                // Auto-scroll to message and highlight it
+                document.addEventListener('DOMContentLoaded', function() {
+                    const messageContainer = document.getElementById('messageContainer');
+                    if (messageContainer) {
+                        // Scroll to top smoothly
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        
+                        // Add attention animation
+                        messageContainer.style.animation = 'slideInDown 0.5s ease-out';
+                        
+                        // Auto-dismiss success message after 5 seconds
+                        const successAlerts = messageContainer.querySelectorAll('.alert-success');
+                        successAlerts.forEach(alert => {
+                            setTimeout(() => {
+                                const bsAlert = new bootstrap.Alert(alert);
+                                bsAlert.close();
+                            }, 5000);
+                        });
+                    }
+                });
+            </script>
+            <style>
+                @keyframes slideInDown {
+                    from {
+                        transform: translateY(-20px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+            </style>
             {% endif %}
             
             <!-- Faculty Information Card -->
