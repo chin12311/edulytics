@@ -1008,17 +1008,31 @@
             console.log("Section box made visible");
         }
         
-        document.querySelector('.dashboard-grid').style.display = 'none';
-        document.getElementById('scoreDetails').style.display = 'none';
+        const dashboardGrid = document.querySelector('.dashboard-grid');
+        if (dashboardGrid) dashboardGrid.style.display = 'none';
+        
+        const scoreDetails = document.getElementById('scoreDetails');
+        if (scoreDetails) scoreDetails.style.display = 'none';
+        
         if (noDataMsg) {
             noDataMsg.style.display = 'block';
             console.log("No data message made visible");
         }
-        document.getElementById('explanationBox').style.display = 'none';
-        document.getElementById('overallStats').style.display = 'none';
-        document.getElementById('peerDisplay').style.display = 'none';
-        document.getElementById('upwardDisplay').style.display = 'none';
-        document.getElementById('studentUpwardDisplay').style.display = 'none';
+        
+        const explanationBox = document.getElementById('explanationBox');
+        if (explanationBox) explanationBox.style.display = 'none';
+        
+        const overallStats = document.getElementById('overallStats');
+        if (overallStats) overallStats.style.display = 'none';
+        
+        const peerDisplay = document.getElementById('peerDisplay');
+        if (peerDisplay) peerDisplay.style.display = 'none';
+        
+        const upwardDisplay = document.getElementById('upwardDisplay');
+        if (upwardDisplay) upwardDisplay.style.display = 'none';
+        
+        const studentUpwardDisplay = document.getElementById('studentUpwardDisplay');
+        if (studentUpwardDisplay) studentUpwardDisplay.style.display = 'none';
     }
 
     // Section dropdown event listeners
