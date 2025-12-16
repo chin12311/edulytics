@@ -85,28 +85,44 @@ class TeachingAIRecommendationService:
                     },
                     {
                         "role": "user",
-                        "content": f"""Analyze these EXACT scores and provide SPECIFIC recommendations for {evaluation_type.upper()} evaluation data:
+                        "content": f"""Based on the evaluation data below, provide 3 SPECIFIC, ACTIONABLE recommendations:
 
 {context}
 
-REQUIRED FORMAT FOR EACH RECOMMENDATION:
-1. **Student Quote (Negative):** Include 1 actual negative/critical student comment
-2. **Student Quote (Positive):** Include 1 actual positive student comment that shows their strength
-3. **Question Analysis:** Reference specific evaluation questions that scored low (e.g., "Your score on 'explains concepts clearly' was 65%")
-4. **What to do:** Provide 3-5 concrete action steps to improve
+FORMAT EACH RECOMMENDATION AS:
 
-Focus on the WEAKEST areas first. Make it PERSONAL by showing real student voices.
+**1. [Clear Action-Oriented Title]**
 
-IMPORTANT: 
-- MUST include actual student quotes from the feedback provided
-- MUST reference specific evaluation question results
-- Make it engaging so the teacher actually wants to read it
-- Balance criticism with recognition of strengths
+**Current Situation:** 
+- Reference specific scores or rankings from the data above
+- Quote actual student feedback if available
+- Identify the gap or issue
 
-Provide 3 SPECIFIC recommendations following this format."""
+**Why This Matters:**
+- Explain the impact on teaching/learning effectiveness
+- Connect to broader educational goals
+
+**Action Steps:**
+1. [Specific action with measurable outcome]
+2. [Specific action with measurable outcome]  
+3. [Specific action with measurable outcome]
+
+**Expected Outcome:** [What will improve and by how much]
+
+---
+
+CRITICAL REQUIREMENTS:
+✓ Use ACTUAL data from above (scores, rankings, comments)
+✓ Be SPECIFIC - no generic advice like "implement data-driven improvement"
+✓ Provide CONCRETE actions that can start immediately
+✓ Include MEASURABLE goals (e.g., "increase score from 65% to 80%")
+✓ Reference the educator's current ranking if provided
+✓ Balance constructive criticism with recognition of strengths
+
+Generate 3 recommendations now:"""
                     }
                 ],
-                max_tokens=1200,
+                max_tokens=1500,
                 temperature=0.7
             )
             
@@ -116,12 +132,12 @@ Provide 3 SPECIFIC recommendations following this format."""
             
             recommendations = self._parse_ai_response(ai_content, evaluation_type)
             
-            # VALIDATE we got real recommendations, not generic ones
-            if self._are_recommendations_generic(recommendations, evaluation_type):
-                print(f"⚠️ AI returned generic recommendations for {evaluation_type}, using contextual fallback")
+            # Check if we got meaningful recommendations
+            if not recommendations or len(recommendations) == 0:
+                print(f"⚠️ No recommendations parsed, using contextual fallback")
                 return self._get_contextual_fallback(section_data, role, section_code, evaluation_type)
             
-            print(f"✅ Generated {len(recommendations)} contextual recommendations for {evaluation_type} evaluation")
+            print(f"✅ Generated {len(recommendations)} AI recommendations for {evaluation_type} evaluation")
             return recommendations
             
         except Exception as e:
@@ -641,92 +657,104 @@ Format: 3 specific recommendations, each including student quotes and question-b
         import re
         
         print(f"📄 Parsing AI response for {evaluation_type} evaluation...")
-        print(f"   Raw text preview: {ai_text[:200]}...")
+        print(f"   Raw text preview: {ai_text[:300]}...")
         
         recommendations = []
         
-        # Try multiple parsing strategies
+        # Strategy 1: Split by horizontal rules or double line breaks to separate recommendations
+        # Look for pattern: **Number. Title** followed by content
+        sections = re.split(r'\n---+\n|\n={3,}\n', ai_text)
         
-        # Strategy 1: Look for numbered recommendations with bold titles like "1. **Title:**"
-        # Split by numbered patterns first
-        pattern1 = r'(?:^|\n)(\d+[\.\)])\s*\*{0,2}([^\n]+?)\*{0,2}:?\s*\n((?:(?!\n\d+[\.\)]).)+)'
-        matches1 = re.findall(pattern1, ai_text, re.MULTILINE | re.DOTALL)
-        
-        if matches1:
-            print(f"   ✅ Found {len(matches1)} recommendations using pattern 1 (numbered with bold)")
-            for i, match in enumerate(matches1[:3], 1):  # Limit to 3
-                num = match[0]
-                title = match[1].strip().replace('**', '').replace('*', '')
-                description = match[2].strip()
-                
-                # Clean up title - remove parenthetical score info if present
-                if '(' in title:
-                    # Keep only the part before the parenthesis
-                    title = title.split('(')[0].strip()
-                
-                recommendations.append({
-                    'title': title,
-                    'description': description if description else "Focus on improving this area based on evaluation feedback.",
-                    'priority': 'High' if i == 1 else 'Medium' if i == 2 else 'Low'
-                })
-                print(f"   Rec {i}: '{title}' ({len(description)} chars)")
-        
-        # Strategy 2: Look for markdown headers like "### Title" or "## Title"
-        if not recommendations:
-            pattern2 = r'^#{1,3}\s+(.+?)$([\s\S]+?)(?=^#{1,3}|\Z)'
-            matches2 = re.findall(pattern2, ai_text, re.MULTILINE)
+        for section in sections:
+            section = section.strip()
+            if len(section) < 50:  # Skip tiny sections
+                continue
             
-            if matches2:
-                print(f"   ✅ Found {len(matches2)} recommendations using pattern 2 (markdown headers)")
-                for i, match in enumerate(matches2[:3], 1):
-                    title = match[0].strip()
-                    description = match[1].strip()
-                    
+            # Extract title from first line with bold markdown or number
+            title_match = re.search(r'\*{2}(\d+)\.\s*([^*\n]+?)\*{2}|^(\d+)\.\s*\*{2}([^*\n]+?)\*{2}|^#{1,3}\s+(.+?)$', section, re.MULTILINE)
+            
+            if title_match:
+                # Get title from whichever group matched
+                title = None
+                for group in title_match.groups():
+                    if group and not group.isdigit():
+                        title = group.strip()
+                        break
+                
+                if not title:
+                    title = section.split('\n')[0].strip()
+                
+                # Get description (everything after the title line)
+                lines = section.split('\n')
+                desc_lines = []
+                found_title = False
+                
+                for line in lines:
+                    if not found_title:
+                        if title in line:
+                            found_title = True
+                        continue
+                    desc_lines.append(line)
+                
+                description = '\n'.join(desc_lines).strip()
+                
+                # Clean up title
+                title = re.sub(r'^\d+[\.\)]\s*', '', title)
+                title = title.replace('**', '').replace('*', '').replace('#', '').strip()
+                title = title[:150]  # Limit title length
+                
+                if description:
                     recommendations.append({
                         'title': title,
-                        'description': description if description else "Focus on improving this area based on evaluation feedback.",
-                        'priority': 'High' if i == 1 else 'Medium' if i == 2 else 'Low'
+                        'description': description,
+                        'priority': 'High' if len(recommendations) == 0 else 'Medium' if len(recommendations) == 1 else 'Low'
                     })
-                    print(f"   Rec {i}: '{title}' ({len(description)} chars)")
+                    print(f"   ✅ Parsed recommendation: '{title}' ({len(description)} chars)")
+                    
+                    if len(recommendations) >= 3:
+                        break
         
-        # Strategy 3: Look for "**Number. Title**" format with content below
+        # Strategy 2: If strategy 1 didn't work, try numbered list parsing
         if not recommendations:
-            pattern3 = r'\*{2}(\d+)\.\s*([^*]+?)\*{2}\s*\n((?:(?!\*{2}\d+\.).)+)'
-            matches3 = re.findall(pattern3, ai_text, re.MULTILINE | re.DOTALL)
+            print(f"   Trying numbered list parsing...")
+            pattern = r'(?:^|\n)(?:\*{2})?(\d+)[\.\)]\s+(?:\*{2})?([^\n]+?)(?:\*{2})?\s*\n((?:(?!\n\d+[\.\)]).)+)'
+            matches = re.findall(pattern, ai_text, re.MULTILINE | re.DOTALL)
             
-            if matches3:
-                print(f"   ✅ Found {len(matches3)} recommendations using pattern 3 (bold numbered)")
-                for i, match in enumerate(matches3[:3], 1):
-                    title = match[1].strip()
+            if matches:
+                print(f"   ✅ Found {len(matches)} recommendations via numbered list")
+                for i, match in enumerate(matches[:3], 1):
+                    title = match[1].strip().replace('**', '').replace('*', '')
                     description = match[2].strip()
                     
                     recommendations.append({
-                        'title': title,
-                        'description': description if description else "Focus on improving this area based on evaluation feedback.",
+                        'title': title[:150],
+                        'description': description if description else "Review this area based on evaluation feedback.",
                         'priority': 'High' if i == 1 else 'Medium' if i == 2 else 'Low'
                     })
-                    print(f"   Rec {i}: '{title}' ({len(description)} chars)")
         
-        # Fallback: Split by double newlines and take first 3 paragraphs
+        # Strategy 3: Fallback - split by paragraphs
         if not recommendations:
-            print(f"   ⚠️ Using fallback parsing strategy")
-            paragraphs = [p.strip() for p in ai_text.split('\n\n') if p.strip() and len(p.strip()) > 20]
+            print(f"   ⚠️ Using paragraph fallback parsing")
+            paragraphs = [p.strip() for p in ai_text.split('\n\n') if p.strip() and len(p.strip()) > 50]
+            
             for i, para in enumerate(paragraphs[:3], 1):
                 lines = para.split('\n')
-                title = lines[0].strip()[:100]  # First line as title
+                title = lines[0].strip()[:150]
                 description = '\n'.join(lines[1:]) if len(lines) > 1 else para
                 
                 # Clean title
                 title = re.sub(r'^\d+[\.\)]\s*', '', title)
                 title = title.replace('**', '').replace('*', '').replace('#', '').strip()
                 
-                recommendations.append({
-                    'title': title,
-                    'description': description,
-                    'priority': 'High' if i == 1 else 'Medium' if i == 2 else 'Low'
-                })
+                if title and description:
+                    recommendations.append({
+                        'title': title,
+                        'description': description,
+                        'priority': 'High' if i == 1 else 'Medium' if i == 2 else 'Low'
+                    })
         
-        print(f"   📊 Parsed {len(recommendations)} total recommendations")
+        print(f"   📊 Successfully parsed {len(recommendations)} recommendations")
+        return recommendations
         for i, rec in enumerate(recommendations, 1):
             print(f"      {i}. {rec['title'][:50]}... ({len(rec.get('description', ''))} chars)")
         
