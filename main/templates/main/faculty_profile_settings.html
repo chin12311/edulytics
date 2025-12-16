@@ -1649,28 +1649,24 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 });
             }
         } else {
-            // All categories performing well - suggest maintenance strategies
+            // All categories performing well - NO FALLBACK RECOMMENDATIONS NEEDED
+            // The AI should handle this case with ranking-specific advice
+            console.log('\u26a0\ufe0f All categories above 80% - AI should provide ranking-specific guidance');
             recommendations.push({
-                title: 'Maintain Teaching Excellence',
-                description: `All evaluation categories are performing well in ${sectionRef} (overall: ${formatToTwoDecimals(sectionData.total_percentage)}%). Continue your current effective teaching practices.`,
-                priority: 'Low',
-                reason: `All categories above 80% performance`
+                title: 'Excellent Performance - Awaiting AI Analysis',
+                description: `Your performance is strong across all categories (${formatToTwoDecimals(sectionData.total_percentage)}%). AI recommendations should focus on maintaining your ranking and sharing best practices.`,
+                priority: 'Info',
+                reason: 'AI recommendation generation in progress'
             });
-            
-            recommendations.push({
-                title: 'Share Best Practices',
-                description: `Consider documenting and sharing your successful teaching strategies with colleagues to help improve teaching excellence across the institution.`,
-                priority: 'Low',
-                reason: 'High performance across all categories'
-            });
+            return recommendations; // Don't add generic recommendations
         }
         
-        // Add general recommendations if we need more
-        if (recommendations.length < 3) {
+        // Only add general recommendations if we found specific weaknesses
+        if (recommendations.length < 3 && weakCategories.length > 0) {
             const generalRecs = [
                 {
-                    title: 'Incorporate Active Learning',
-                    description: `Try implementing think-pair-share or peer instruction activities in ${sectionRef} to boost engagement.`,
+                    title: 'Enhance Student Feedback Loop',
+                    description: `Consider implementing mid-semester feedback surveys in ${sectionRef} to identify areas for improvement early.`,
                     priority: 'Medium',
                     reason: 'General teaching improvement strategy'
                 },
