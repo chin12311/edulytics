@@ -222,6 +222,14 @@
         text-align: center;
         padding: 40px 20px;
         color: #718096;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
 
     .no-data-state i {
@@ -623,11 +631,11 @@
             </div>
                 
             <div id="noDataMessage" class="no-data-state" style="display: none;">
-                <div>📊</div>
-                <p style="color: #718096; font-size: 1.1rem; margin: 10px 0 0 0; font-weight: 500;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">📊</div>
+                <p style="color: #2d3748; font-size: 1.3rem; margin: 10px 0 0 0; font-weight: 600;">
                     No evaluation results yet.
                 </p>
-                <p style="color: #a0aec0; font-size: 0.95rem; margin: 5px 0 0 0;">
+                <p style="color: #718096; font-size: 1rem; margin: 10px 0 0 0;">
                     Evaluation data will appear here once submissions are available.
                 </p>
             </div>
