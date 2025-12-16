@@ -792,6 +792,12 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                                     <span class="stat-value" id="totalEvaluations">0</span>
                                     <span class="stat-label">Total Evaluations</span>
                                 </div>
+                                {% if ranking %}
+                                <div class="stat-item" style="background: linear-gradient(135deg, #fff3e0, #ffe0b2); border-left: 4px solid #ff9800;">
+                                    <span class="stat-value" style="color: #e65100;">Rank: {{ ranking }}</span>
+                                    <span class="stat-label">out of {{ total_users }} {{ user.userprofile.role }}s in {{ user.userprofile.institute }}</span>
+                                </div>
+                                {% endif %}
                             </div>
                             
                             <div id="evaluation-content">

@@ -42,6 +42,73 @@ except Exception as e:
     client = None
 
 
+def calculate_user_ranking(user):
+    """
+    Calculate the ranking of a user within their institute and role based on overall evaluation results.
+    Returns: dict with 'rank', 'total_users', 'overall_score'
+    """
+    from django.db.models import Avg, Count
+    from django.utils import timezone
+    
+    user_profile = user.userprofile
+    user_role = user_profile.role
+    user_institute = user_profile.institute
+    
+    # Get the most recent INACTIVE period that has ended
+    latest_period = EvaluationPeriod.objects.filter(
+        evaluation_type='student',
+        is_active=False,
+        end_date__lte=timezone.now()
+    ).order_by('-end_date').first()
+    
+    if not latest_period:
+        return {'rank': None, 'total_users': 0, 'overall_score': 0}
+    
+    # Get all users with the same role and institute
+    users_in_group = User.objects.filter(
+        userprofile__role=user_role,
+        userprofile__institute=user_institute
+    )
+    
+    # Calculate overall scores for each user in the group
+    user_scores = []
+    for u in users_in_group:
+        results = EvaluationResult.objects.filter(
+            user=u,
+            evaluation_period=latest_period
+        )
+        
+        if results.exists():
+            # Calculate average total_percentage across all sections
+            avg_score = results.aggregate(Avg('total_percentage'))['total_percentage__avg']
+            if avg_score:
+                user_scores.append({
+                    'user_id': u.id,
+                    'score': round(avg_score, 2)
+                })
+    
+    if not user_scores:
+        return {'rank': None, 'total_users': 0, 'overall_score': 0}
+    
+    # Sort by score descending (highest score = rank 1)
+    user_scores.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Find current user's rank
+    current_user_score = None
+    rank = None
+    for idx, score_data in enumerate(user_scores, 1):
+        if score_data['user_id'] == user.id:
+            rank = idx
+            current_user_score = score_data['score']
+            break
+    
+    return {
+        'rank': rank,
+        'total_users': len(user_scores),
+        'overall_score': current_user_score if current_user_score else 0
+    }
+
+
     
 @method_decorator(cache_control(no_store=True, no_cache=True, must_revalidate=True), name='dispatch')
 @method_decorator(login_required(login_url='login'), name='dispatch')
@@ -5026,6 +5093,9 @@ class DeanProfileSettingsView(View):
             # Add timestamp for cache busting
             import time
             timestamp = int(time.time())
+            
+            # Calculate user ranking
+            ranking_data = calculate_user_ranking(user)
 
             return render(request, 'main/dean_profile_settings.html', {
                 'user': user,
@@ -5051,6 +5121,9 @@ class DeanProfileSettingsView(View):
                 'years': years,
                 'currently_assigned_ids': currently_assigned_ids,
                 'timestamp': timestamp,  # Cache busting timestamp
+                'ranking': ranking_data.get('rank'),
+                'total_users': ranking_data.get('total_users'),
+                'overall_score': ranking_data.get('overall_score'),
             })
         return redirect('login')
     
@@ -5799,6 +5872,9 @@ class CoordinatorProfileSettingsView(View):
             # Add timestamp for cache busting
             import time
             timestamp = int(time.time())
+            
+            # Calculate user ranking
+            ranking_data = calculate_user_ranking(user)
 
             return render(request, 'main/coordinator_profile_settings.html', {
                 'user': user,
@@ -5823,6 +5899,9 @@ class CoordinatorProfileSettingsView(View):
                 'years': years,
                 'currently_assigned_ids': currently_assigned_ids,
                 'timestamp': timestamp,
+                'ranking': ranking_data.get('rank'),
+                'total_users': ranking_data.get('total_users'),
+                'overall_score': ranking_data.get('overall_score'),
             })
         return redirect('login')
     
@@ -6573,6 +6652,9 @@ class FacultyProfileSettingsView(View):
             # Add timestamp for cache busting
             import time
             timestamp = int(time.time())
+            
+            # Calculate user ranking
+            ranking_data = calculate_user_ranking(user)
 
             return render(request, 'main/faculty_profile_settings.html', {
                 'user': user,
@@ -6593,6 +6675,9 @@ class FacultyProfileSettingsView(View):
                 'years': years,
                 'currently_assigned_ids': currently_assigned_ids,
                 'timestamp': timestamp,
+                'ranking': ranking_data.get('rank'),
+                'total_users': ranking_data.get('total_users'),
+                'overall_score': ranking_data.get('overall_score'),
             })
         return redirect('login')
 

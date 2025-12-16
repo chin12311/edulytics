@@ -172,8 +172,13 @@ IMPORTANT RULES:
 - Do NOT give generic advice - be specific to the actual scores and comments
 - Reference specific evaluation questions (e.g., "Students rated 'explains concepts clearly' at 65%")
 - Balance is key: Show what they're doing well AND what needs improvement
+- If ranking information is provided, tailor recommendations based on their performance level:
+  * Top performers (Rank 1-3): Focus on maintaining excellence and mentoring others
+  * Middle performers (Rank 4-7): Focus on targeted improvements to reach top tier
+  * Lower performers: Focus on fundamental improvements with urgent action items
 
 Analyze:
+- Institute ranking and overall performance score (if provided)
 - Category scores (which teaching areas are weakest)
 - Individual question scores (specific teaching behaviors)
 - Student comments (actual student voices and concerns)
@@ -189,6 +194,13 @@ Format: 3 specific recommendations, each including student quotes and question-b
         context_parts.append(f"Educator: {user.get_full_name() or user.username}")
         context_parts.append(f"Role: {role}")
         context_parts.append(f"Evaluation Type: {evaluation_type.upper()}")
+        
+        # Add ranking information if available
+        from main.views import calculate_user_ranking
+        ranking_data = calculate_user_ranking(user)
+        if ranking_data.get('rank'):
+            context_parts.append(f"Institute Ranking: Rank {ranking_data.get('rank')} out of {ranking_data.get('total_users')} {user.userprofile.role}s in {user.userprofile.institute}")
+            context_parts.append(f"Overall Performance Score: {ranking_data.get('overall_score')}%")
         
         if section_code and section_code != 'Overall':
             context_parts.append(f"Section: {section_code}")
