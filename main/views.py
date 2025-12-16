@@ -3194,6 +3194,96 @@ class FacultyDetailView(View):
         except UserProfile.DoesNotExist:
             return redirect('/login')
    
+@method_decorator(cache_control(no_store=True, no_cache=True, must_revalidate=True), name='dispatch')
+class DeanDetailView(View):
+    """View to display dean details and faculty→dean evaluation results"""
+    
+    @method_decorator(evaluation_results_required)
+    def get(self, request, id):
+        if not request.user.is_authenticated:
+            return redirect('/login')
+
+        try:
+            user_profile = UserProfile.objects.get(user=request.user)
+            dean = get_object_or_404(UserProfile, id=id)
+            
+            # Only admin can view dean details
+            if user_profile.role != Role.ADMIN:
+                return HttpResponseForbidden("You do not have permission to access this dean's details.")
+            
+            # Get the ACTIVE evaluation period for dean evaluations
+            latest_dean_period = EvaluationPeriod.objects.filter(
+                evaluation_type='dean',
+                is_active=True
+            ).first()
+            
+            # Calculate DEAN evaluation scores (Faculty → Dean)
+            dean_filter_kwargs = {'evaluatee': dean.user}
+            if latest_dean_period:
+                dean_filter_kwargs['submitted_at__gte'] = latest_dean_period.start_date
+                dean_filter_kwargs['submitted_at__lte'] = latest_dean_period.end_date
+                dean_filter_kwargs['evaluation_period__evaluation_type'] = 'dean'
+            else:
+                # If no active period, filter by evaluation_type
+                dean_filter_kwargs['evaluation_period__evaluation_type'] = 'dean'
+            
+            from main.models import DeanEvaluationResponse
+            dean_responses = DeanEvaluationResponse.objects.filter(**dean_filter_kwargs)
+            dean_evaluation_count = dean_responses.count()
+            
+            if dean_evaluation_count > 0:
+                # Rating mapping for dean evaluations
+                rating_to_numeric = {
+                    'Poor': 1,
+                    'Unsatisfactory': 2,
+                    'Satisfactory': 3,
+                    'Very Satisfactory': 4,
+                    'Outstanding': 5
+                }
+                
+                # Calculate scores for 15 questions
+                total_score = 0
+                for i in range(1, 16):
+                    question_field = f'question{i}'
+                    question_scores = []
+                    for response in dean_responses:
+                        rating = getattr(response, question_field)
+                        score = rating_to_numeric.get(rating, 1)
+                        question_scores.append(score)
+                    avg_score = sum(question_scores) / len(question_scores) if question_scores else 0
+                    total_score += avg_score
+                
+                # Calculate percentage (15 questions, max 5 points each = 75 total)
+                dean_total_percentage = (total_score / 75) * 100
+                
+                dean_data = {
+                    'total_percentage': dean_total_percentage,
+                    'has_data': True,
+                    'evaluation_count': dean_evaluation_count
+                }
+            else:
+                dean_data = {
+                    'total_percentage': 0,
+                    'has_data': False,
+                    'evaluation_count': 0
+                }
+            
+            # Convert to JSON for JavaScript
+            import json
+            dean_data_json = json.dumps(dean_data)
+            
+            context = {
+                'dean': dean,
+                'dean_data': dean_data,
+                'dean_data_json': dean_data_json,
+                'evaluation_period_ended': can_view_evaluation_results('dean'),
+            }
+            
+            return render(request, 'main/dean_detail.html', context)
+            
+        except UserProfile.DoesNotExist:
+            return redirect('/login')
+
 def custom_logout(request):
     logout(request)  # Log out the user
     request.session.flush()  # Clear session data

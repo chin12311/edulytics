@@ -206,6 +206,7 @@
                     <th>Name</th>
                     <th>Email Address</th>
                     <th>Institute</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="accountTableBody">
@@ -214,7 +215,11 @@
                     <td>{{ dean.display_name|default:dean.user.username }}</td>
                     <td>{{ dean.user.email }}</td>
                     <td>{{ dean.get_institute_code }}</td>
-                    
+                    <td>
+                        <a href="{% url 'main:dean_detail' dean.id %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-eye"></i> View Details
+                        </a>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>

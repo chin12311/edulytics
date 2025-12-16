@@ -1,0 +1,190 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+<style>
+    .container {
+        padding: 30px 20px;
+        background-color: #f8fafc;
+    }
+
+    #dean-header h3 {
+        font-size: 2.2rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 8px;
+    }
+
+    #dean-header p {
+        color: #4a5568;
+        margin-bottom: 6px;
+        font-size: 1.1rem;
+    }
+
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        background-color: white;
+        margin-bottom: 20px;
+        border: none;
+        transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .section-box {
+        background-color: #ffffff;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid #576d2e;
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .score-card {
+        background: linear-gradient(135deg, #576d2e, #6b8c3a);
+        color: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(87, 109, 46, 0.3);
+        transition: transform 0.3s ease;
+    }
+
+    .score-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .score-card h5 {
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+        opacity: 0.9;
+    }
+
+    .score-card .score {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+
+    .no-data-state {
+        text-align: center;
+        padding: 40px;
+        color: #718096;
+        background-color: #ffffff;
+        border-radius: 8px;
+        border: 1px dashed #cbd5e0;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .no-data-state i {
+        font-size: 4rem;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+
+    .no-data-state p {
+        font-size: 1.3rem;
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .btn-back {
+        background: linear-gradient(135deg, #576d2e, #6b8c3a);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(87, 109, 46, 0.4);
+        color: white;
+    }
+</style>
+
+<div class="container">
+    <!-- Dean Header -->
+    <div id="dean-header" class="section-box">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h3><i class="bi bi-person-badge"></i> {{ dean.user.get_full_name|default:dean.user.username }}</h3>
+                <p><i class="bi bi-envelope"></i> {{ dean.user.email }}</p>
+                <p><i class="bi bi-building"></i> {{ dean.institute }}</p>
+                <p><i class="bi bi-shield-check"></i> Role: Dean</p>
+            </div>
+            <div>
+                <a href="{% url 'main:dean' %}" class="btn btn-back">
+                    <i class="bi bi-arrow-left"></i> Back to Dean Accounts
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evaluation Results Section -->
+    <div class="section-box" id="deanEvaluationSection">
+        <h4 class="mb-4"><i class="bi bi-graph-up"></i> Faculty to Dean Evaluation Results</h4>
+        
+        {% if dean_data.has_data %}
+            <div class="dashboard-grid">
+                <!-- Overall Score Card -->
+                <div class="score-card">
+                    <h5><i class="bi bi-trophy"></i> Overall Score</h5>
+                    <div class="score">{{ dean_data.total_percentage|floatformat:1 }}%</div>
+                    <p class="mt-2 mb-0">Based on {{ dean_data.evaluation_count }} evaluation(s)</p>
+                </div>
+
+                <!-- Rating Descriptor -->
+                <div class="score-card">
+                    <h5><i class="bi bi-star"></i> Rating</h5>
+                    <div class="score">
+                        {% if dean_data.total_percentage >= 90 %}
+                            Outstanding
+                        {% elif dean_data.total_percentage >= 80 %}
+                            Very Satisfactory
+                        {% elif dean_data.total_percentage >= 70 %}
+                            Satisfactory
+                        {% elif dean_data.total_percentage >= 60 %}
+                            Unsatisfactory
+                        {% else %}
+                            Poor
+                        {% endif %}
+                    </div>
+                    <p class="mt-2 mb-0">Performance Level</p>
+                </div>
+            </div>
+        {% else %}
+            <div class="no-data-state">
+                <i class="bi bi-inbox"></i>
+                <p>No evaluation results yet</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Store dean data from Django context
+    const deanData = {{ dean_data_json|safe }};
+    
+    console.log('Dean Evaluation Data:', deanData);
+    
+    // Additional JavaScript can be added here for charts if needed
+    // For now, we're showing simple score cards
+</script>
+{% endblock %}

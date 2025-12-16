@@ -2,7 +2,7 @@ from django.urls import path
 from . import views
 from django.conf.urls.static import static
 from .views import (
-    UpdateUser, CoordinatorDetailView, SelectStudentView, EvaluationConfigView, 
+    UpdateUser, CoordinatorDetailView, DeanDetailView, SelectStudentView, EvaluationConfigView, 
     DeanProfileSettingsView, CoordinatorProfileSettingsView, FacultyProfileSettingsView,
     release_student_evaluation, unrelease_student_evaluation,
     release_peer_evaluation, unrelease_peer_evaluation,
@@ -27,6 +27,7 @@ urlpatterns = [
     path('evaluation/', views.EvaluationView.as_view(), name='evaluation'),
     path('coordinator/detail/<int:id>/', views.CoordinatorDetailView.as_view(), name='coordinator_detail'),
     path('faculty/detail/<int:id>/', views.CoordinatorDetailView.as_view(), name='faculty_detail'),
+    path('dean/detail/<int:id>/', views.DeanDetailView.as_view(), name='dean_detail'),
     path('evaluationconfig/', views.EvaluationConfigView.as_view(), name='evaluationconfig'),
     # Make sure these function-based views are referenced correctly:
     path('release-evaluation/', views.release_student_evaluation, name='release_evaluation'),
