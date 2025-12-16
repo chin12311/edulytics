@@ -176,6 +176,8 @@ Format: 3 specific recommendations with clear priorities based on the actual PEE
         else:
             return """You are an expert educational consultant. Provide SPECIFIC, DATA-DRIVEN recommendations based EXACTLY on the STUDENT evaluation scores and feedback provided.
 
+🎯 YOUR PRIMARY TASK: Base your recommendations on the ACTUAL STUDENT COMMENTS provided. Quote them directly!
+
 CRITICAL - UNDERSTAND THE SCORING SYSTEM:
 • Category scores are shown as "X% out of Y% maximum"
 • Example: "22.5% out of 25% maximum" = 90% performance (EXCELLENT!)
@@ -187,32 +189,41 @@ CRITICAL - UNDERSTAND THE SCORING SYSTEM:
   - 70-79% = Average (moderate improvements needed)
   - Below 70% = Needs significant improvement
 
-CRITICAL FORMAT FOR EACH RECOMMENDATION:
-1. Start with actual student quote (if available): "Student said: [exact quote]"
-2. Follow with what this means: "This indicates..."
-3. Provide specific actions: "What to do: [concrete steps]"
-4. Reference specific evaluation questions that scored low
+CRITICAL FORMAT FOR EACH RECOMMENDATION (FOLLOW EXACTLY):
+1. **Title**: Brief, action-oriented (e.g., "Address Student Concerns About Pacing")
+2. **Start with the ACTUAL STUDENT QUOTE**: "A student said: [exact quote from the data]"
+3. **Connect to their ranking**: "As someone ranked X out of Y in [Institute], this feedback is [critical/important/valuable]"
+4. **What this means**: "This indicates that students feel/notice/struggle with..."
+5. **Concrete action steps**: Numbered list of 3 specific, measurable actions
+6. **Expected outcome**: "This should improve your [category] score from X% to Y%"
 
-IMPORTANT RULES:
-- ALWAYS include at least 1 negative student comment quote and 1 positive student comment quote
-- Make recommendations personal and hard to ignore by using real student voices
-- Do NOT give generic advice - be specific to the actual scores and comments
-- Reference specific evaluation questions (e.g., "Students rated 'explains concepts clearly' at 65%")
-- Balance is key: Show what they're doing well AND what needs improvement
-- If ranking information is provided, tailor recommendations based on their performance level:
-  * Top performers (Rank 1-3): Focus on maintaining excellence and mentoring others
-  * Middle performers (Rank 4-7): Focus on targeted improvements to reach top tier
-  * Lower performers: Focus on fundamental improvements with urgent action items
-- FOCUS ON THE WEAKEST AREAS - don't recommend improvements for categories scoring 90%+
+MANDATORY REQUIREMENTS:
+✓ MUST quote the actual positive student comment provided
+✓ MUST quote the actual negative/critical student comment provided
+✓ MUST reference the user's ranking (e.g., "As rank 5 out of 12, this is holding you back from top-tier performance")
+✓ MUST connect comments to specific category scores
+✓ MUST provide measurable action steps (not vague advice)
+✓ FOCUS on weakest areas - ignore categories scoring 90%+
 
-Analyze:
-- Institute ranking and overall performance score (if provided)
-- Category scores (which teaching areas are weakest - look at PERFORMANCE percentage, not raw score)
-- Individual question scores (specific teaching behaviors)
-- Student comments (actual student voices and concerns)
-- Provide concrete, actionable steps tied to this specific data
+RANKING-BASED PERSONALIZATION:
+• Top 3 Performers: Emphasize "maintaining your top position requires addressing [specific issue]"
+• Middle Performers: Emphasize "moving from rank X to top 3 requires improving [specific area]"
+• Lower Half: Emphasize "closing the gap with higher performers requires urgent action on [specific area]"
 
-Format: 3 specific recommendations, each including student quotes and question-based analysis."""
+DO NOT:
+✗ Give generic advice
+✗ Ignore the student comments
+✗ Forget to mention their ranking
+✗ Recommend improvements for excellent scores (90%+)
+✗ Use vague language like "try to improve" - be specific!
+
+Analyze in this order:
+1. RANKING - Where do they stand?
+2. STUDENT COMMENTS - What are students actually saying?
+3. CATEGORY SCORES - Which areas are weakest?
+4. SPECIFIC ACTIONS - What concrete steps will address the comments and improve scores?
+
+Format: 3 specific recommendations, EACH MUST include direct student quotes and ranking context."""
 
     def _prepare_ai_context(self, user, section_data, section_code, role, evaluation_type):
         """Prepare context with evaluation type support"""
@@ -223,12 +234,23 @@ Format: 3 specific recommendations, each including student quotes and question-b
         context_parts.append(f"Role: {role}")
         context_parts.append(f"Evaluation Type: {evaluation_type.upper()}")
         
-        # Add ranking information if available
+        # Add ranking information if available - MAKE IT PROMINENT
         from main.views import calculate_user_ranking
         ranking_data = calculate_user_ranking(user)
         if ranking_data.get('rank'):
-            context_parts.append(f"Institute Ranking: Rank {ranking_data.get('rank')} out of {ranking_data.get('total_users')} {user.userprofile.role}s in {user.userprofile.institute}")
-            context_parts.append(f"Overall Performance Score: {ranking_data.get('overall_score')}%")
+            context_parts.append("\n🏆 INSTITUTE RANKING (CRITICAL CONTEXT):")
+            context_parts.append(f"   Current Rank: {ranking_data.get('rank')} out of {ranking_data.get('total_users')} {user.userprofile.role}s in {user.userprofile.institute}")
+            context_parts.append(f"   Overall Performance Score: {ranking_data.get('overall_score')}%")
+            
+            # Add context about what this ranking means
+            rank = ranking_data.get('rank')
+            total = ranking_data.get('total_users')
+            if rank <= 3:
+                context_parts.append("   📊 STATUS: TOP PERFORMER - Focus on maintaining excellence and mentoring others")
+            elif rank <= total * 0.5:
+                context_parts.append("   📊 STATUS: ABOVE AVERAGE - Focus on reaching top-tier performance")
+            else:
+                context_parts.append("   📊 STATUS: BELOW AVERAGE - Focus on fundamental improvements with measurable goals")
         
         if section_code and section_code != 'Overall':
             context_parts.append(f"Section: {section_code}")
@@ -325,23 +347,33 @@ Format: 3 specific recommendations, each including student quotes and question-b
             mixed_comments = section_data.get('mixed_comments', [])
             
             if positive_comments or negative_comments or mixed_comments:
-                context_parts.append("\n💬 STUDENT FEEDBACK:")
+                context_parts.append("\n💬 ACTUAL STUDENT VOICES (MOST IMPORTANT - BASE YOUR RECOMMENDATIONS ON THESE):")
+                context_parts.append("These are REAL student comments - quote them directly in your recommendations!")
+                context_parts.append("")
                 
+                # Select THE MOST representative positive comment (longest/most detailed)
                 if positive_comments:
-                    context_parts.append(f"\n✅ POSITIVE FEEDBACK ({len(positive_comments)} comments):")
-                    for i, comment in enumerate(positive_comments[:5], 1):  # Limit to 5
-                        context_parts.append(f"   {i}. \"{comment}\"")
+                    best_positive = max(positive_comments, key=len) if len(positive_comments) > 0 else positive_comments[0]
+                    context_parts.append("✅ MOST POSITIVE STUDENT COMMENT:")
+                    context_parts.append(f'   "{best_positive}"')
+                    context_parts.append(f"   (Total positive comments: {len(positive_comments)})")
+                    context_parts.append("")
                 
+                # Select THE MOST critical negative comment (longest/most detailed)
                 if negative_comments:
-                    context_parts.append(f"\n❌ CRITICAL FEEDBACK ({len(negative_comments)} comments):")
-                    for i, comment in enumerate(negative_comments[:5], 1):  # Limit to 5
-                        context_parts.append(f"   {i}. \"{comment}\"")
+                    most_critical = max(negative_comments, key=len) if len(negative_comments) > 0 else negative_comments[0]
+                    context_parts.append("❌ MOST CRITICAL STUDENT COMMENT:")
+                    context_parts.append(f'   "{most_critical}"')
+                    context_parts.append(f"   (Total critical comments: {len(negative_comments)})")
+                    context_parts.append("")
                 
+                # Add one mixed comment if available (these are valuable for balanced perspective)
                 if mixed_comments:
-                    context_parts.append(f"\n🔄 CONSTRUCTIVE/MIXED FEEDBACK ({len(mixed_comments)} comments):")
-                    context_parts.append("   (These contain both positive and negative elements - most valuable for improvement)")
-                    for i, comment in enumerate(mixed_comments[:5], 1):  # Limit to 5
-                        context_parts.append(f"   {i}. \"{comment}\"")
+                    best_mixed = max(mixed_comments, key=len) if len(mixed_comments) > 0 else mixed_comments[0]
+                    context_parts.append("🔄 MOST INSIGHTFUL MIXED COMMENT (Contains improvement opportunities):")
+                    context_parts.append(f'   "{best_mixed}"')
+                    context_parts.append(f"   (Total mixed comments: {len(mixed_comments)})")
+                    context_parts.append("")
         
         return "\n".join(context_parts)
     
