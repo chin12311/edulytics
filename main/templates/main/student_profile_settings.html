@@ -21,12 +21,17 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
 {% block content %}
 <style>
     .profile-settings-container {
-        max-width: 600px;
+        max-width: 1200px;
         margin: 50px auto;
-        padding: 30px;
+        padding: 0;
+    }
+
+    .profile-card {
         background: rgba(255, 255, 255, 0.95);
         border-radius: 15px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        margin-bottom: 20px;
     }
 
     h2 {
@@ -34,6 +39,43 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         margin-bottom: 30px;
         font-weight: 600;
         text-align: center;
+    }
+
+    h4 {
+        color: #47682c;
+        margin-bottom: 20px;
+        font-weight: 600;
+    }
+
+    .student-info-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        text-align: center;
+        height: 100%;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid #e0e0e0;
+        text-align: left;
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #47682c;
+    }
+
+    .info-value {
+        color: #2c3e50;
+        font-weight: 500;
     }
 
     .form-group {
@@ -131,10 +173,16 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         border-radius: 0 10px 10px 0;
         padding: 12px 15px;
     }
+
+    @media (max-width: 768px) {
+        .profile-settings-container {
+            padding: 15px;
+        }
+    }
 </style>
 
-<div class="profile-settings-container">
-    <h2><i class="bi bi-person-circle"></i> Profile Settings</h2>
+<div class="container-fluid profile-settings-container">
+    <h2><i class="bi bi-person-circle"></i> Student Profile Settings</h2>
     
     {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
@@ -146,67 +194,115 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         {% endfor %}
     {% endif %}
 
-    <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ next_url }}">
-        
-        <!-- Profile Picture Section -->
-        <div class="profile-picture-section">
-            {% if user.userprofile.profile_picture %}
-                <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile Picture" class="profile-picture-preview" id="profilePreview">
-            {% else %}
-                <div class="default-avatar" id="defaultAvatar">
-                    {{ user.get_full_name|default:user.username|slice:":1"|upper }}
+    <div class="row">
+        <!-- Left Column - Student Information Display -->
+        <div class="col-lg-4 col-md-5 col-12 mb-4">
+            <div class="student-info-card">
+                <h4><i class="bi bi-person-badge"></i> My Information</h4>
+                
+                <!-- Profile Picture Display -->
+                <div class="profile-picture-section mb-4">
+                    {% if user.userprofile.profile_picture %}
+                        <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile Picture" class="profile-picture-preview">
+                    {% else %}
+                        <div class="default-avatar mx-auto">
+                            {{ user.get_full_name|default:user.username|slice:":1"|upper }}
+                        </div>
+                    {% endif %}
                 </div>
-                <img src="#" alt="Profile Picture" class="profile-picture-preview" id="profilePreview" style="display:none;">
-            {% endif %}
-            
-            <div class="form-group">
-                <label for="profile_picture"><i class="bi bi-camera"></i> Profile Picture</label>
-                <input type="file" class="form-control" id="profile_picture" name="profile_picture" accept="image/*">
-                <small class="form-text text-muted">Choose a square image for best results (JPG, PNG, GIF)</small>
+
+                <!-- Student Details -->
+                <div style="text-align: left; margin-top: 20px;">
+                    <div class="info-item">
+                        <span class="info-label"><i class="bi bi-person"></i> Name:</span>
+                        <span class="info-value">{{ user.get_full_name|default:user.username }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="bi bi-card-text"></i> Student Number:</span>
+                        <span class="info-value">{{ user_profile.studentnumber|default:"N/A" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="bi bi-book"></i> Course:</span>
+                        <span class="info-value">{{ user_profile.course|default:"N/A" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="bi bi-envelope"></i> Email:</span>
+                        <span class="info-value" style="word-break: break-word;">{{ user.email }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="bi bi-person-circle"></i> Username:</span>
+                        <span class="info-value">{{ user.username }}</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="form-group">
-            <label for="username"><i class="bi bi-person"></i> Username</label>
-            <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+        <!-- Right Column - Edit Profile Form -->
+        <div class="col-lg-8 col-md-7 col-12 mb-4">
+            <div class="profile-card">
+                <h4><i class="bi bi-pencil-square"></i> Edit Profile</h4>
+                
+                        <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next_url }}">
+                    
+                    <!-- Profile Picture Upload Section -->
+                    <div class="profile-picture-section mb-4">
+                        <h5 style="color: #47682c; margin-bottom: 15px;"><i class="bi bi-camera"></i> Update Profile Picture</h5>
+                        <div class="text-center mb-3">
+                            {% if user.userprofile.profile_picture %}
+                                <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile Picture Preview" class="profile-picture-preview" id="profilePreview">
+                            {% else %}
+                                <div class="default-avatar mx-auto" id="defaultAvatar">
+                                    {{ user.get_full_name|default:user.username|slice:":1"|upper }}
+                                </div>
+                                <img src="#" alt="Profile Picture Preview" class="profile-picture-preview" id="profilePreview" style="display:none;">
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="profile_picture"><i class="bi bi-image"></i> Choose New Picture</label>
+                            <input type="file" class="form-control" id="profile_picture" name="profile_picture" accept="image/*">
+                            <small class="form-text text-muted">Choose a square image for best results (JPG, PNG, GIF)</small>
+                        </div>
+                    </div>
+
+                    <hr style="margin: 30px 0;">
+
+                    <h5 style="color: #47682c; margin-bottom: 20px;"><i class="bi bi-pencil"></i> Update Account Information</h5>
+
+                    <div class="form-group">
+                        <label for="username"><i class="bi bi-person"></i> Username</label>
+                        <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email"><i class="bi bi-envelope"></i> Email</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                        <small class="form-text text-muted">Students must use @cca.edu.ph email</small>
+                    </div>
+
+                    <hr style="margin: 30px 0;">
+
+                    <h5 style="color: #47682c; margin-bottom: 20px;"><i class="bi bi-lock"></i> Change Password (Optional)</h5>
+
+                    <div class="form-group">
+                        <label for="new_password1"><i class="bi bi-key"></i> New Password</label>
+                        <input type="password" class="form-control" id="new_password1" name="new_password1" placeholder="Leave blank to keep current password">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_password2"><i class="bi bi-key-fill"></i> Confirm New Password</label>
+                        <input type="password" class="form-control" id="new_password2" name="new_password2" placeholder="Confirm new password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3">
+                        <i class="bi bi-check-circle"></i> Save Changes
+                    </button>
+                </form>
+            </div>
         </div>
-
-        <div class="form-group">
-            <label for="email"><i class="bi bi-envelope"></i> Email</label>
-            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
-            <small class="form-text text-muted">Students must use @cca.edu.ph email</small>
-        </div>
-
-        <div class="form-group">
-            <label for="studentnumber"><i class="bi bi-card-text"></i> Student Number</label>
-            <input type="text" class="form-control" id="studentnumber" value="{{ user_profile.studentnumber }}" readonly>
-        </div>
-
-        <div class="form-group">
-            <label for="course"><i class="bi bi-book"></i> Course</label>
-            <input type="text" class="form-control" id="course" value="{{ user_profile.course }}" readonly>
-        </div>
-
-        <hr style="margin: 30px 0;">
-
-        <h5 style="color: #47682c; margin-bottom: 20px;">Change Password (Optional)</h5>
-
-        <div class="form-group">
-            <label for="new_password1"><i class="bi bi-lock"></i> New Password</label>
-            <input type="password" class="form-control" id="new_password1" name="new_password1" placeholder="Leave blank to keep current password">
-        </div>
-
-        <div class="form-group">
-            <label for="new_password2"><i class="bi bi-lock-fill"></i> Confirm New Password</label>
-            <input type="password" class="form-control" id="new_password2" name="new_password2" placeholder="Confirm new password">
-        </div>
-
-        <button type="submit" class="btn btn-primary">
-            <i class="bi bi-check-circle"></i> Update Profile
-        </button>
-    </form>
+    </div>
 </div>
 
 <script>
