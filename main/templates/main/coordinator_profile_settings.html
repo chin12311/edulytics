@@ -1589,7 +1589,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         
         const recommendations = [];
         const categoryScores = sectionData.category_scores || [0, 0, 0, 0];
-        const maxScores = [30, 30, 20, 20];
+        const maxScores = [35, 25, 20, 20];  // Correct weighted maximums
         const categoryNames = [
             'Mastery of Subject Matter',
             'Classroom Management', 
@@ -1620,10 +1620,11 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             // Focus on the weakest category
             const weakest = weakCategories[0];
             
+            const perfLevel = weakest.perf >= 80 ? '✅ Good' : weakest.perf >= 70 ? '⚠️ Average' : '🚨 Needs Improvement';
             recommendations.push({
                 title: `Improve ${weakest.name}`,
-                description: `Your ${weakest.name.toLowerCase()} score is ${formatToTwoDecimals(weakest.score)}% (${formatToTwoDecimals(weakest.perf)}% of maximum). Consider targeted strategies to enhance this area in ${sectionRef}.`,
-                priority: 'High',
+                description: `Your ${weakest.name.toLowerCase()} score is ${formatToTwoDecimals(weakest.score)}% out of ${maxScores[weakest.index]}% maximum (${formatToTwoDecimals(weakest.perf)}% performance - ${perfLevel}). Consider targeted strategies to enhance this area in ${sectionRef}.`,
+                priority: weakest.perf < 70 ? 'High' : 'Medium',
                 reason: `Based on ${weakest.perf.toFixed(1)}% performance in ${weakest.name}`
             });
             
@@ -1631,10 +1632,11 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             if (weakCategories.length > 1) {
                 const secondWeakest = weakCategories[1];
                 
+                const perfLevel2 = secondWeakest.perf >= 80 ? '✅ Good' : secondWeakest.perf >= 70 ? '⚠️ Average' : '🚨 Needs Improvement';
                 recommendations.push({
                     title: `Enhance ${secondWeakest.name}`,
-                    description: `Focus on improving ${secondWeakest.name.toLowerCase()} which is currently at ${formatToTwoDecimals(secondWeakest.score)}% (${formatToTwoDecimals(secondWeakest.perf)}% of maximum) in ${sectionRef}.`,
-                    priority: 'Medium',
+                    description: `Focus on improving ${secondWeakest.name.toLowerCase()} which is currently at ${formatToTwoDecimals(secondWeakest.score)}% out of ${maxScores[secondWeakest.index]}% maximum (${formatToTwoDecimals(secondWeakest.perf)}% performance - ${perfLevel2}) in ${sectionRef}.`,
+                    priority: secondWeakest.perf < 70 ? 'High' : 'Medium',
                     reason: `Based on ${secondWeakest.perf.toFixed(1)}% performance in ${secondWeakest.name}`
                 });
             }
