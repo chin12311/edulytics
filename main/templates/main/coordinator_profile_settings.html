@@ -470,9 +470,28 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                     <div class="alert alert-danger" role="alert" id="profileError">{{ error }}</div>
                 {% endif %}
 
-                <form method="POST" action="{% url 'main:coordinator_profile_settings' %}" id="profileForm">
+                <form method="POST" action="{% url 'main:coordinator_profile_settings' %}" id="profileForm" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ next_url|default:'/' }}">
+
+                    <!-- Profile Picture Section -->
+                    <div class="form-group text-center mb-4">
+                        <label class="d-block mb-3"><i class="bi bi-camera"></i> Profile Picture</label>
+                        {% if user.userprofile.profile_picture %}
+                            <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile Picture" 
+                                 style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin: 0 auto 15px; display: block; border: 4px solid #47682c;" 
+                                 id="profilePreview">
+                        {% else %}
+                            <div style="width: 150px; height: 150px; border-radius: 50%; background: linear-gradient(135deg, #47682c, #5a8537); color: white; display: flex; align-items: center; justify-content: center; font-size: 60px; font-weight: bold; margin: 0 auto 15px;" id="defaultAvatar">
+                                {{ user.get_full_name|default:user.username|slice:":1"|upper }}
+                            </div>
+                            <img src="#" alt="Profile Picture" 
+                                 style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin: 0 auto 15px; display: none; border: 4px solid #47682c;" 
+                                 id="profilePreview">
+                        {% endif %}
+                        <input type="file" class="form-control custom-input-width text-center" id="profile_picture" name="profile_picture" accept="image/*">
+                        <small class="text-muted d-block mt-2">Choose a square image for best results (JPG, PNG, GIF)</small>
+                    </div>
 
                     <div class="form-group">
                         <label for="username">Username:</label>
@@ -1914,6 +1933,27 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             }
         });
     }
+</script>
+
+<script>
+// Profile picture preview
+document.getElementById('profile_picture').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('profilePreview');
+            const defaultAvatar = document.getElementById('defaultAvatar');
+            
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            if (defaultAvatar) {
+                defaultAvatar.style.display = 'none';
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+});
 </script>
 
 <!-- Add Font Awesome for icons -->
