@@ -1010,6 +1010,11 @@
     }
 
     function showNoData() {
+        console.log("showNoData called - displaying no data message");
+        const sectionBox = document.querySelector('.section-box');
+        sectionBox.style.display = 'block';
+        sectionBox.style.opacity = '1';
+        
         document.querySelector('.dashboard-grid').style.display = 'none';
         document.getElementById('scoreDetails').style.display = 'none';
         document.getElementById('noDataMessage').style.display = 'block';
