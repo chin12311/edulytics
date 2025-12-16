@@ -924,7 +924,7 @@
                         <label class="question-text">Choose the coordinator you want to evaluate:</label>
                         <input type="hidden" name="coordinator_id" id="coordinator_id" required>
                         
-                        <div class="coordinators-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                        <div class="coordinators-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; max-height: 600px; overflow-y: auto; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">
                             {% for coordinator in coordinators %}
                                 <div class="coordinator-card {% if coordinator.id in evaluated_ids %}evaluated{% endif %}" 
                                      data-coordinator-id="{{ coordinator.id }}"
