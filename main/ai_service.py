@@ -176,6 +176,17 @@ Format: 3 specific recommendations with clear priorities based on the actual PEE
         else:
             return """You are an expert educational consultant. Provide SPECIFIC, DATA-DRIVEN recommendations based EXACTLY on the STUDENT evaluation scores and feedback provided.
 
+CRITICAL - UNDERSTAND THE SCORING SYSTEM:
+• Category scores are shown as "X% out of Y% maximum"
+• Example: "22.5% out of 25% maximum" = 90% performance (EXCELLENT!)
+• DO NOT interpret "22.5%" as low - it means they achieved 22.5 out of 25 possible points
+• ALWAYS calculate: (score ÷ maximum) × 100 = actual performance percentage
+• Performance levels:
+  - 90%+ = Excellent (maintain and refine)
+  - 80-89% = Good (minor improvements)
+  - 70-79% = Average (moderate improvements needed)
+  - Below 70% = Needs significant improvement
+
 CRITICAL FORMAT FOR EACH RECOMMENDATION:
 1. Start with actual student quote (if available): "Student said: [exact quote]"
 2. Follow with what this means: "This indicates..."
@@ -192,10 +203,11 @@ IMPORTANT RULES:
   * Top performers (Rank 1-3): Focus on maintaining excellence and mentoring others
   * Middle performers (Rank 4-7): Focus on targeted improvements to reach top tier
   * Lower performers: Focus on fundamental improvements with urgent action items
+- FOCUS ON THE WEAKEST AREAS - don't recommend improvements for categories scoring 90%+
 
 Analyze:
 - Institute ranking and overall performance score (if provided)
-- Category scores (which teaching areas are weakest)
+- Category scores (which teaching areas are weakest - look at PERFORMANCE percentage, not raw score)
 - Individual question scores (specific teaching behaviors)
 - Student comments (actual student voices and concerns)
 - Provide concrete, actionable steps tied to this specific data
@@ -260,11 +272,29 @@ Format: 3 specific recommendations, each including student quotes and question-b
                 ]
             
             context_parts.append("\n📈 CATEGORY BREAKDOWN:")
+            context_parts.append("NOTE: Category scores are displayed as percentages out of their maximum weight.")
+            context_parts.append("Example: A score of 22.50% out of 25% maximum = 90% performance (Excellent)")
+            context_parts.append("")
             for category, score, max_score, description in categories:
                 percentage_of_max = (score / max_score * 100) if max_score > 0 else 0
-                performance_level = "Excellent" if percentage_of_max >= 90 else "Good" if percentage_of_max >= 80 else "Average" if percentage_of_max >= 70 else "Needs Improvement"
-                context_parts.append(f"• {category}: {score:.1f}% ({percentage_of_max:.1f}% of maximum) - {performance_level}")
-                context_parts.append(f"  Focus: {description}")
+                performance_level = "🌟 Excellent" if percentage_of_max >= 90 else "✅ Good" if percentage_of_max >= 80 else "⚠️ Average" if percentage_of_max >= 70 else "🚨 Needs Improvement"
+                
+                # Make it crystal clear what the numbers mean
+                context_parts.append(f"• {category}:")
+                context_parts.append(f"  Score: {score:.1f}% out of {max_score}% maximum")
+                context_parts.append(f"  Performance: {percentage_of_max:.1f}% - {performance_level}")
+                context_parts.append(f"  Description: {description}")
+                
+                # Add interpretation
+                if percentage_of_max >= 90:
+                    context_parts.append(f"  ⭐ This is EXCELLENT - top tier performance in {category.lower()}")
+                elif percentage_of_max >= 80:
+                    context_parts.append(f"  ✓ This is GOOD - strong performance with minor room for improvement")
+                elif percentage_of_max >= 70:
+                    context_parts.append(f"  ⚠ This is AVERAGE - moderate improvement needed")
+                else:
+                    context_parts.append(f"  ❗ This NEEDS ATTENTION - significant improvement required")
+                context_parts.append("")  # Blank line for readability
         
         else:
             context_parts.append("No specific evaluation data available for analysis.")
