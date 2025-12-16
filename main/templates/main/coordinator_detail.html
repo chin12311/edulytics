@@ -1010,6 +1010,7 @@
     }
 
     function showNoData() {
+        document.querySelector('.dashboard-grid').style.display = 'none';
         document.getElementById('scoreDetails').style.display = 'none';
         document.getElementById('noDataMessage').style.display = 'block';
         document.getElementById('explanationBox').style.display = 'none';
@@ -1040,6 +1041,8 @@
                 document.getElementById('sectionDropdown').textContent = '📈 Overall Results';
             } else if (sectionId === 'peer') {
                 document.getElementById('sectionDropdown').textContent = '👥 Peer Evaluation Results';
+            } else if (sectionId === 'student-upward') {
+                document.getElementById('sectionDropdown').textContent = '📝 Student to Coordinator Results';
             } else if (sectionId === 'upward') {
                 document.getElementById('sectionDropdown').textContent = '🎯 Upward Evaluation Results';
             } else if (sectionId === 'irregular') {
