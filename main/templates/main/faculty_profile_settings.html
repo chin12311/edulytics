@@ -1332,10 +1332,17 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             if (apiResponse.recommendations) {
                 recommendations = apiResponse.recommendations;
                 console.log(`🎯 Found ${recommendations.length} recommendations for ${sectionCode}`);
+                
+                // Check if recommendations is empty
+                if (!recommendations || recommendations.length === 0) {
+                    console.warn('⚠️ AI returned empty recommendations array');
+                    throw new Error('AI returned no recommendations - may need to regenerate');
+                }
             } else if (Array.isArray(apiResponse)) {
                 // Fallback: if response is directly the array
                 recommendations = apiResponse;
             } else {
+                console.error('❌ Invalid API response structure:', apiResponse);
                 throw new Error('Invalid response format from AI API');
             }
             
@@ -1349,9 +1356,37 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             }
             
             console.error(`❌ Error fetching AI recommendations for ${sectionCode}:`, error);
-            // Fallback to smart recommendations
-            const fallbackRecommendations = generateSmartRecommendations(sectionData, sectionRef);
-            displayRecommendations(fallbackRecommendations, recommendationsContent, sectionCode);
+            
+            // For good performance (>80%), show specific error message instead of generic fallback
+            if (sectionData.total_percentage >= 80) {
+                recommendationsContent.innerHTML = `
+                    <div class="alert alert-warning" style="margin: 20px;">
+                        <h5>⚠️ AI Recommendations Temporarily Unavailable</h5>
+                        <p><strong>Your performance is excellent (${formatToTwoDecimals(sectionData.total_percentage)}%)!</strong></p>
+                        <p>The AI is currently unable to generate personalized recommendations. Please try:</p>
+                        <ul>
+                            <li>Refreshing the page</li>
+                            <li>Checking your internet connection</li>
+                            <li>Trying again in a few moments</li>
+                        </ul>
+                        <p class="mb-0"><small>Error: ${error.message}</small></p>
+                    </div>
+                `;
+            } else {
+                // For performance below 80%, show category-specific fallback
+                const fallbackRecommendations = generateSmartRecommendations(sectionData, sectionRef);
+                if (fallbackRecommendations.length > 0) {
+                    displayRecommendations(fallbackRecommendations, recommendationsContent, sectionCode);
+                } else {
+                    recommendationsContent.innerHTML = `
+                        <div class="alert alert-info" style="margin: 20px;">
+                            <h5>ℹ️ Unable to Generate Recommendations</h5>
+                            <p>AI recommendations are temporarily unavailable. Please refresh the page.</p>
+                            <p class="mb-0"><small>Error: ${error.message}</small></p>
+                        </div>
+                    `;
+                }
+            }
         });
     }
 
@@ -1649,16 +1684,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 });
             }
         } else {
-            // All categories performing well - NO FALLBACK RECOMMENDATIONS NEEDED
-            // The AI should handle this case with ranking-specific advice
-            console.log('\u26a0\ufe0f All categories above 80% - AI should provide ranking-specific guidance');
-            recommendations.push({
-                title: 'Excellent Performance - Awaiting AI Analysis',
-                description: `Your performance is strong across all categories (${formatToTwoDecimals(sectionData.total_percentage)}%). AI recommendations should focus on maintaining your ranking and sharing best practices.`,
-                priority: 'Info',
-                reason: 'AI recommendation generation in progress'
-            });
-            return recommendations; // Don't add generic recommendations
+            // All categories performing well - return empty so error handler shows proper message
+            console.log('✅ All categories above 80% - returning empty for AI to handle');
+            return []; // Return empty array - error handler will show proper message
         }
         
         // Only add general recommendations if we found specific weaknesses
