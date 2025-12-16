@@ -800,13 +800,7 @@
             // Check if there's data
             if (!sectionData.has_data || totalPercentage === 0) {
                 // Show no data message for peer evaluation
-                document.querySelector('.dashboard-grid').style.display = 'none';
-                document.getElementById('peerDisplay').style.display = 'none';
-                document.getElementById('upwardDisplay').style.display = 'none';
-                document.getElementById('studentUpwardDisplay').style.display = 'none';
-                document.getElementById('noDataMessage').style.display = 'block';
-                document.getElementById('explanationBox').style.display = 'none';
-                document.getElementById('overallStats').style.display = 'none';
+                showNoData();
                 return;
             }
             
@@ -837,13 +831,7 @@
             // Check if there's data
             if (!sectionData.has_data || totalPercentage === 0) {
                 // Show no data message for student upward evaluation
-                document.querySelector('.dashboard-grid').style.display = 'none';
-                document.getElementById('peerDisplay').style.display = 'none';
-                document.getElementById('upwardDisplay').style.display = 'none';
-                document.getElementById('studentUpwardDisplay').style.display = 'none';
-                document.getElementById('noDataMessage').style.display = 'block';
-                document.getElementById('explanationBox').style.display = 'none';
-                document.getElementById('overallStats').style.display = 'none';
+                showNoData();
                 return;
             }
             
@@ -875,13 +863,7 @@
             // Check if there's data
             if (!sectionData.has_data || totalPercentage === 0) {
                 // Show no data message for upward evaluation
-                document.querySelector('.dashboard-grid').style.display = 'none';
-                document.getElementById('peerDisplay').style.display = 'none';
-                document.getElementById('upwardDisplay').style.display = 'none';
-                document.getElementById('studentUpwardDisplay').style.display = 'none';
-                document.getElementById('noDataMessage').style.display = 'block';
-                document.getElementById('explanationBox').style.display = 'none';
-                document.getElementById('overallStats').style.display = 'none';
+                showNoData();
                 return;
             }
             
