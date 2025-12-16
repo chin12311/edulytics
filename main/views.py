@@ -5594,19 +5594,28 @@ class DeanProfileSettingsView(View):
                 evaluation_type='student'
             ).order_by('created_at')
             
+            # Check if saved recommendations contain generic fallback text
             if saved_recs.exists():
-                # Return saved recommendations
-                return [
-                    {
-                        'title': rec.title,
-                        'description': rec.description,
-                        'priority': rec.priority,
-                        'reason': rec.reason
-                    }
-                    for rec in saved_recs
-                ]
+                has_generic = any('Data-Driven Improvement' in rec.title for rec in saved_recs)
+                
+                # If we found generic recommendations, delete them and regenerate
+                if has_generic:
+                    print(f"🔄 Found generic cached recommendations for {user.username}/{section_code}, deleting and regenerating...")
+                    saved_recs.delete()
+                else:
+                    # Return saved recommendations if they're not generic
+                    return [
+                        {
+                            'title': rec.title,
+                            'description': rec.description,
+                            'priority': rec.priority,
+                            'reason': rec.reason
+                        }
+                        for rec in saved_recs
+                    ]
         
-        # Generate new recommendations if none saved
+        # Generate new recommendations if none saved or they were generic
+        print(f"🤖 Generating new AI recommendations for {user.username}/{section_code}")
         ai_service = TeachingAIRecommendationService()
         recommendations = ai_service.get_recommendations(
             user=user,
@@ -6370,19 +6379,28 @@ class CoordinatorProfileSettingsView(View):
                 evaluation_type='student'
             ).order_by('created_at')
             
+            # Check if saved recommendations contain generic fallback text
             if saved_recs.exists():
-                # Return saved recommendations
-                return [
-                    {
-                        'title': rec.title,
-                        'description': rec.description,
-                        'priority': rec.priority,
-                        'reason': rec.reason
-                    }
-                    for rec in saved_recs
-                ]
+                has_generic = any('Data-Driven Improvement' in rec.title for rec in saved_recs)
+                
+                # If we found generic recommendations, delete them and regenerate
+                if has_generic:
+                    print(f"🔄 Found generic cached recommendations for {user.username}/{section_code}, deleting and regenerating...")
+                    saved_recs.delete()
+                else:
+                    # Return saved recommendations if they're not generic
+                    return [
+                        {
+                            'title': rec.title,
+                            'description': rec.description,
+                            'priority': rec.priority,
+                            'reason': rec.reason
+                        }
+                        for rec in saved_recs
+                    ]
         
-        # Generate new recommendations if none saved
+        # Generate new recommendations if none saved or they were generic
+        print(f"🤖 Generating new AI recommendations for {user.username}/{section_code}")
         ai_service = TeachingAIRecommendationService()
         recommendations = ai_service.get_recommendations(
             user=user,
@@ -7050,19 +7068,28 @@ class FacultyProfileSettingsView(View):
                 evaluation_type='student'
             ).order_by('created_at')
             
+            # Check if saved recommendations contain generic fallback text
             if saved_recs.exists():
-                # Return saved recommendations
-                return [
-                    {
-                        'title': rec.title,
-                        'description': rec.description,
-                        'priority': rec.priority,
-                        'reason': rec.reason
-                    }
-                    for rec in saved_recs
-                ]
+                has_generic = any('Data-Driven Improvement' in rec.title for rec in saved_recs)
+                
+                # If we found generic recommendations, delete them and regenerate
+                if has_generic:
+                    print(f"🔄 Found generic cached recommendations for {user.username}/{section_code}, deleting and regenerating...")
+                    saved_recs.delete()
+                else:
+                    # Return saved recommendations if they're not generic
+                    return [
+                        {
+                            'title': rec.title,
+                            'description': rec.description,
+                            'priority': rec.priority,
+                            'reason': rec.reason
+                        }
+                        for rec in saved_recs
+                    ]
         
-        # Generate new recommendations if none saved
+        # Generate new recommendations if none saved or they were generic
+        print(f"🤖 Generating new AI recommendations for {user.username}/{section_code}")
         ai_service = TeachingAIRecommendationService()
         recommendations = ai_service.get_recommendations(
             user=user,

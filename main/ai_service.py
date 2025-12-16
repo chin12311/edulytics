@@ -550,15 +550,34 @@ Format: 3 specific recommendations, each including student quotes and question-b
                     'reason': f"Based on {weakest['performance']:.1f}% performance in Personality from student evaluations"
                 })
         
-        # Add general teaching recommendations to fill if needed
-        teaching_recs = [
-            {
-                'title': 'Implement Data-Driven Improvement',
-                'description': 'Use student evaluation data to create targeted improvement plans with measurable goals and regular progress monitoring.',
-                'priority': 'Medium',
-                'reason': 'Evidence-based teaching improvement strategy'
-            }
-        ]
+        # Add data-specific teaching recommendations to fill if needed
+        if total_percentage < 70:
+            teaching_recs = [
+                {
+                    'title': f'Address Critical Performance Gap (Currently {total_percentage:.1f}%)',
+                    'description': f'Your overall evaluation score of {total_percentage:.1f}% requires immediate attention. Focus on the lowest-scoring category: {weakest["name"]} at {weakest["score"]:.1f}%. Schedule weekly self-assessment sessions and seek peer observations for targeted feedback.',
+                    'priority': 'High',
+                    'reason': f'Urgent action needed - performance below 70%'
+                }
+            ]
+        elif total_percentage < 80:
+            teaching_recs = [
+                {
+                    'title': f'Build on Current Performance ({total_percentage:.1f}%)',
+                    'description': f'With a {total_percentage:.1f}% overall score, focus on elevating your weakest area: {weakest["name"]} ({weakest["score"]:.1f}%). Review successful strategies from your stronger categories and adapt them to improve this dimension.',
+                    'priority': 'Medium',
+                    'reason': f'Targeted improvement to reach excellence threshold (80%+)'
+                }
+            ]
+        else:
+            teaching_recs = [
+                {
+                    'title': f'Maintain Excellence and Fine-Tune ({total_percentage:.1f}%)',
+                    'description': f'Your {total_percentage:.1f}% overall score demonstrates strong performance. To reach peak effectiveness, address minor gaps in {weakest["name"]} ({weakest["score"]:.1f}%). Consider mentoring colleagues in your strongest areas while refining this dimension.',
+                    'priority': 'Low',
+                    'reason': f'Excellence maintenance with minor optimization'
+                }
+            ]
         
         while len(recommendations) < 3 and teaching_recs:
             recommendations.append(teaching_recs.pop(0))
