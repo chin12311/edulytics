@@ -184,13 +184,22 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
 <div class="container-fluid profile-settings-container">
     <h2><i class="bi bi-person-circle"></i> Student Profile Settings</h2>
     
+    <!-- Success/Error Messages -->
     {% if error %}
-        <div class="alert alert-danger">{{ error }}</div>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Error!</strong> {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     {% endif %}
     
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-success">{{ message }}</div>
+            <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Success!</strong> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         {% endfor %}
     {% endif %}
 
@@ -324,5 +333,14 @@ document.getElementById('profile_picture').addEventListener('change', function(e
         reader.readAsDataURL(file);
     }
 });
+
+// Auto-dismiss success messages after 5 seconds
+setTimeout(function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function(alert) {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+    });
+}, 5000);
 </script>
 {% endblock %}
