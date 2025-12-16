@@ -921,19 +921,42 @@
                     <h4>Select Instructor</h4>
                 </div>
                 <div class="question-group">
-                    <label for="evaluatee" class="question-text">Choose the instructor you want to evaluate:</label>
-                    <select class="form-control" name="evaluatee" id="evaluatee" required>
-                        <option value="">-- Select an Instructor --</option>
+                    <label class="question-text">Choose the instructor you want to evaluate:</label>
+                    <input type="hidden" name="evaluatee" id="evaluatee" required>
+                    
+                    <div class="instructors-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
                         {% for user in faculty %}
-                            <option value="{{ user.id }}" {% if user.id in evaluated_ids %}disabled{% endif %}>
-                                {{ user.get_full_name|default:user.username }} - 
-                                {{ user.userprofile.role }}
-                                {% if user.id in evaluated_ids %} (Already Evaluated){% endif %}
-                            </option>
+                            <div class="instructor-card {% if user.id in evaluated_ids %}evaluated{% endif %}" 
+                                 data-instructor-id="{{ user.id }}"
+                                 style="border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s ease; {% if user.id in evaluated_ids %}opacity: 0.5; cursor: not-allowed; background: #f5f5f5;{% else %}background: white;{% endif %}">
+                                
+                                {% if user.userprofile.profile_picture %}
+                                    <img src="{{ user.userprofile.profile_picture.url }}" alt="{{ user.get_full_name }}" 
+                                         style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 0 auto 15px; display: block; border: 3px solid #7d8e3c;">
+                                {% else %}
+                                    <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #7d8e3c, #5a6b28); color: white; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; margin: 0 auto 15px; border: 3px solid #7d8e3c;">
+                                        {{ user.get_full_name|default:user.username|slice:":1"|upper }}
+                                    </div>
+                                {% endif %}
+                                
+                                <h6 style="margin: 10px 0 5px; font-weight: 600; color: #202124;">{{ user.get_full_name|default:user.username }}</h6>
+                                <p style="margin: 0; font-size: 13px; color: #5f6368;">{{ user.userprofile.role }}</p>
+                                
+                                {% if user.id in evaluated_ids %}
+                                    <span style="display: inline-block; margin-top: 10px; padding: 5px 12px; background: #ea4335; color: white; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                        ✓ Already Evaluated
+                                    </span>
+                                {% else %}
+                                    <span class="select-badge" style="display: none; margin-top: 10px; padding: 5px 12px; background: #34a853; color: white; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                        ✓ Selected
+                                    </span>
+                                {% endif %}
+                            </div>
                         {% endfor %}
-                    </select>
-                    <small class="form-text text-muted">
-                        You can only evaluate each instructor once per evaluation period.
+                    </div>
+                    
+                    <small class="form-text text-muted" style="display: block; margin-top: 15px;">
+                        Click on an instructor's card to select them. You can only evaluate each instructor once per evaluation period.
                     </small>
                 </div>
             </div>
@@ -1035,15 +1058,52 @@ Your comments will be anonymous and used constructively to improve teaching qual
 
 <script>
     const evaluatedIds = {{ evaluated_ids|safe }};
-    const evaluateeSelect = document.getElementById("evaluatee");
+    const evaluateeInput = document.getElementById("evaluatee");
     const warningMsg = document.getElementById("already-evaluated-msg");
-
-    evaluateeSelect.addEventListener("change", function() {
-        const selectedId = parseInt(this.value);
-        if (evaluatedIds.includes(selectedId)) {
-            warningMsg.style.display = "block";
-        } else {
-            warningMsg.style.display = "none";
+    
+    // Handle instructor card selection
+    document.querySelectorAll('.instructor-card').forEach(card => {
+        if (!card.classList.contains('evaluated')) {
+            card.addEventListener('click', function() {
+                const instructorId = this.getAttribute('data-instructor-id');
+                
+                // Remove selection from all cards
+                document.querySelectorAll('.instructor-card').forEach(c => {
+                    c.style.border = '2px solid #e0e0e0';
+                    c.style.background = 'white';
+                    const badge = c.querySelector('.select-badge');
+                    if (badge) badge.style.display = 'none';
+                });
+                
+                // Mark this card as selected
+                this.style.border = '2px solid #7d8e3c';
+                this.style.background = '#f5f8ed';
+                const selectBadge = this.querySelector('.select-badge');
+                if (selectBadge) selectBadge.style.display = 'inline-block';
+                
+                // Set the hidden input value
+                evaluateeInput.value = instructorId;
+                
+                // Hide warning if shown
+                warningMsg.style.display = "none";
+            });
+            
+            // Hover effects
+            card.addEventListener('mouseenter', function() {
+                if (!this.style.border.includes('7d8e3c')) {
+                    this.style.border = '2px solid #7d8e3c';
+                    this.style.transform = 'translateY(-5px)';
+                    this.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+                }
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                if (!evaluateeInput.value || evaluateeInput.value !== this.getAttribute('data-instructor-id')) {
+                    this.style.border = '2px solid #e0e0e0';
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
+                }
+            });
         }
     });
 
@@ -1064,12 +1124,11 @@ Your comments will be anonymous and used constructively to improve teaching qual
         });
         
         // Check if instructor is selected
-        const selectedInstructor = evaluateeSelect.value;
+        const selectedInstructor = evaluateeInput.value;
         if (!selectedInstructor) {
             e.preventDefault();
             showErrorMessage('⚠️ Please select an instructor to evaluate before submitting.');
-            evaluateeSelect.focus();
-            evaluateeSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.querySelector('.instructors-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
             return false;
         }
 
