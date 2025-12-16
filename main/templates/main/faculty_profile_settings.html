@@ -874,6 +874,11 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         let categoryScoresSum = [0, 0, 0, 0]; // For 4 categories
         let totalPercentageSum = 0;
         
+        // Collect ALL comments from all sections
+        let allPositiveComments = [];
+        let allNegativeComments = [];
+        let allMixedComments = [];
+        
         // Iterate through all sections
         for (const [sectionCode, sectionData] of Object.entries(sectionScoresData)) {
             totalSections++;
@@ -889,6 +894,17 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 
                 // Accumulate total percentage
                 totalPercentageSum += sectionData.total_percentage || 0;
+                
+                // CRITICAL: Collect comments from all sections
+                if (sectionData.positive_comments && Array.isArray(sectionData.positive_comments)) {
+                    allPositiveComments = allPositiveComments.concat(sectionData.positive_comments);
+                }
+                if (sectionData.negative_comments && Array.isArray(sectionData.negative_comments)) {
+                    allNegativeComments = allNegativeComments.concat(sectionData.negative_comments);
+                }
+                if (sectionData.mixed_comments && Array.isArray(sectionData.mixed_comments)) {
+                    allMixedComments = allMixedComments.concat(sectionData.mixed_comments);
+                }
             }
         }
         
@@ -901,6 +917,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             ? totalPercentageSum / sectionsWithData 
             : 0;
         
+        console.log(`📊 Overall comments collected: ${allPositiveComments.length} positive, ${allNegativeComments.length} negative, ${allMixedComments.length} mixed`);
+        
         return {
             has_data: sectionsWithData > 0,
             total_sections: totalSections,
@@ -908,7 +926,10 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             total_evaluations: totalEvaluations,
             category_scores: averageCategoryScores,
             total_percentage: averageTotalPercentage,
-            evaluation_count: totalEvaluations // Add this for API consistency
+            evaluation_count: totalEvaluations, // Add this for API consistency
+            positive_comments: allPositiveComments, // Include comments
+            negative_comments: allNegativeComments,
+            mixed_comments: allMixedComments
         };
     }
 
