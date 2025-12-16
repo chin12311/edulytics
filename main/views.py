@@ -5229,12 +5229,7 @@ class DeanProfileSettingsView(View):
                     'error': 'Passwords do not match.'
                 })
 
-            # Handle profile picture upload
-            if 'profile_picture' in request.FILES:
-                user.userprofile.profile_picture = request.FILES['profile_picture']
-                user.userprofile.save()
-
-            # Update user information
+            # Update user information first
             user.username = username
             user.email = email
 
@@ -5244,14 +5239,13 @@ class DeanProfileSettingsView(View):
 
             user.save()
 
-            # Add success parameter to URL
-            if "?" in next_url:
-                next_url += "&updated=true"
-            else:
-                next_url += "?updated=true"
+            # Handle profile picture upload after user is saved
+            if 'profile_picture' in request.FILES:
+                user.userprofile.profile_picture = request.FILES['profile_picture']
+                user.userprofile.save()
 
             messages.success(request, "Profile updated successfully.")
-            return redirect(next_url)
+            return redirect('main:dean_profile_settings')
         return redirect('login')
     
     def get_assigned_sections(self, user):
@@ -6005,12 +5999,7 @@ class CoordinatorProfileSettingsView(View):
                     'error': 'Passwords do not match.'
                 })
 
-            # Handle profile picture upload
-            if 'profile_picture' in request.FILES:
-                user.userprofile.profile_picture = request.FILES['profile_picture']
-                user.userprofile.save()
-
-            # Update user information
+            # Update user information first
             user.username = username
             user.email = email
 
@@ -6020,14 +6009,13 @@ class CoordinatorProfileSettingsView(View):
 
             user.save()
 
-            # Add success parameter to URL
-            if "?" in next_url:
-                next_url += "&updated=true"
-            else:
-                next_url += "?updated=true"
+            # Handle profile picture upload after user is saved
+            if 'profile_picture' in request.FILES:
+                user.userprofile.profile_picture = request.FILES['profile_picture']
+                user.userprofile.save()
 
             messages.success(request, "Profile updated successfully.")
-            return redirect(next_url)
+            return redirect('main:coordinator_profile_settings')
         return redirect('login')
     
     def get_assigned_sections(self, user):
@@ -7272,13 +7260,8 @@ class FacultyProfileSettingsView(View):
                 context['next_url'] = next_url
                 
                 return render(request, 'main/faculty_profile_settings.html', context)
-
-            # Handle profile picture upload
-            if 'profile_picture' in request.FILES:
-                user.userprofile.profile_picture = request.FILES['profile_picture']
-                user.userprofile.save()
             
-            # Update user information
+            # Update user information first
             user.username = username
             user.email = email
 
@@ -7288,14 +7271,13 @@ class FacultyProfileSettingsView(View):
 
             user.save()
 
-            # Add success parameter to URL
-            if "?" in next_url:
-                next_url += "&updated=true"
-            else:
-                next_url += "?updated=true"
+            # Handle profile picture upload after user is saved
+            if 'profile_picture' in request.FILES:
+                user.userprofile.profile_picture = request.FILES['profile_picture']
+                user.userprofile.save()
 
             messages.success(request, "Profile updated successfully.")
-            return redirect(next_url)
+            return redirect('main:faculty_profile_settings')
             
         except UserProfile.DoesNotExist:
             return redirect('/login')
