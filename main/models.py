@@ -90,6 +90,9 @@ class UserProfile(models.Model):
 
     institute = models.CharField(max_length=50, blank=True, null=True)
     
+    # Profile picture
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    
     # Irregular student flag - no section, can evaluate all instructors
     is_irregular = models.BooleanField(default=False)
 

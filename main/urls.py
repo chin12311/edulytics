@@ -3,7 +3,7 @@ from . import views
 from django.conf.urls.static import static
 from .views import (
     UpdateUser, CoordinatorDetailView, DeanDetailView, SelectStudentView, EvaluationConfigView, 
-    DeanProfileSettingsView, CoordinatorProfileSettingsView, FacultyProfileSettingsView,
+    DeanProfileSettingsView, CoordinatorProfileSettingsView, FacultyProfileSettingsView, StudentProfileSettingsView,
     release_student_evaluation, unrelease_student_evaluation,
     release_peer_evaluation, unrelease_peer_evaluation,
     release_upward_evaluation, unrelease_upward_evaluation,
@@ -59,6 +59,7 @@ urlpatterns = [
     path('dean/profile-settings/', evaluation_results_required(views.DeanProfileSettingsView.as_view()), name='dean_profile_settings'),
     path('coordinator/settings/',(views.CoordinatorProfileSettingsView.as_view()), name='coordinator_profile_settings'),
     path('faculty/settings/',(views.FacultyProfileSettingsView.as_view()), name='faculty_profile_settings'),
+    path('student/settings/',(views.StudentProfileSettingsView.as_view()), name='student_profile_settings'),
     path('evaluationform_staffs/', views.evaluation_form_staffs, name='evaluationform_staffs'),
     path('assign-section/<int:user_id>/', views.assign_section, name='assign-section'),
     path('update/<int:user_Id>/', views.UpdateUser.as_view(), name='update-user'),
