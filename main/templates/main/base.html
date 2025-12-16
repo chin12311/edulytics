@@ -443,33 +443,9 @@
 {% if request.user.is_authenticated %}
 <div class="admin-dropdown">
     <div class="dropdown">
-
-        <!-- Role-based dropdown label -->
-        {% if request.user.userprofile.role == 'Admin' %}
         <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            Admin
+            {{ request.user.get_full_name|default:request.user.username }}
         </button>
-        {% elif request.user.userprofile.role == 'Student' %}
-        <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            Student
-        </button>
-        {% elif request.user.userprofile.role == 'Coordinator' %}
-        <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            Coordinator
-        </button>
-        {% elif request.user.userprofile.role == 'Dean' %}
-        <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            Dean
-        </button>
-        {% elif request.user.userprofile.role == 'Faculty' %}
-        <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            Faculty
-        </button>
-        {% else %}
-        <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            User
-        </button>
-        {% endif %}
 
         <ul class="dropdown-menu dropdown-menu-end">
             <!-- ✅ Logout button is always accessible -->
