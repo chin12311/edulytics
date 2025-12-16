@@ -632,12 +632,13 @@ Format: 3 specific recommendations, EACH MUST include direct student quotes and 
                 }
             ]
         else:
+            # For excellent performance (80%+), give general excellence maintenance advice
             teaching_recs = [
                 {
-                    'title': f'Maintain Excellence and Fine-Tune ({total_percentage:.1f}%)',
-                    'description': f'Your {total_percentage:.1f}% overall score demonstrates strong performance. To reach peak effectiveness, address minor gaps in {weakest["name"]} ({weakest["score"]:.1f}%). Consider mentoring colleagues in your strongest areas while refining this dimension.',
+                    'title': f'Maintain Excellence ({total_percentage:.1f}%)',
+                    'description': f'Your {total_percentage:.1f}% overall score demonstrates excellent performance across all categories. Continue your current effective practices while exploring innovative teaching methods. Consider sharing your successful strategies with colleagues to elevate teaching quality across the institution.',
                     'priority': 'Low',
-                    'reason': f'Excellence maintenance with minor optimization'
+                    'reason': f'Excellence maintenance and continuous improvement'
                 }
             ]
         
