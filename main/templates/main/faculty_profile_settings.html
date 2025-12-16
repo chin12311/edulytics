@@ -1411,77 +1411,198 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         });
     }
 
-    // Display recommendations - UPDATED with section context
+    // Display recommendations - UPDATED with engaging, eye-catching design
     function displayRecommendations(recommendations, container, sectionCode) {
         console.log(`📊 Displaying ${recommendations.length} recommendations for ${sectionCode}`);
         
         let recommendationsHTML = `
-            <div class="recommendation-header text-center mb-4">
-                <h5 style="color: #47682c;">🎯 AI-Powered Teaching Strategies</h5>
-                <p class="text-muted">Personalized recommendations for <strong>${sectionCode}</strong> based on evaluation data</p>
+            <style>
+                @keyframes slideIn {
+                    from { opacity: 0; transform: translateX(-30px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+                .rec-card {
+                    animation: slideIn 0.5s ease-out forwards;
+                    opacity: 0;
+                }
+                .rec-card:nth-child(1) { animation-delay: 0.1s; }
+                .rec-card:nth-child(2) { animation-delay: 0.2s; }
+                .rec-card:nth-child(3) { animation-delay: 0.3s; }
+                .priority-badge { animation: pulse 2s infinite; }
+            </style>
+            <div class="recommendation-header text-center mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; color: white; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);">
+                <div style="font-size: 3rem; margin-bottom: 10px;">🎯</div>
+                <h4 style="color: white; margin-bottom: 10px; font-weight: 700;">Your Personalized Action Plan</h4>
+                <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 1.1rem;">Based on <strong>${sectionCode}</strong> student feedback & performance data</p>
+                <div style="margin-top: 15px; padding: 10px 20px; background: rgba(255,255,255,0.2); border-radius: 20px; display: inline-block;">
+                    <span style="font-size: 0.9rem;">⚡ AI-Generated • Real Student Voices • Data-Driven</span>
+                </div>
             </div>
-            <div class="recommendation-list">
         `;
         
         if (!recommendations || recommendations.length === 0) {
             recommendationsHTML += `
-                <div class="text-center py-4">
-                    <i class="fas fa-robot fa-2x text-muted mb-3"></i>
-                    <p class="text-muted">No specific recommendations available for this section.</p>
+                <div class="text-center py-5" style="background: #f8f9fa; border-radius: 15px; padding: 40px;">
+                    <i class="fas fa-robot fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No recommendations at this time</h5>
+                    <p class="text-muted">Check back after more evaluations are completed</p>
                 </div>
             `;
         } else {
+            recommendationsHTML += '<div class="recommendation-list" style="display: grid; gap: 25px;">';
+            
             recommendations.forEach((rec, index) => {
-                const priorityColor = getPriorityColor(rec.priority);
-                const priorityIcon = rec.priority === 'High' ? '🚨' : rec.priority === 'Medium' ? '⚠️' : '💡';
+                const priorityColors = {
+                    'High': { bg: '#fff5f5', border: '#e53e3e', badge: '#e53e3e', icon: '🚨' },
+                    'Medium': { bg: '#fffaf0', border: '#dd6b20', badge: '#dd6b20', icon: '⚠️' },
+                    'Low': { bg: '#f0fff4', border: '#38a169', badge: '#38a169', icon: '💡' },
+                    'Info': { bg: '#ebf8ff', border: '#3182ce', badge: '#3182ce', icon: 'ℹ️' }
+                };
+                const colors = priorityColors[rec.priority] || priorityColors['Info'];
+                
+                // Extract student quote if present (look for quotes in description)
+                const quoteMatch = rec.description.match(/"([^"]+)"/);
+                const hasQuote = quoteMatch && quoteMatch[1];
                 
                 recommendationsHTML += `
-                    <div class="recommendation-item" style="
-                        background: linear-gradient(135deg, #f8fff8, #e8f5e8);
-                        border-left: 4px solid ${priorityColor};
-                        padding: 20px;
-                        margin: 15px 0;
-                        border-radius: 10px;
-                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                        transition: transform 0.2s ease, box-shadow 0.2s ease;
-                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.15)'" 
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 10px rgba(0,0,0,0.1)'">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h6 style="color: #2c3e50; margin: 0 0 5px 0; font-weight: 600;">${rec.title}</h6>
-                            </div>
-                            <span style="
-                                background: ${priorityColor};
-                                color: white;
-                                padding: 4px 12px;
-                                border-radius: 15px;
-                                font-size: 0.75rem;
-                                font-weight: bold;
-                                display: flex;
-                                align-items: center;
-                                gap: 4px;
-                            ">${priorityIcon} ${rec.priority} Priority</span>
+                    <div class="rec-card" style="
+                        background: ${colors.bg};
+                        border: 3px solid ${colors.border};
+                        border-radius: 20px;
+                        padding: 25px;
+                        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+                        position: relative;
+                        overflow: hidden;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.transform='translateY(-8px) scale(1.02)'; this.style.boxShadow='0 15px 40px rgba(0,0,0,0.2)'" 
+                    onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.12)'">
+                        
+                        <!-- Corner accent -->
+                        <div style="position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: ${colors.border}; opacity: 0.1; border-radius: 0 20px 0 100%;"></div>
+                        
+                        <!-- Priority badge -->
+                        <div class="priority-badge" style="
+                            position: absolute;
+                            top: 20px;
+                            right: 20px;
+                            background: ${colors.badge};
+                            color: white;
+                            padding: 8px 16px;
+                            border-radius: 25px;
+                            font-weight: 700;
+                            font-size: 0.85rem;
+                            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                            z-index: 2;
+                        ">
+                            <span style="font-size: 1.2rem;">${colors.icon}</span>
+                            <span>${rec.priority.toUpperCase()}</span>
                         </div>
-                        <p style="margin: 0; color: #34495e; line-height: 1.6; font-size: 0.95rem;">${rec.description}</p>
-                        ${rec.reason ? `<div style="margin-top: 10px; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #95a5a6;">
-                            <small style="color: #7f8c8d; font-style: italic;">📊 ${rec.reason}</small>
-                        </div>` : ''}
+                        
+                        <!-- Number badge -->
+                        <div style="
+                            position: absolute;
+                            top: 20px;
+                            left: 20px;
+                            background: ${colors.border};
+                            color: white;
+                            width: 40px;
+                            height: 40px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-weight: 700;
+                            font-size: 1.2rem;
+                            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                        ">${index + 1}</div>
+                        
+                        <!-- Content -->
+                        <div style="margin-top: 50px;">
+                            <h5 style="
+                                color: ${colors.border};
+                                margin-bottom: 20px;
+                                font-weight: 700;
+                                font-size: 1.4rem;
+                                line-height: 1.4;
+                            ">${rec.title}</h5>
+                            
+                            ${hasQuote ? `
+                            <div style="
+                                background: white;
+                                border-left: 5px solid ${colors.border};
+                                padding: 15px 20px;
+                                margin: 20px 0;
+                                border-radius: 10px;
+                                box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+                            ">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                    <span style="font-size: 1.5rem;">💬</span>
+                                    <strong style="color: ${colors.border};">What a student said:</strong>
+                                </div>
+                                <p style="margin: 0; font-style: italic; color: #2d3748; font-size: 1.05rem; line-height: 1.6;">
+                                    "${quoteMatch[1]}"
+                                </p>
+                            </div>` : ''}
+                            
+                            <div style="
+                                color: #2d3748;
+                                font-size: 1rem;
+                                line-height: 1.8;
+                                margin-top: 15px;
+                            ">${rec.description.replace(/"[^"]+"/g, '').trim()}</div>
+                            
+                            ${rec.reason ? `
+                            <div style="
+                                margin-top: 20px;
+                                padding: 15px;
+                                background: rgba(255,255,255,0.7);
+                                border-radius: 12px;
+                                border-left: 4px solid ${colors.border};
+                            ">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                                    <span style="font-size: 1.2rem;">📊</span>
+                                    <strong style="color: ${colors.border}; font-size: 0.9rem;">DATA INSIGHT:</strong>
+                                </div>
+                                <div style="color: #4a5568; font-size: 0.95rem;">${rec.reason}</div>
+                            </div>` : ''}
+                        </div>
+                        
+                        <!-- Action CTA -->
+                        <div style="
+                            margin-top: 25px;
+                            padding: 20px;
+                            background: white;
+                            border-radius: 12px;
+                            border: 2px dashed ${colors.border};
+                            text-align: center;
+                        ">
+                            <div style="font-weight: 700; color: ${colors.border}; margin-bottom: 5px;">✅ TAKE ACTION</div>
+                            <div style="font-size: 0.9rem; color: #718096;">Review this recommendation and implement the suggested changes</div>
+                        </div>
                     </div>
                 `;
             });
+            
+            recommendationsHTML += '</div>';
         }
         
         recommendationsHTML += `
-            </div>
-            <div class="text-center mt-4">
-                <small class="text-muted">💡 Recommendations generated by AI based on ${sectionCode} evaluation data</small>
+            <div class="text-center mt-5" style="padding: 25px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 15px; color: white;">
+                <div style="font-size: 2rem; margin-bottom: 10px;">🤖</div>
+                <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 5px;">AI-Powered Recommendations</div>
+                <div style="font-size: 0.9rem; opacity: 0.95;">Generated from ${sectionCode} evaluation data using advanced analytics</div>
             </div>
         `;
         
         container.innerHTML = recommendationsHTML;
-        
-        // Log successful display
-        console.log(`✅ Successfully displayed recommendations for ${sectionCode}`);
+        console.log(`✅ Successfully displayed engaging recommendations for ${sectionCode}`);
     }
 
     // Load comments content
