@@ -780,11 +780,14 @@
             document.getElementById('overallStats').style.display = 'none';
         }
 
+        console.log("Section data retrieved:", sectionData);
+        console.log("Has data check:", sectionData && sectionData.has_data);
+        
         if (sectionData && sectionData.has_data) {
             console.log("Has data, rendering chart");
             renderChartWithData(ctx, sectionData, isOverall, dataType);
         } else {
-            console.log("No data available");
+            console.log("No data available, calling showNoData()");
             showNoData();
         }
     }
@@ -994,12 +997,23 @@
     function showNoData() {
         console.log("showNoData called - displaying no data message");
         const sectionBox = document.querySelector('.section-box');
-        sectionBox.style.display = 'block';
-        sectionBox.style.opacity = '1';
+        const noDataMsg = document.getElementById('noDataMessage');
+        
+        console.log("Section box element:", sectionBox);
+        console.log("No data message element:", noDataMsg);
+        
+        if (sectionBox) {
+            sectionBox.style.display = 'block';
+            sectionBox.style.opacity = '1';
+            console.log("Section box made visible");
+        }
         
         document.querySelector('.dashboard-grid').style.display = 'none';
         document.getElementById('scoreDetails').style.display = 'none';
-        document.getElementById('noDataMessage').style.display = 'block';
+        if (noDataMsg) {
+            noDataMsg.style.display = 'block';
+            console.log("No data message made visible");
+        }
         document.getElementById('explanationBox').style.display = 'none';
         document.getElementById('overallStats').style.display = 'none';
         document.getElementById('peerDisplay').style.display = 'none';
