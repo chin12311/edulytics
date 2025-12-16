@@ -816,24 +816,42 @@
             }
             
             // Hide chart and category breakdown
-            document.getElementById('evaluationPieChart').style.display = 'none';
-            document.getElementById('scoreDetails').style.display = 'none';
-            document.getElementById('noDataMessage').style.display = 'none';
-            document.getElementById('explanationBox').style.display = 'none';
-            document.querySelector('.dashboard-grid').style.display = 'none';
+            const pieChart = document.getElementById('evaluationPieChart');
+            if (pieChart) pieChart.style.display = 'none';
+            
+            const scoreDetails = document.getElementById('scoreDetails');
+            if (scoreDetails) scoreDetails.style.display = 'none';
+            
+            const noDataMsg = document.getElementById('noDataMessage');
+            if (noDataMsg) noDataMsg.style.display = 'none';
+            
+            const explBox = document.getElementById('explanationBox');
+            if (explBox) explBox.style.display = 'none';
+            
+            const dashGrid = document.querySelector('.dashboard-grid');
+            if (dashGrid) dashGrid.style.display = 'none';
             
             // Hide upward display, show peer display
-            document.getElementById('upwardDisplay').style.display = 'none';
-            const peerDisplay = document.getElementById('peerDisplay');
-            peerDisplay.style.display = 'block';
-            document.getElementById('peerTotalScore').textContent = totalPercentage.toFixed(1) + '%';
-            document.getElementById('peerEvaluationCount').textContent = sectionData.evaluation_count || 0;
+            const upwardDisp = document.getElementById('upwardDisplay');
+            if (upwardDisp) upwardDisp.style.display = 'none';
             
-            // Add rating descriptor
-            const peerRating = getRatingDescriptor(totalPercentage);
-            const peerDescriptor = document.getElementById('peerRatingDescriptor');
-            peerDescriptor.textContent = peerRating.text;
-            peerDescriptor.style.color = peerRating.color;
+            const peerDisplay = document.getElementById('peerDisplay');
+            if (peerDisplay) {
+                peerDisplay.style.display = 'block';
+                const totalScoreEl = document.getElementById('peerTotalScore');
+                if (totalScoreEl) totalScoreEl.textContent = totalPercentage.toFixed(1) + '%';
+                
+                const evalCountEl = document.getElementById('peerEvaluationCount');
+                if (evalCountEl) evalCountEl.textContent = sectionData.evaluation_count || 0;
+                
+                // Add rating descriptor
+                const peerRating = getRatingDescriptor(totalPercentage);
+                const peerDescriptor = document.getElementById('peerRatingDescriptor');
+                if (peerDescriptor) {
+                    peerDescriptor.textContent = peerRating.text;
+                    peerDescriptor.style.color = peerRating.color;
+                }
+            }
             return;
         }
         
@@ -847,25 +865,45 @@
             }
             
             // Hide chart and category breakdown
-            document.getElementById('evaluationPieChart').style.display = 'none';
-            document.getElementById('scoreDetails').style.display = 'none';
-            document.getElementById('noDataMessage').style.display = 'none';
-            document.getElementById('explanationBox').style.display = 'none';
-            document.querySelector('.dashboard-grid').style.display = 'none';
+            const pieChart = document.getElementById('evaluationPieChart');
+            if (pieChart) pieChart.style.display = 'none';
+            
+            const scoreDetails = document.getElementById('scoreDetails');
+            if (scoreDetails) scoreDetails.style.display = 'none';
+            
+            const noDataMsg = document.getElementById('noDataMessage');
+            if (noDataMsg) noDataMsg.style.display = 'none';
+            
+            const explBox = document.getElementById('explanationBox');
+            if (explBox) explBox.style.display = 'none';
+            
+            const dashGrid = document.querySelector('.dashboard-grid');
+            if (dashGrid) dashGrid.style.display = 'none';
             
             // Hide peer and upward displays, show student upward display
-            document.getElementById('peerDisplay').style.display = 'none';
-            document.getElementById('upwardDisplay').style.display = 'none';
-            const studentUpwardDisplay = document.getElementById('studentUpwardDisplay');
-            studentUpwardDisplay.style.display = 'block';
-            document.getElementById('studentUpwardTotalScore').textContent = totalPercentage.toFixed(1) + '%';
-            document.getElementById('studentUpwardEvaluationCount').textContent = sectionData.evaluation_count || 0;
+            const peerDisp = document.getElementById('peerDisplay');
+            if (peerDisp) peerDisp.style.display = 'none';
             
-            // Add rating descriptor
-            const studentUpwardRating = getRatingDescriptor(totalPercentage);
-            const studentUpwardDescriptor = document.getElementById('studentUpwardRatingDescriptor');
-            studentUpwardDescriptor.textContent = studentUpwardRating.text;
-            studentUpwardDescriptor.style.color = studentUpwardRating.color;
+            const upwardDisp = document.getElementById('upwardDisplay');
+            if (upwardDisp) upwardDisp.style.display = 'none';
+            
+            const studentUpwardDisplay = document.getElementById('studentUpwardDisplay');
+            if (studentUpwardDisplay) {
+                studentUpwardDisplay.style.display = 'block';
+                const totalScoreEl = document.getElementById('studentUpwardTotalScore');
+                if (totalScoreEl) totalScoreEl.textContent = totalPercentage.toFixed(1) + '%';
+                
+                const evalCountEl = document.getElementById('studentUpwardEvaluationCount');
+                if (evalCountEl) evalCountEl.textContent = sectionData.evaluation_count || 0;
+                
+                // Add rating descriptor
+                const studentUpwardRating = getRatingDescriptor(totalPercentage);
+                const studentUpwardDescriptor = document.getElementById('studentUpwardRatingDescriptor');
+                if (studentUpwardDescriptor) {
+                    studentUpwardDescriptor.textContent = studentUpwardRating.text;
+                    studentUpwardDescriptor.style.color = studentUpwardRating.color;
+                }
+            }
             return;
         }
         
@@ -879,25 +917,45 @@
             }
             
             // Hide chart and category breakdown
-            document.getElementById('evaluationPieChart').style.display = 'none';
-            document.getElementById('scoreDetails').style.display = 'none';
-            document.getElementById('noDataMessage').style.display = 'none';
-            document.getElementById('explanationBox').style.display = 'none';
-            document.querySelector('.dashboard-grid').style.display = 'none';
+            const pieChart = document.getElementById('evaluationPieChart');
+            if (pieChart) pieChart.style.display = 'none';
+            
+            const scoreDetails = document.getElementById('scoreDetails');
+            if (scoreDetails) scoreDetails.style.display = 'none';
+            
+            const noDataMsg = document.getElementById('noDataMessage');
+            if (noDataMsg) noDataMsg.style.display = 'none';
+            
+            const explBox = document.getElementById('explanationBox');
+            if (explBox) explBox.style.display = 'none';
+            
+            const dashGrid = document.querySelector('.dashboard-grid');
+            if (dashGrid) dashGrid.style.display = 'none';
             
             // Hide peer and student upward displays, show upward display
-            document.getElementById('peerDisplay').style.display = 'none';
-            document.getElementById('studentUpwardDisplay').style.display = 'none';
-            const upwardDisplay = document.getElementById('upwardDisplay');
-            upwardDisplay.style.display = 'block';
-            document.getElementById('upwardTotalScore').textContent = totalPercentage.toFixed(1) + '%';
-            document.getElementById('upwardEvaluationCount').textContent = sectionData.evaluation_count || 0;
+            const peerDisp = document.getElementById('peerDisplay');
+            if (peerDisp) peerDisp.style.display = 'none';
             
-            // Add rating descriptor
-            const upwardRating = getRatingDescriptor(totalPercentage);
-            const upwardDescriptor = document.getElementById('upwardRatingDescriptor');
-            upwardDescriptor.textContent = upwardRating.text;
-            upwardDescriptor.style.color = upwardRating.color;
+            const studentUpDisp = document.getElementById('studentUpwardDisplay');
+            if (studentUpDisp) studentUpDisp.style.display = 'none';
+            
+            const upwardDisplay = document.getElementById('upwardDisplay');
+            if (upwardDisplay) {
+                upwardDisplay.style.display = 'block';
+                const totalScoreEl = document.getElementById('upwardTotalScore');
+                if (totalScoreEl) totalScoreEl.textContent = totalPercentage.toFixed(1) + '%';
+                
+                const evalCountEl = document.getElementById('upwardEvaluationCount');
+                if (evalCountEl) evalCountEl.textContent = sectionData.evaluation_count || 0;
+                
+                // Add rating descriptor
+                const upwardRating = getRatingDescriptor(totalPercentage);
+                const upwardDescriptor = document.getElementById('upwardRatingDescriptor');
+                if (upwardDescriptor) {
+                    upwardDescriptor.textContent = upwardRating.text;
+                    upwardDescriptor.style.color = upwardRating.color;
+                }
+            }
             return;
         }
         
