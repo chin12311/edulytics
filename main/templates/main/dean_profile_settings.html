@@ -1500,6 +1500,10 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 const priorityColor = getPriorityColor(rec.priority);
                 const priorityIcon = rec.priority === 'High' ? '🚨' : rec.priority === 'Medium' ? '⚠️' : '💡';
                 
+                // Extract student quote if present
+                const quoteMatch = rec.description.match(/"([^"]+)"/);
+                const hasQuote = quoteMatch && quoteMatch[1];
+                
                 recommendationsHTML += `
                     <div class="recommendation-item" style="
                         background: linear-gradient(135deg, #f8fff8, #e8f5e8);
@@ -1527,7 +1531,24 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                                 gap: 4px;
                             ">${priorityIcon} ${rec.priority} Priority</span>
                         </div>
-                        <p style="margin: 0; color: #34495e; line-height: 1.6; font-size: 0.95rem;">${rec.description}</p>
+                        ${hasQuote ? `
+                        <div style="
+                            background: white;
+                            border-left: 5px solid ${priorityColor};
+                            padding: 15px 20px;
+                            margin: 15px 0;
+                            border-radius: 10px;
+                            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+                        ">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="font-size: 1.5rem;">💬</span>
+                                <strong style="color: ${priorityColor};">Actual student comment:</strong>
+                            </div>
+                            <p style="margin: 0; font-style: italic; color: #2d3748; font-size: 1.05rem; line-height: 1.6;">
+                                "${quoteMatch[1]}"
+                            </p>
+                        </div>` : ''}
+                        <p style="margin: 0; color: #34495e; line-height: 1.6; font-size: 0.95rem;">${rec.description.replace(/"[^"]+"/g, '').trim()}</p>
                         ${rec.reason ? `<div style="margin-top: 10px; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #95a5a6;">
                             <small style="color: #7f8c8d; font-style: italic;">📊 ${rec.reason}</small>
                         </div>` : ''}
