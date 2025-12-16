@@ -9804,28 +9804,31 @@ class StudentProfileSettingsView(View):
                 
                 # Email validation for students - must be @cca.edu.ph
                 if not email.endswith("@cca.edu.ph"):
+                    # Add timestamp for cache busting
+                    import time
+                    timestamp = int(time.time())
                     return render(request, 'main/student_profile_settings.html', {
                         'user': user,
                         'user_profile': user_profile,
                         'next_url': next_url,
+                        'timestamp': timestamp,
                         'error': 'Students must use a @cca.edu.ph email address.'
                     })
                 
                 # Password validation
                 if new_password and new_password != confirm_password:
+                    # Add timestamp for cache busting
+                    import time
+                    timestamp = int(time.time())
                     return render(request, 'main/student_profile_settings.html', {
                         'user': user,
                         'user_profile': user_profile,
                         'next_url': next_url,
+                        'timestamp': timestamp,
                         'error': 'Passwords do not match.'
                     })
                 
-                # Handle profile picture upload
-                if 'profile_picture' in request.FILES:
-                    user_profile.profile_picture = request.FILES['profile_picture']
-                    user_profile.save()
-                
-                # Update user information
+                # Update user information first
                 user.username = username
                 user.email = email
                 
@@ -9835,15 +9838,15 @@ class StudentProfileSettingsView(View):
                 
                 user.save()
                 
+                # Handle profile picture upload after user is saved
+                if 'profile_picture' in request.FILES:
+                    user.userprofile.profile_picture = request.FILES['profile_picture']
+                    user.userprofile.save()
+                
                 messages.success(request, "Profile updated successfully.")
                 
-                # Add success parameter to URL
-                if "?" in next_url:
-                    next_url += "&updated=true"
-                else:
-                    next_url += "?updated=true"
-                
-                return redirect(next_url)
+                # Redirect to profile settings page to show updated info
+                return redirect('main:student_profile_settings')
                 
             except UserProfile.DoesNotExist:
                 return redirect('/login')
