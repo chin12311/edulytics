@@ -3234,11 +3234,11 @@ class DeanDetailView(View):
             if dean_evaluation_count > 0:
                 # Rating mapping for dean evaluations
                 rating_to_numeric = {
-                    'Poor': 1,
-                    'Unsatisfactory': 2,
-                    'Satisfactory': 3,
-                    'Very Satisfactory': 4,
-                    'Outstanding': 5
+                    'Strongly Disagree': 1,
+                    'Disagree': 2,
+                    'Neutral': 3,
+                    'Agree': 4,
+                    'Strongly Agree': 5
                 }
                 
                 # Calculate scores for 15 questions
