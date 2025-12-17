@@ -492,6 +492,12 @@
                             📜 Evaluation History
                         </a>
                     {% endif %}
+
+                    {% if request.user.userprofile.role == 'Student' %}
+                        <a href="{% url 'main:student_profile_settings' %}?next={{ request.get_full_path }}" class="btn btn-primary w-100" style="font-size: 14px; padding: 8px;">
+                            Profile Settings
+                        </a>
+                    {% endif %}
                 </form>
 
             </li>
