@@ -191,17 +191,18 @@ CRITICAL - UNDERSTAND THE SCORING SYSTEM:
 
 CRITICAL FORMAT FOR EACH RECOMMENDATION (FOLLOW EXACTLY):
 1. **Title**: Brief, action-oriented (e.g., "Address Student Concerns About Pacing")
-2. **Start with the ACTUAL STUDENT QUOTE**: "A student said: [exact quote from the data]"
+2. **IF STUDENT COMMENTS ARE PROVIDED**: Start with "A student said: [exact quote from the data]"
+   **IF NO COMMENTS ARE PROVIDED**: Skip the quote and go straight to analysis
 3. **Connect to their ranking**: "As someone ranked X out of Y in [Institute], this feedback is [critical/important/valuable]"
-4. **What this means**: "This indicates that students feel/notice/struggle with..."
+4. **What this means**: "This indicates that students feel/notice/struggle with..." OR "The data shows that..."
 5. **Concrete action steps**: Numbered list of 3 specific, measurable actions
 6. **Expected outcome**: "This should improve your [category] score from X% to Y%"
 
 MANDATORY REQUIREMENTS:
-✓ MUST quote the actual positive student comment provided
-✓ MUST quote the actual negative/critical student comment provided
+✓ IF student comments are provided in the data, MUST quote them
+✓ IF NO student comments are provided, DO NOT make up or fabricate quotes
 ✓ MUST reference the user's ranking (e.g., "As rank 5 out of 12, this is holding you back from top-tier performance")
-✓ MUST connect comments to specific category scores
+✓ MUST connect to specific category scores
 ✓ MUST provide measurable action steps (not vague advice)
 ✓ FOCUS on weakest areas - ignore categories scoring 90%+
 
@@ -212,18 +213,24 @@ RANKING-BASED PERSONALIZATION:
 
 DO NOT:
 ✗ Give generic advice
-✗ Ignore the student comments
+✗ Make up or fabricate student comments if none are provided in the data
+✗ Ignore the student comments if they ARE provided
 ✗ Forget to mention their ranking
 ✗ Recommend improvements for excellent scores (90%+)
 ✗ Use vague language like "try to improve" - be specific!
 
+IMPORTANT: If no student comments are provided in the data, base your recommendations solely on:
+1. Category scores and performance levels
+2. The user's ranking compared to peers
+3. Specific numerical data from evaluations
+
 Analyze in this order:
 1. RANKING - Where do they stand?
-2. STUDENT COMMENTS - What are students actually saying?
+2. STUDENT COMMENTS (if available) - What are students actually saying?
 3. CATEGORY SCORES - Which areas are weakest?
-4. SPECIFIC ACTIONS - What concrete steps will address the comments and improve scores?
+4. SPECIFIC ACTIONS - What concrete steps will address the data and improve scores?
 
-Format: 3 specific recommendations, EACH MUST include direct student quotes and ranking context."""
+Format: 3 specific recommendations. Include direct student quotes ONLY if they are provided in the data."""
 
     def _prepare_ai_context(self, user, section_data, section_code, role, evaluation_type):
         """Prepare context with evaluation type support"""
@@ -374,6 +381,15 @@ Format: 3 specific recommendations, EACH MUST include direct student quotes and 
                     context_parts.append(f'   "{best_mixed}"')
                     context_parts.append(f"   (Total mixed comments: {len(mixed_comments)})")
                     context_parts.append("")
+            else:
+                # Explicitly state no comments are available
+                context_parts.append("\n⚠️ NO STUDENT COMMENTS AVAILABLE")
+                context_parts.append("Base your recommendations ONLY on:")
+                context_parts.append("• Category scores and performance percentages")
+                context_parts.append("• User's ranking compared to peers")
+                context_parts.append("• Numerical data from evaluations")
+                context_parts.append("DO NOT fabricate or make up student quotes!")
+                context_parts.append("")
         
         return "\n".join(context_parts)
     
