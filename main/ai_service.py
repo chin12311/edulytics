@@ -190,13 +190,22 @@ CRITICAL - UNDERSTAND THE SCORING SYSTEM:
   - Below 70% = Needs significant improvement
 
 CRITICAL FORMAT FOR EACH RECOMMENDATION (FOLLOW EXACTLY):
-1. **Title**: Brief, action-oriented (e.g., "Address Student Concerns About Pacing")
-2. **IF STUDENT COMMENTS ARE PROVIDED**: Start with "A student said: [exact quote from the data]"
+1. **Title**: Brief, action-oriented (e.g., "Implement Active Learning to Address Engagement Issues")
+2. **IF STUDENT COMMENTS ARE PROVIDED**: 
+   - Start with "A student said: [exact quote from the data]"
+   - Then state: "To address this, implement [SPECIFIC TEACHING METHOD]"
    **IF NO COMMENTS ARE PROVIDED**: Skip the quote and go straight to analysis
 3. **Connect to their ranking**: "As someone ranked X out of Y in [Institute], this feedback is [critical/important/valuable]"
-4. **What this means**: "This indicates that students feel/notice/struggle with..." OR "The data shows that..."
-5. **Concrete action steps**: Numbered list of 3 specific, measurable actions
-6. **Expected outcome**: "This should improve your [category] score from X% to Y%"
+4. **Recommended Teaching Method**: Name the specific pedagogy/strategy (e.g., "Think-Pair-Share", "Flipped Classroom", "Problem-Based Learning", "Formative Assessment")
+5. **How to Implement**: Numbered list of 3 concrete, step-by-step actions with this teaching method
+6. **Expected outcome**: "This teaching approach should improve your [category] score from X% to Y%"
+
+🎯 TEACHING METHODS TO CONSIDER (use these when relevant to student comments):
+- Active Learning: Think-Pair-Share, Jigsaw, Gallery Walk, Case Studies
+- Engagement: Real-world examples, Interactive polls, Gamification, Storytelling
+- Assessment: Formative quizzes, Peer feedback, Self-assessment rubrics, Exit tickets
+- Classroom Management: Clear expectations, Positive reinforcement, Wait time
+- Communication: Office hours structure, Email response protocol, Weekly announcements
 
 MANDATORY REQUIREMENTS:
 ✓ IF student comments are provided in the data, MUST quote them
@@ -354,33 +363,48 @@ Format: 3 specific recommendations. Include direct student quotes ONLY if they a
             mixed_comments = section_data.get('mixed_comments', [])
             
             if positive_comments or negative_comments or mixed_comments:
-                context_parts.append("\n💬 ACTUAL STUDENT VOICES (MOST IMPORTANT - BASE YOUR RECOMMENDATIONS ON THESE):")
-                context_parts.append("These are REAL student comments - quote them directly in your recommendations!")
+                context_parts.append("\n💬 STUDENT COMMENTS (USE THESE TO RECOMMEND SPECIFIC TEACHING METHODS):")
+                context_parts.append("🎯 YOUR TASK: Quote these comments directly and recommend CONCRETE teaching methods/strategies to address them!")
                 context_parts.append("")
                 
-                # Select THE MOST representative positive comment (longest/most detailed)
-                if positive_comments:
-                    best_positive = max(positive_comments, key=len) if len(positive_comments) > 0 else positive_comments[0]
-                    context_parts.append("✅ MOST POSITIVE STUDENT COMMENT:")
-                    context_parts.append(f'   "{best_positive}"')
-                    context_parts.append(f"   (Total positive comments: {len(positive_comments)})")
-                    context_parts.append("")
+                comments_added = 0
+                max_comments = 2  # Limit to 1-2 most impactful comments
                 
-                # Select THE MOST critical negative comment (longest/most detailed)
-                if negative_comments:
-                    most_critical = max(negative_comments, key=len) if len(negative_comments) > 0 else negative_comments[0]
-                    context_parts.append("❌ MOST CRITICAL STUDENT COMMENT:")
+                # PRIORITY 1: Negative comments (most actionable - these drive improvement)
+                if negative_comments and comments_added < max_comments:
+                    # Select the most detailed negative comment
+                    most_critical = max(negative_comments, key=len)
+                    context_parts.append("❌ CRITICAL STUDENT FEEDBACK (ADDRESS THIS WITH TEACHING METHODS):")
                     context_parts.append(f'   "{most_critical}"')
-                    context_parts.append(f"   (Total critical comments: {len(negative_comments)})")
+                    context_parts.append("   → Use this to recommend specific teaching strategies to fix this issue!")
                     context_parts.append("")
+                    comments_added += 1
                 
-                # Add one mixed comment if available (these are valuable for balanced perspective)
-                if mixed_comments:
-                    best_mixed = max(mixed_comments, key=len) if len(mixed_comments) > 0 else mixed_comments[0]
-                    context_parts.append("🔄 MOST INSIGHTFUL MIXED COMMENT (Contains improvement opportunities):")
+                # PRIORITY 2: Mixed comments (contain both praise and improvement areas)
+                if mixed_comments and comments_added < max_comments:
+                    best_mixed = max(mixed_comments, key=len)
+                    context_parts.append("🔄 CONSTRUCTIVE STUDENT FEEDBACK (BUILD ON STRENGTHS, FIX WEAKNESSES):")
                     context_parts.append(f'   "{best_mixed}"')
-                    context_parts.append(f"   (Total mixed comments: {len(mixed_comments)})")
+                    context_parts.append("   → Use this to recommend teaching methods that enhance what works!")
                     context_parts.append("")
+                    comments_added += 1
+                
+                # PRIORITY 3: Positive comments (only if no negative/mixed, or need balance)
+                if positive_comments and comments_added < max_comments:
+                    best_positive = max(positive_comments, key=len)
+                    context_parts.append("✅ POSITIVE STUDENT FEEDBACK (MAINTAIN AND ENHANCE):")
+                    context_parts.append(f'   "{best_positive}"')
+                    context_parts.append("   → Use this to recommend ways to maintain/replicate this success!")
+                    context_parts.append("")
+                    comments_added += 1
+                
+                context_parts.append("📚 IMPORTANT: For EACH comment above, recommend specific teaching methods such as:")
+                context_parts.append("   • Active learning strategies (e.g., think-pair-share, problem-based learning)")
+                context_parts.append("   • Classroom management techniques (e.g., clear expectations, positive reinforcement)")
+                context_parts.append("   • Assessment methods (e.g., formative quizzes, peer review, rubrics)")
+                context_parts.append("   • Engagement tactics (e.g., real-world examples, interactive discussions)")
+                context_parts.append("   • Communication strategies (e.g., office hours, email feedback, weekly check-ins)")
+                context_parts.append("")
             else:
                 # Explicitly state no comments are available
                 context_parts.append("\n⚠️ NO STUDENT COMMENTS AVAILABLE")
