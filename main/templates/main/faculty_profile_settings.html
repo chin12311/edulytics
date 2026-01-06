@@ -1464,8 +1464,9 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 };
                 const colors = priorityColors[rec.priority] || priorityColors['Info'];
                 
-                // Extract student quote if present (look for quotes in description)
-                const quoteMatch = rec.description.match(/"([^"]+)"/);
+                // Extract student quote if present - look for specific patterns to avoid matching titles
+                // Pattern: "A student said:" or "student comment:" followed by a quote
+                const quoteMatch = rec.description.match(/(?:student said:|student comment:|student voices?:)\s*"([^"]+)"/i);
                 const hasQuote = quoteMatch && quoteMatch[1];
                 
                 recommendationsHTML += `
