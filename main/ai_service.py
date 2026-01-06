@@ -85,39 +85,11 @@ class TeachingAIRecommendationService:
                     },
                     {
                         "role": "user",
-                        "content": f"""Based on the evaluation data below, provide 3 SPECIFIC, ACTIONABLE recommendations:
+                        "content": f"""Based on the evaluation data below, generate 3 recommendations following the system prompt format EXACTLY:
 
 {context}
 
-FORMAT EACH RECOMMENDATION AS:
-
-**1. [Clear Action-Oriented Title]**
-
-**Current Situation:** 
-- Reference specific scores or rankings from the data above
-- Quote actual student feedback if available
-- Identify the gap or issue
-
-**Why This Matters:**
-- Explain the impact on teaching/learning effectiveness
-- Connect to broader educational goals
-
-**Action Steps:**
-1. [Specific action with measurable outcome]
-2. [Specific action with measurable outcome]  
-3. [Specific action with measurable outcome]
-
-**Expected Outcome:** [What will improve and by how much]
-
----
-
-CRITICAL REQUIREMENTS:
-✓ Use ACTUAL data from above (scores, rankings, comments)
-✓ Be SPECIFIC - no generic advice like "implement data-driven improvement"
-✓ Provide CONCRETE actions that can start immediately
-✓ Include MEASURABLE goals (e.g., "increase score from 65% to 80%")
-✓ Reference the educator's current ranking if provided
-✓ Balance constructive criticism with recognition of strengths
+CRITICAL: Follow the format specified in the system prompt. Do NOT skip the student quote if comments are provided!
 
 Generate 3 recommendations now:"""
                     }
