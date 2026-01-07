@@ -25,12 +25,14 @@ class TeachingAIRecommendationService:
         
         comment_lower = comment.lower()
         
-        # Keywords for sentiment analysis
+        # Keywords for sentiment analysis - EXPANDED
         positive_indicators = [
             'excellent', 'great', 'good', 'wonderful', 'amazing', 'helpful',
             'clear', 'engaging', 'knowledgeable', 'patient', 'friendly',
             'caring', 'supportive', 'effective', 'love', 'best', 'awesome',
-            'fantastic', 'outstanding', 'brilliant', 'inspiring', 'dedicated'
+            'fantastic', 'outstanding', 'brilliant', 'inspiring', 'dedicated',
+            'like', 'enjoyed', 'appreciate', 'thank', 'professional', 'nice',
+            'kind', 'understanding', 'thorough', 'organized', 'well', 'positive'
         ]
         
         negative_indicators = [
@@ -38,13 +40,15 @@ class TeachingAIRecommendationService:
             'unclear', 'unfair', 'difficult', 'hard', 'hate', 'dislike',
             'unprofessional', 'rude', 'unhelpful', 'lazy', 'absent',
             'disorganized', 'disappointing', 'frustrating', 'inadequate',
-            'abused', 'abuse'
+            'abused', 'abuse', 'strict', 'harsh', 'intimidating', 'mean',
+            'slow', 'waste', 'useless', 'horrible', 'awful'
         ]
         
         # Mixed/constructive feedback indicators
         mixed_indicators = [
             'but', 'however', 'although', 'sometimes', 'though',
-            'could be', 'should be', 'would be better', 'except'
+            'could be', 'should be', 'would be better', 'except',
+            'needs', 'improve', 'wish'
         ]
         
         # Count occurrences
@@ -53,14 +57,18 @@ class TeachingAIRecommendationService:
         has_mixed_indicator = any(indicator in comment_lower for indicator in mixed_indicators)
         
         # Determine sentiment
-        if (positive_count > 0 and negative_count > 0) or (has_mixed_indicator and (positive_count > 0 or negative_count > 0)):
+        # If has mixed indicator (like "but"), treat as mixed
+        if has_mixed_indicator:
+            return 'mixed'
+        elif (positive_count > 0 and negative_count > 0):
             return 'mixed'
         elif positive_count > negative_count:
             return 'positive'
         elif negative_count > positive_count:
             return 'negative'
         else:
-            return 'neutral'
+            # If no clear sentiment but has text, treat as mixed for review
+            return 'mixed' if len(comment.strip()) > 10 else 'neutral'
     
     def get_recommendations(self, user, section_data=None, section_code=None, role="Educator", evaluation_type="student"):
         """Get AI-powered recommendations for any user role with evaluation type support"""
