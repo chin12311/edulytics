@@ -1382,9 +1382,17 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 const priorityIcon = rec.priority === 'High' ? '🚨' : rec.priority === 'Medium' ? '⚠️' : '💡';
                 
                 // Extract student quote if present - look for specific patterns to avoid matching titles
-                // Pattern: "A student said:" or "student comment:" followed by a quote
-                const quoteMatch = rec.description.match(/(?:student said:|student comment:|student voices?:)\s*"([^"]+)"/i);
-                const hasQuote = quoteMatch && quoteMatch[1];
+                // Pattern: Look for "Student Comment:", "A student said:", or just quoted text after those phrases
+                let quoteMatch = rec.description.match(/(?:student comment:|a student said:)\s*"([^"]+)"/i);
+                
+                // If not found, try to find it in any quoted section (fallback)
+                if (!quoteMatch) {
+                    quoteMatch = rec.description.match(/"([^"]+)"/);
+                }
+                
+                const hasQuote = quoteMatch && quoteMatch[1] && quoteMatch[1].length > 10;
+                
+                console.log('Quote extraction:', { hasQuote, extracted: hasQuote ? quoteMatch[1] : 'none' });
                 
                 recommendationsHTML += `
                     <div class="recommendation-item" style="

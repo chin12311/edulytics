@@ -1465,9 +1465,21 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                 const colors = priorityColors[rec.priority] || priorityColors['Info'];
                 
                 // Extract student quote if present - look for specific patterns to avoid matching titles
-                // Pattern: "A student said:" or "student comment:" followed by a quote
-                const quoteMatch = rec.description.match(/(?:student said:|student comment:|student voices?:)\s*"([^"]+)"/i);
-                const hasQuote = quoteMatch && quoteMatch[1];
+                // Pattern: Look for "Student Comment:", "A student said:", or just quoted text after those phrases
+                let quoteMatch = rec.description.match(/(?:student comment:|a student said:)\s*"([^"]+)"/i);
+                
+                // If not found, try to find it in any quoted section (fallback)
+                if (!quoteMatch) {
+                    quoteMatch = rec.description.match(/"([^"]+)"/);
+                }
+                
+                const hasQuote = quoteMatch && quoteMatch[1] && quoteMatch[1].length > 10;
+                
+                console.log('Quote extraction for', rec.title, ':', { 
+                    hasQuote, 
+                    extracted: hasQuote ? quoteMatch[1] : 'none',
+                    descriptionPreview: rec.description.substring(0, 200)
+                });
                 
                 recommendationsHTML += `
                     <div class="rec-card" style="
@@ -1545,7 +1557,7 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                             ">
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                                     <span style="font-size: 1.5rem;">💬</span>
-                                    <strong style="color: ${colors.border};">Actual student comment:</strong>
+                                    <strong style="color: ${colors.border};">What a student said:</strong>
                                 </div>
                                 <p style="margin: 0; font-style: italic; color: #2d3748; font-size: 1.05rem; line-height: 1.6;">
                                     "${quoteMatch[1]}"
@@ -1557,7 +1569,8 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
                                 font-size: 1rem;
                                 line-height: 1.8;
                                 margin-top: 15px;
-                            ">${rec.description.replace(/"[^"]+"/g, '').trim()}</div>
+                                white-space: pre-wrap;
+                            ">${rec.description}</div>
                             
                             ${rec.reason ? `
                             <div style="
