@@ -437,6 +437,13 @@ This is an automated notification. Please do not reply to this email.
                             The <strong>{eval_name}</strong> evaluation period has ended and is now <span style="color: #e74c3c; font-weight: bold;">CLOSED</span>.
                         </p>
                         
+                        <div style="background-color: #e7f5e7; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                            <p style="margin: 0; font-size: 14px;">
+                                <strong>✓ You can now view your evaluation results</strong><br>
+                                Log in to the Edulytics system to view the results and feedback from your evaluation.
+                            </p>
+                        </div>
+                        
                         <div style="background-color: #ffe7e7; border-left: 4px solid #e74c3c; padding: 15px; margin: 20px 0; border-radius: 4px;">
                             <p style="margin: 0; font-size: 14px;">
                                 <strong>⚠️ Important Notice</strong><br>
@@ -489,6 +496,9 @@ This is an automated notification. Please do not reply to this email.
         
         text = f"""
 The {eval_name} evaluation period has ended and is now CLOSED.
+
+GOOD NEWS:
+You can now view your evaluation results! Log in to the Edulytics system to view the results and feedback from your evaluation.
 
 IMPORTANT NOTICE:
 No further evaluations can be submitted. The evaluation period has officially closed.
