@@ -1127,7 +1127,7 @@ Your comments will be anonymous and used constructively to improve teaching qual
         const selectedInstructor = evaluateeInput.value;
         if (!selectedInstructor) {
             e.preventDefault();
-            showErrorMessage('⚠️ Please select an instructor to evaluate before submitting.');
+            alert('⚠️ Please select an instructor to evaluate before submitting.');
             document.querySelector('.instructors-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
             return false;
         }
@@ -1135,7 +1135,7 @@ Your comments will be anonymous and used constructively to improve teaching qual
         // Check if already evaluated
         if (evaluatedIds.includes(parseInt(selectedInstructor))) {
             e.preventDefault();
-            showErrorMessage('⚠️ You have already evaluated this instructor. Please select a different instructor.');
+            alert('⚠️ You have already evaluated this instructor. Please select a different instructor.');
             return false;
         }
 
@@ -1165,12 +1165,12 @@ Your comments will be anonymous and used constructively to improve teaching qual
                 }
             });
             
-            // Show error message
+            // Show alert message
             const questionText = unansweredQuestions.length === 1 
                 ? `Question ${unansweredQuestions[0]}` 
-                : `${unansweredQuestions.length} questions (${unansweredQuestions.slice(0, 5).join(', ')}${unansweredQuestions.length > 5 ? '...' : ''})`;
+                : `${unansweredQuestions.length} questions`;
             
-            showErrorMessage(`⚠️ Please answer all questions before submitting. You missed: ${questionText}`);
+            alert(`⚠️ Please answer all questions before submitting.\n\nYou missed: ${questionText}`);
             
             // Scroll to first unanswered question
             const firstUnansweredGroup = allQuestionGroups[unansweredQuestions[0] - 1];
@@ -1182,37 +1182,6 @@ Your comments will be anonymous and used constructively to improve teaching qual
 
         console.log('All validations passed, submitting form...');
     });
-    
-    // Function to show styled error message
-    function showErrorMessage(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'validation-error-message';
-        errorDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #ea4335;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 10000;
-            font-size: 16px;
-            font-weight: 500;
-            max-width: 90%;
-            text-align: center;
-            animation: slideDown 0.3s ease;
-        `;
-        errorDiv.textContent = message;
-        document.body.appendChild(errorDiv);
-        
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            errorDiv.style.animation = 'slideUp 0.3s ease';
-            setTimeout(() => errorDiv.remove(), 300);
-        }, 5000);
-    }
 
     // Add smooth scrolling to form sections
     document.querySelectorAll('.rating-label').forEach(label => {

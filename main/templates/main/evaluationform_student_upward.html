@@ -1082,7 +1082,7 @@ Your comments will be anonymous and used constructively to improve leadership qu
             const selectedCoordinator = coordinatorSelect.value;
             if (!selectedCoordinator) {
                 e.preventDefault();
-                showErrorMessage('⚠️ Please select a coordinator to evaluate before submitting.');
+                alert('⚠️ Please select a coordinator to evaluate before submitting.');
                 coordinatorSelect.focus();
                 coordinatorSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return false;
@@ -1091,7 +1091,7 @@ Your comments will be anonymous and used constructively to improve leadership qu
             // Check if already evaluated
             if (evaluatedIds.includes(parseInt(selectedCoordinator))) {
                 e.preventDefault();
-                showErrorMessage('⚠️ You have already evaluated this coordinator. Please select a different coordinator.');
+                alert('⚠️ You have already evaluated this coordinator. Please select a different coordinator.');
                 return false;
             }
 
@@ -1121,12 +1121,12 @@ Your comments will be anonymous and used constructively to improve leadership qu
                     }
                 });
                 
-                // Show error message
+                // Show alert message
                 const questionText = unansweredQuestions.length === 1 
                     ? `Question ${unansweredQuestions[0]}` 
-                    : `${unansweredQuestions.length} questions (${unansweredQuestions.slice(0, 5).join(', ')}${unansweredQuestions.length > 5 ? '...' : ''})`;
+                    : `${unansweredQuestions.length} questions`;
                 
-                showErrorMessage(`⚠️ Please answer all questions before submitting. You missed: ${questionText}`);
+                alert(`⚠️ Please answer all questions before submitting.\n\nYou missed: ${questionText}`);
                 
                 // Scroll to first unanswered question
                 const firstUnansweredGroup = allQuestionGroups[unansweredQuestions[0] - 1];
