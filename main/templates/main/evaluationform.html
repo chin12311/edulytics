@@ -1140,24 +1140,29 @@ Your comments will be anonymous and used constructively to improve teaching qual
         }
 
         // Check if all questions are answered
-        const totalQuestions = 19;
+        const allQuestions = document.querySelectorAll('.question-group');
         const unansweredQuestions = [];
         
-        for (let i = 1; i <= totalQuestions; i++) {
-            const answered = document.querySelector(`input[name="question${i}"]:checked`);
+        allQuestions.forEach((questionGroup, index) => {
+            const questionNumber = index + 1;
+            // Find any radio button within this question group that is checked
+            const answered = questionGroup.querySelector('input[type="radio"]:checked');
             if (!answered) {
-                unansweredQuestions.push(i);
+                unansweredQuestions.push(questionNumber);
             }
-        }
+        });
         
         if (unansweredQuestions.length > 0) {
             e.preventDefault();
             
             // Highlight unanswered questions
+            const allQuestionGroups = document.querySelectorAll('.question-group');
             unansweredQuestions.forEach(qNum => {
-                const questionGroup = document.getElementById(`q${qNum}_5`).closest('.question-group');
-                questionGroup.style.border = '2px solid #ea4335';
-                questionGroup.style.backgroundColor = '#fff3f3';
+                const questionGroup = allQuestionGroups[qNum - 1]; // qNum is 1-based, array is 0-based
+                if (questionGroup) {
+                    questionGroup.style.border = '2px solid #ea4335';
+                    questionGroup.style.backgroundColor = '#fff3f3';
+                }
             });
             
             // Show error message
@@ -1168,7 +1173,10 @@ Your comments will be anonymous and used constructively to improve teaching qual
             showErrorMessage(`⚠️ Please answer all questions before submitting. You missed: ${questionText}`);
             
             // Scroll to first unanswered question
-            document.getElementById(`q${unansweredQuestions[0]}_5`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const firstUnansweredGroup = allQuestionGroups[unansweredQuestions[0] - 1];
+            if (firstUnansweredGroup) {
+                firstUnansweredGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return false;
         }
 
