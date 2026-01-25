@@ -981,7 +981,7 @@
                         <div class="rating-options">
                             {% for i in "54321" %}
                             <div class="rating-option">
-                                <input type="radio" name="question{{ question.question_number }}" value="{{ i }}" id="q{{ question.question_number }}_{{ i }}" required>
+                                <input type="radio" name="question{{ question.question_number }}" value="{{ i }}" id="q{{ question.question_number }}_{{ i }}">
                                 <label class="rating-label" for="q{{ question.question_number }}_{{ i }}">
                                     <span class="rating-value">{{ i }}</span>
                                     <span class="rating-text">
