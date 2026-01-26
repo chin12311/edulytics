@@ -1255,6 +1255,15 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
             return;
         }
         
+        // Function to get rating equivalent based on percentage
+        function getRatingEquivalent(percentage) {
+            if (percentage >= 90) return { text: 'Outstanding', color: '#28a745' };
+            if (percentage >= 80) return { text: 'Very Satisfactory', color: '#5cb85c' };
+            if (percentage >= 70) return { text: 'Satisfactory', color: '#ffc107' };
+            if (percentage >= 60) return { text: 'Fair', color: '#ff9800' };
+            return { text: 'Needs Improvement', color: '#dc3545' };
+        }
+        
         const isOverall = sectionCode === 'Overall';
         const isPeer = sectionCode === 'Peer Evaluation';
         const isIrregular = sectionCode === 'Irregular Student Evaluations';
@@ -1276,12 +1285,18 @@ style="background-image: url('{% static 'img/phoenix-background.png' %}');
         const category3Percentage = formatToTwoDecimals(((sectionData.category_scores[2] / 20) * 100));
         const category4Percentage = formatToTwoDecimals(((sectionData.category_scores[3] / 20) * 100));
         
+        // Get rating equivalent for overall score
+        const overallRating = getRatingEquivalent(totalPercentage);
+        
         const content = `
             <div class="evaluation-summary">
                 <div class="text-center mb-3">
                     <h3 style="color: #47682c; margin: 0;">${isPeer ? 'Peer Evaluation Average Score' : isOverall ? 'Overall Average Score' : 'Overall Score'}</h3>
                     <div style="font-size: 48px; font-weight: bold; color: #47682c;">
                         ${totalPercentage}%
+                    </div>
+                    <div style="color: ${overallRating.color}; font-size: 20px; font-weight: 600; margin-top: 10px;">
+                        ${overallRating.text}
                     </div>
                     <div style="color: #7f8c8d; font-size: 14px;">
                         ${sectionInfo} | Total Evaluations: ${sectionData.total_evaluations || sectionData.evaluation_count || 0}
