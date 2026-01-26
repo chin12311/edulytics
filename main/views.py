@@ -687,8 +687,22 @@ class FacultyOnlyView(View):
             else:
                 return HttpResponseForbidden("You do not have permission to access this page.")
             
+            # Calculate rankings for all faculty members
+            faculty_rankings = []
+            for faculty in faculties_list:
+                ranking_data = calculate_user_ranking(faculty.user)
+                faculty_rankings.append({
+                    'profile': faculty,
+                    'rank': ranking_data.get('rank'),
+                    'overall_score': ranking_data.get('overall_score'),
+                    'total_users': ranking_data.get('total_users')
+                })
+            
+            # Sort by rank (None values last)
+            faculty_rankings.sort(key=lambda x: (x['rank'] is None, x['rank'] if x['rank'] else float('inf')))
+            
             # Add pagination (25 items per page)
-            faculties_paginator = Paginator(faculties_list, 25)
+            faculties_paginator = Paginator(faculty_rankings, 25)
             coordinators_paginator = Paginator(coordinators_list, 25)
             page_number = request.GET.get('page', 1)
             faculties = faculties_paginator.get_page(page_number)
