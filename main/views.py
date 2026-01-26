@@ -666,6 +666,7 @@ class DeanOnlyView(View):
             return redirect('/login')
         
 @method_decorator(cache_control(no_store=True, no_cache=True, must_revalidate=True), name='dispatch')        
+@method_decorator(cache_control(no_store=True, no_cache=True, must_revalidate=True, max_age=0), name='dispatch')
 class FacultyOnlyView(View):
     def get(self, request):
         if not request.user.is_authenticated:
