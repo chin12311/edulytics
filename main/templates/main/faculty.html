@@ -214,11 +214,10 @@
                     <th>Name</th>
                     <th>Email Address</th>
                     <th>Institute</th>
-                    <th>Overall Score</th>
                 </tr>
             </thead>
             <tbody id="accountTableBody">
-                {% for faculty_data in faculties %}
+                {% for faculty_data in faculties|slice:":10" %}
                 <tr class="account-row" data-user-id="{{ faculty_data.profile.user.id }}" data-user-name="{{ faculty_data.profile.user.username }}" data-user-email="{{ faculty_data.profile.user.email }}">
                     <td>
                         {% if faculty_data.rank %}
@@ -242,30 +241,10 @@
                     <td>{{ faculty_data.profile.display_name|default:faculty_data.profile.user.username }}</td>
                     <td>{{ faculty_data.profile.user.email }}</td>
                     <td>{{ faculty_data.profile.get_institute_code }}</td>
-                    <td>
-                        {% if faculty_data.overall_score %}
-                            <strong style="color: #576d2e;">{{ faculty_data.overall_score }}%</strong>
-                            <br>
-                            <small style="color: 
-                                {% if faculty_data.overall_score >= 90 %}#28a745
-                                {% elif faculty_data.overall_score >= 80 %}#5cb85c
-                                {% elif faculty_data.overall_score >= 70 %}#ffc107
-                                {% elif faculty_data.overall_score >= 60 %}#ff9800
-                                {% else %}#dc3545{% endif %};">
-                                {% if faculty_data.overall_score >= 90 %}Outstanding
-                                {% elif faculty_data.overall_score >= 80 %}Very Satisfactory
-                                {% elif faculty_data.overall_score >= 70 %}Satisfactory
-                                {% elif faculty_data.overall_score >= 60 %}Fair
-                                {% else %}Needs Improvement{% endif %}
-                            </small>
-                        {% else %}
-                            <span style="color: #95a5a6;">-</span>
-                        {% endif %}
-                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5">No users found.</td>
+                    <td colspan="4">No users found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
