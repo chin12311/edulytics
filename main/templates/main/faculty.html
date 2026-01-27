@@ -210,41 +210,21 @@
         <table class="user-table">
             <thead>
                 <tr>
-                    <th>Rank</th>
                     <th>Name</th>
                     <th>Email Address</th>
                     <th>Institute</th>
                 </tr>
             </thead>
             <tbody id="accountTableBody">
-                {% for faculty_data in faculties|slice:":10" %}
+                {% for faculty_data in faculties %}
                 <tr class="account-row" data-user-id="{{ faculty_data.profile.user.id }}" data-user-name="{{ faculty_data.profile.user.username }}" data-user-email="{{ faculty_data.profile.user.email }}">
-                    <td>
-                        {% if faculty_data.rank %}
-                            <strong style="color: #576d2e; font-size: 18px;">
-                                {% if faculty_data.rank == 1 %}
-                                    🥇 #{{ faculty_data.rank }}
-                                {% elif faculty_data.rank == 2 %}
-                                    🥈 #{{ faculty_data.rank }}
-                                {% elif faculty_data.rank == 3 %}
-                                    🥉 #{{ faculty_data.rank }}
-                                {% else %}
-                                    #{{ faculty_data.rank }}
-                                {% endif %}
-                            </strong>
-                            <br>
-                            <small style="color: #7f8c8d;">of {{ faculty_data.total_users }}</small>
-                        {% else %}
-                            <span style="color: #95a5a6;">No data</span>
-                        {% endif %}
-                    </td>
                     <td>{{ faculty_data.profile.display_name|default:faculty_data.profile.user.username }}</td>
                     <td>{{ faculty_data.profile.user.email }}</td>
                     <td>{{ faculty_data.profile.get_institute_code }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4">No users found.</td>
+                    <td colspan="3">No users found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
