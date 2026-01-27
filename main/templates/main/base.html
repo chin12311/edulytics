@@ -539,6 +539,11 @@
         Faculty
     </a>
 
+    <a href="{% url 'main:faculty_rankings' %}" class="nav-link-custom {% if request.path == '/faculty-rankings/' %}active{% endif %}">
+        <span class="nav-icon">🏆</span>
+        Faculty Rankings
+    </a>
+
     {% elif request.user.userprofile.role == 'Student' %}
     <a href="{% url 'main:evaluation' %}" class="nav-link-custom {% if request.path == '/evaluation/' %}active{% endif %}">
         <span class="nav-icon" style="background-image: url('{% static 'img/eval.png' %}');"></span>

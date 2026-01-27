@@ -20,6 +20,7 @@ urlpatterns = [
     path('select_student/<int:student_id>/', views.SelectStudentView.as_view(), name='select_student'), 
     path('update/<int:user_Id>/', views.UpdateUser.as_view(), name='update'),
     path('faculty/', views.FacultyOnlyView.as_view(), name='faculty'),
+    path('faculty-rankings/', views.FacultyRankingsView.as_view(), name='faculty_rankings'),
     path('coordinator/', views.CoordinatorOnlyView.as_view(), name='coordinators'),
     path('dean/', views.DeanOnlyView.as_view(), name='deans'),
     path('delete/<int:user_id>/', views.DeleteAccountView.as_view(), name='delete_account'),

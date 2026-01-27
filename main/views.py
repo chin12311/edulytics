@@ -734,6 +734,59 @@ class FacultyOnlyView(View):
 
         except UserProfile.DoesNotExist:
             return redirect('/login')
+
+@method_decorator(cache_control(no_store=True, no_cache=True, must_revalidate=True), name='dispatch')
+class FacultyRankingsView(View):
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return redirect('/login')
+
+        try:
+            user_profile = UserProfile.objects.get(user=request.user)
+
+            # Only Admin can access faculty rankings
+            if user_profile.role != Role.ADMIN:
+                return HttpResponseForbidden("You do not have permission to access this page.")
+
+            # Get all faculty members
+            all_faculty = UserProfile.objects.filter(role=Role.FACULTY).select_related('user')
+
+            # Calculate rankings for all faculty
+            faculty_rankings = []
+            for faculty in all_faculty:
+                ranking_data = calculate_user_ranking(faculty.user)
+                faculty_rankings.append({
+                    'profile': faculty,
+                    'rank': ranking_data.get('rank'),
+                    'overall_score': ranking_data.get('overall_score'),
+                    'total_users': ranking_data.get('total_users')
+                })
+
+            # Group faculty by institute and sort by rank
+            from collections import defaultdict
+            rankings_by_institute = defaultdict(list)
+            
+            for faculty_data in faculty_rankings:
+                institute_name = faculty_data['profile'].institute or 'Unknown'
+                rankings_by_institute[institute_name].append(faculty_data)
+
+            # Sort each institute's faculty by rank
+            for institute in rankings_by_institute:
+                rankings_by_institute[institute].sort(
+                    key=lambda x: (x['rank'] is None, x['rank'] if x['rank'] else float('inf'))
+                )
+
+            # Convert defaultdict to regular dict and sort by institute name
+            rankings_by_institute = dict(sorted(rankings_by_institute.items()))
+
+            context = {
+                'user_profile': user_profile,
+                'rankings_by_institute': rankings_by_institute,
+            }
+            return render(request, 'main/faculty_rankings.html', context)
+
+        except UserProfile.DoesNotExist:
+            return redirect('/login')
           
 @method_decorator(cache_control(no_store=True, no_cache=True, must_revalidate=True), name='dispatch')    
 class CoordinatorOnlyView(View):
