@@ -1100,18 +1100,6 @@
         document.querySelector('form').addEventListener('submit', function(e) {
             console.log('Form submit event triggered');
             
-            // Check if agreement checkbox is checked
-            if (!agreementCheckbox.checked) {
-                e.preventDefault();
-                agreementError.style.display = 'block';
-                agreementCheckbox.classList.add('shake');
-                setTimeout(() => {
-                    agreementCheckbox.classList.remove('shake');
-                }, 500);
-                agreementCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return false;
-            }
-            
             // Remove any existing error messages
             const existingError = document.querySelector('.validation-error-message');
             if (existingError) {
