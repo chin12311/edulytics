@@ -1081,7 +1081,8 @@
                 card.addEventListener('mouseleave', function() {
                     if (!this.classList.contains('evaluated')) {
                         // Only reset if not selected
-                        const isSelected = this.querySelector('.select-badge').style.display === 'inline-block';
+                        const badge = this.querySelector('.select-badge');
+                        const isSelected = badge && badge.style.display === 'inline-block';
                         if (!isSelected) {
                             this.style.transform = 'none';
                             this.style.boxShadow = 'none';
