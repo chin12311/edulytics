@@ -877,8 +877,7 @@
                             }, 5000);
                         });
                     }
-                });
-            </script>
+                });\n        \n        }); // End DOMContentLoaded\n    </script>
             <style>
                 @keyframes slideInDown {
                     from {
@@ -1036,12 +1035,16 @@
     </div>
 
     <script>
-        const evaluatedIds = {{ evaluated_ids|safe }};
-        const coordinatorInput = document.getElementById("coordinator_id");
-        const warningMsg = document.getElementById("already-evaluated-msg");
+        document.addEventListener('DOMContentLoaded', function() {
+            const evaluatedIds = {{ evaluated_ids|safe }};
+            const coordinatorInput = document.getElementById("coordinator_id");
+            const warningMsg = document.getElementById("already-evaluated-msg");
 
-        // Card selection functionality
-        document.querySelectorAll('.coordinator-card').forEach(card => {
+            console.log('Upward evaluation form loaded');
+            console.log('Coordinator cards found:', document.querySelectorAll('.coordinator-card').length);
+
+            // Card selection functionality
+            document.querySelectorAll('.coordinator-card').forEach(card => {
             if (!card.classList.contains('evaluated')) {
                 card.addEventListener('click', function() {
                     const coordinatorId = this.getAttribute('data-coordinator-id');
@@ -1259,7 +1262,6 @@
             } else {
                 commentCounter.style.color = 'var(--text-light)';
             }
-        });
-    </script>
+        });\n        \n        }); // End DOMContentLoaded\n    </script>
 </body>
 </html>

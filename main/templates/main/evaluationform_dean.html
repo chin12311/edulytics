@@ -877,8 +877,7 @@
                             }, 5000);
                         });
                     }
-                });
-            </script>
+                });\n        \n        }); // End DOMContentLoaded\n    </script>
             <style>
                 @keyframes slideInDown {
                     from {
@@ -1036,12 +1035,16 @@
     </div>
 
     <script>
-        const evaluatedIds = {{ evaluated_ids|safe }};
-        const deanInput = document.getElementById("dean_id");
-        const warningMsg = document.getElementById("already-evaluated-msg");
+        document.addEventListener('DOMContentLoaded', function() {
+            const evaluatedIds = {{ evaluated_ids|safe }};
+            const deanInput = document.getElementById("dean_id");
+            const warningMsg = document.getElementById("already-evaluated-msg");
 
-        // Card selection functionality
-        document.querySelectorAll('.dean-card').forEach(card => {
+            console.log('Dean evaluation form loaded');
+            console.log('Dean cards found:', document.querySelectorAll('.dean-card').length);
+
+            // Card selection functionality
+            document.querySelectorAll('.dean-card').forEach(card => {
             if (!card.classList.contains('evaluated')) {
                 card.addEventListener('click', function() {
                     const deanId = this.getAttribute('data-dean-id');
@@ -1259,7 +1262,6 @@
             } else {
                 commentCounter.style.color = 'var(--text-light)';
             }
-        });
-    </script>
+        });\n        \n        }); // End DOMContentLoaded\n    </script>
 </body>
 </html>
