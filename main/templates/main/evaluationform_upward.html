@@ -1048,55 +1048,56 @@
 
             // Card selection functionality
             document.querySelectorAll('.coordinator-card').forEach(card => {
-            if (!card.classList.contains('evaluated')) {
-                card.addEventListener('click', function() {
-                    const coordinatorId = this.getAttribute('data-coordinator-id');
+                if (!card.classList.contains('evaluated')) {
+                    card.addEventListener('click', function() {
+                        const coordinatorId = this.getAttribute('data-coordinator-id');
+                        
+                        // Remove selection from all cards
+                        document.querySelectorAll('.coordinator-card').forEach(c => {
+                            if (!c.classList.contains('evaluated')) {
+                                c.style.border = '2px solid #e0e0e0';
+                                c.style.transform = 'none';
+                                const badge = c.querySelector('.select-badge');
+                                if (badge) badge.style.display = 'none';
+                            }
+                        });
+                        
+                        // Mark this card as selected
+                        this.style.border = '2px solid #7d8e3c';
+                        this.style.transform = 'translateY(-5px)';
+                        this.style.boxShadow = '0 8px 16px rgba(125, 142, 60, 0.3)';
+                        const selectBadge = this.querySelector('.select-badge');
+                        if (selectBadge) selectBadge.style.display = 'inline-block';
+                        
+                        // Set the hidden input value
+                        coordinatorInput.value = coordinatorId;
+                        
+                        // Hide warning message when a valid coordinator is selected
+                        if (warningMsg) warningMsg.style.display = 'none';
+                    });
                     
-                    // Remove selection from all cards
-                    document.querySelectorAll('.coordinator-card').forEach(c => {
-                        if (!c.classList.contains('evaluated')) {
-                            c.style.border = '2px solid #e0e0e0';
-                            c.style.transform = 'none';
-                            const badge = c.querySelector('.select-badge');
-                            if (badge) badge.style.display = 'none';
+                    // Add hover effects for visual feedback
+                    card.addEventListener('mouseenter', function() {
+                        if (!this.classList.contains('evaluated')) {
+                            this.style.transform = 'translateY(-5px)';
+                            this.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.1)';
                         }
                     });
                     
-                    // Mark this card as selected
-                    this.style.border = '2px solid #7d8e3c';
-                    this.style.transform = 'translateY(-5px)';
-                    this.style.boxShadow = '0 8px 16px rgba(125, 142, 60, 0.3)';
-                    const selectBadge = this.querySelector('.select-badge');
-                    if (selectBadge) selectBadge.style.display = 'inline-block';
-                    
-                    // Set the hidden input value
-                    coordinatorInput.value = coordinatorId;
-                    
-                    // Hide warning message when a valid coordinator is selected
-                    if (warningMsg) warningMsg.style.display = 'none';
-                });
-                
-                // Add hover effects for visual feedback
-                card.addEventListener('mouseenter', function() {
-                    if (!this.classList.contains('evaluated')) {
-                        this.style.transform = 'translateY(-5px)';
-                        this.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.1)';
-                    }
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    if (!this.classList.contains('evaluated')) {
-                        // Only reset if not selected
-                        const badge = this.querySelector('.select-badge');
-                        const isSelected = badge && badge.style.display === 'inline-block';
-                        if (!isSelected) {
-                            this.style.transform = 'none';
-                            this.style.boxShadow = 'none';
+                    card.addEventListener('mouseleave', function() {
+                        if (!this.classList.contains('evaluated')) {
+                            // Only reset if not selected
+                            const badge = this.querySelector('.select-badge');
+                            const isSelected = badge && badge.style.display === 'inline-block';
+                            if (!isSelected) {
+                                this.style.transform = 'none';
+                                this.style.boxShadow = 'none';
+                            }
                         }
-                    }
-                });
-            }
-        });
+                    });
+                }
+            });
+
 
         // Form submission validation and logging
         document.querySelector('form').addEventListener('submit', function(e) {
