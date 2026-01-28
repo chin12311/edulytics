@@ -1037,12 +1037,16 @@
             const warningMsg = document.getElementById("already-evaluated-msg");
 
             console.log('Upward evaluation form loaded');
+            console.log('Evaluated IDs:', evaluatedIds);
+            console.log('Total cards:', document.querySelectorAll('.coordinator-card').length);
             console.log('Coordinator cards found:', document.querySelectorAll('.coordinator-card').length);
 
             // Card selection functionality
             document.querySelectorAll('.coordinator-card').forEach(card => {
                 if (!card.classList.contains('evaluated')) {
+                    console.log('Attaching click to card');
                     card.addEventListener('click', function() {
+                        console.log(' CARD CLICKED!', this.getAttribute('data-coordinator-id'));
                         const coordinatorId = this.getAttribute('data-coordinator-id');
                         
                         // Remove selection from all cards
