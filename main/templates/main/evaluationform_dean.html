@@ -1101,18 +1101,6 @@
         document.querySelector('form').addEventListener('submit', function(e) {
             console.log('Form submit event triggered');
             
-            // Check if agreement checkbox is checked
-            if (!agreementCheckbox.checked) {
-                e.preventDefault();
-                agreementError.style.display = 'block';
-                agreementCheckbox.classList.add('shake');
-                setTimeout(() => {
-                    agreementCheckbox.classList.remove('shake');
-                }, 500);
-                agreementCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return false;
-            }
-            
             // Remove any existing error messages
             const existingError = document.querySelector('.validation-error-message');
             if (existingError) {
@@ -1207,10 +1195,6 @@ You missed: ${questionText}`);
 
             console.log('All validations passed, submitting form...');
         });
-                errorDiv.style.animation = 'slideUp 0.3s ease';
-                setTimeout(() => errorDiv.remove(), 300);
-            }, 5000);
-        }
 
         // Add CSS for animations
         const style = document.createElement('style');
